@@ -1,0 +1,171 @@
+# Demiurge Production Stack (Monad/Pleroma)
+#
+# Usage:
+#   docker-compose -f docker-compose.production.yml up -d
+#
+# Note: For production, use external managed databases where possible.
+# This file is for self-hosted deployments on Monad.
+
+version: '3.9'
+
+services:
+  # Qor Auth Service
+  qor-auth:
+    build:
+      context: ../services/qor-auth
+      dockerfile: Dockerfile
+    container_name: demiurge-qor-auth
+    restart: unless-stopped
+    environment:
+      RUN_ENV: production
+      QOR_AUTH__SERVER__HOST: 0.0.0.0
+      QOR_AUTH__SERVER__PORT: 3000
+      QOR_AUTH__DATABASE__URL: postgres://qor_auth:${POSTGRES_PASSWORD}@postgres:5432/qor_auth
+      QOR_AUTH__REDIS__URL: redis://redis:6379
+      QOR_AUTH__JWT__ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      QOR_AUTH__JWT__REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      QOR_AUTH__JWT__ISSUER: qor-auth
+      SUBSTRATE_RPC_URL: ws://demiurge-node:9944
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - demiurge-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Demiurge Blockchain Node
+  demiurge-node:
+    build:
+      context: ../blockchain
+      dockerfile: Dockerfile
+    container_name: demiurge-node
+    restart: unless-stopped
+    command: >
+      --chain demiurge-testnet
+      --name "Pleroma-Validator"
+      --validator
+      --rpc-cors all
+      --rpc-external
+      --prometheus-external
+    volumes:
+      - node_data:/data
+    ports:
+      - "9944:9944"   # RPC
+      - "9933:9933"   # WebSocket
+      - "30333:30333" # P2P
+      - "9615:9615"   # Prometheus
+    networks:
+      - demiurge-network
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+
+  # PostgreSQL with production settings
+  postgres:
+    image: postgres:18
+    container_name: demiurge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: qor_auth
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: qor_auth
+      # Production tuning
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=16MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c max_worker_processes=4
+      -c max_parallel_workers_per_gather=2
+      -c max_parallel_workers=4
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qor_auth -d qor_auth"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - demiurge-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Redis with production settings
+  redis:
+    image: redis:7.4-alpine
+    container_name: demiurge-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 300
+      --timeout 0
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - demiurge-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: demiurge-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - qor-auth
+      - demiurge-node
+    networks:
+      - demiurge-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  node_data:
+
+networks:
+  demiurge-network:
+    driver: bridge

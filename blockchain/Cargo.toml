@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "node",
     "pallets/pallet-cgt",
     "pallets/pallet-qor-identity",
     "runtime",
