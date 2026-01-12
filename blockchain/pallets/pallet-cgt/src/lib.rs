@@ -5,7 +5,7 @@
 //! ## Overview
 //!
 //! CGT is the native token with the following properties:
-//! - **Total Supply**: 1,000,000,000 (1 Billion)
+//! - **Total Supply**: 13,000,000,000 (13 Billion) - Fixed
 //! - **Precision**: 8 decimals
 //! - **Smallest Unit**: 1 Spark (0.00000001 CGT)
 //!
@@ -14,17 +14,26 @@
 //! - Standard token transfers with fee burning
 //! - Deflationary mechanics (80% of fees burned)
 //! - Treasury allocation for remaining fees
-//! - Staking reward emission
+//! - Staking reward emission (Archon rewards)
 //!
-//! ## Genesis Configuration
+//! ## Tokenomics: "The Creation Model"
 //!
-//! The genesis block allocates tokens according to the tokenomics:
-//! - 35% Ecosystem Treasury
-//! - 25% Staking Rewards
-//! - 15% Team (vested)
-//! - 10% Development
-//! - 10% Liquidity
-//! - 5% Early Backers
+//! Distribution designed to reward creators and validators:
+//!
+//! | Bucket               | Allocation | Amount (CGT)  | Purpose                           |
+//! |----------------------|------------|---------------|-----------------------------------|
+//! | Pleroma Mining       | 40%        | 5,200,000,000 | In-game creation & Play-to-Earn   |
+//! | Archon Staking       | 20%        | 2,600,000,000 | Validator/Nominator rewards       |
+//! | Demiurge Treasury    | 15%        | 1,950,000,000 | DAO-managed ecosystem growth      |
+//! | Core Team & Founders | 15%        | 1,950,000,000 | 4-year linear vesting             |
+//! | Genesis Offering     | 10%        | 1,300,000,000 | Initial public liquidity          |
+//!
+//! ## Governance: The Archon Consensus
+//!
+//! - Model: Nominated Proof of Stake (NPoS)
+//! - Validators: "Archons"
+//! - Nominators: "Aeons"
+//! - Voting: Quadratic voting based on CGT stake + Qor ID Reputation Score
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -65,14 +74,33 @@ pub mod pallet {
     /// One CGT in smallest units (Sparks)
     pub const CGT: u128 = 100_000_000; // 10^8
 
-    /// Total supply: 1 billion CGT
-    pub const TOTAL_SUPPLY: u128 = 1_000_000_000 * CGT;
+    /// Total supply: 13 billion CGT (Fixed)
+    pub const TOTAL_SUPPLY: u128 = 13_000_000_000 * CGT;
 
-    /// Existential deposit: 0.001 CGT
+    /// Existential deposit: 0.001 CGT (prevents dust accounts)
     pub const EXISTENTIAL_DEPOSIT: u128 = CGT / 1000;
 
-    /// Pallet ID for treasury
+    /// Pallet ID for treasury (Demiurge Treasury)
     pub const PALLET_ID: PalletId = PalletId(*b"cgt/trsy");
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TOKENOMICS: The Creation Model - Distribution Buckets
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    /// 40% - Pleroma Mining: In-game creation rewards & Play-to-Earn
+    pub const PLEROMA_MINING_ALLOCATION: u128 = 5_200_000_000 * CGT;
+    
+    /// 20% - Archon Staking: Validator/Nominator rewards (NPoS)
+    pub const ARCHON_STAKING_ALLOCATION: u128 = 2_600_000_000 * CGT;
+    
+    /// 15% - Demiurge Treasury: DAO-managed ecosystem growth
+    pub const TREASURY_ALLOCATION: u128 = 1_950_000_000 * CGT;
+    
+    /// 15% - Core Team & Founders: 4-year linear vesting
+    pub const TEAM_ALLOCATION: u128 = 1_950_000_000 * CGT;
+    
+    /// 10% - Initial Genesis Offering: Public liquidity
+    pub const GENESIS_OFFERING_ALLOCATION: u128 = 1_300_000_000 * CGT;
 
     /// Type alias for currency balance
     pub type BalanceOf<T> =

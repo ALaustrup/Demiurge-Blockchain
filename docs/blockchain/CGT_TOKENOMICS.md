@@ -1,18 +1,19 @@
 # 💰 CREATOR GOD TOKEN (CGT) TOKENOMICS
 
-> *"From the divine treasury, value emanates."*
+> *"From the divine treasury, value emanates through creation."*
 
 ---
 
 ## 📋 Table of Contents
 
 1. [Token Overview](#token-overview)
-2. [Supply Distribution](#supply-distribution)
-3. [Utility Functions](#utility-functions)
-4. [Economic Model](#economic-model)
-5. [Governance](#governance)
-6. [Technical Implementation](#technical-implementation)
-7. [Emission Schedule](#emission-schedule)
+2. [The Creation Model](#the-creation-model)
+3. [Distribution Buckets](#distribution-buckets)
+4. [Utility Functions](#utility-functions)
+5. [Economic Model](#economic-model)
+6. [The Archon Consensus](#the-archon-consensus)
+7. [Technical Implementation](#technical-implementation)
+8. [Emission Schedule](#emission-schedule)
 
 ---
 
@@ -24,16 +25,17 @@
 |-----------|-------|
 | **Name** | Creator God Token |
 | **Symbol** | CGT |
-| **Total Supply** | 1,000,000,000 (1 Billion) |
+| **Total Supply** | 13,000,000,000 (13 Billion) - **FIXED** |
 | **Precision** | 8 decimals |
-| **Smallest Unit** | 0.00000001 CGT |
-| **Blockchain** | Demiurge (Substrate) |
+| **Smallest Unit** | 1 Spark (0.00000001 CGT) |
+| **Blockchain** | Demiurge (Polkadot SDK / Substrate) |
 | **Standard** | Native / pallet-cgt |
+| **Consensus** | Nominated Proof of Stake (NPoS) |
 
 ### Denomination Reference
 
-| Name | CGT Value | Smallest Units |
-|------|-----------|----------------|
+| Name | CGT Value | Smallest Units (Sparks) |
+|------|-----------|-------------------------|
 | **1 CGT** | 1.00000000 | 100,000,000 |
 | **1 mCGT (milli)** | 0.00100000 | 100,000 |
 | **1 μCGT (micro)** | 0.00000100 | 100 |
@@ -41,64 +43,132 @@
 
 ---
 
-## Supply Distribution
+## The Creation Model
 
-### Genesis Allocation
+The **Creation Model** is the philosophical foundation of CGT tokenomics. Unlike traditional blockchain tokens that reward passive holding or pure speculation, CGT prioritizes **active creation** within the Pleroma (the 3D metaverse).
+
+### Philosophy
 
 ```
-Total Supply: 1,000,000,000 CGT (100%)
-═══════════════════════════════════════════════════════════════
-
-┌─────────────────────────────────────────────────────────────┐
-│                                                             │
-│  ████████████████████████████████████░░░░░░░░░░ 35%        │
-│  Ecosystem & Community Treasury                             │
-│  350,000,000 CGT                                           │
-│                                                             │
-│  ██████████████████████████░░░░░░░░░░░░░░░░░░░░ 25%        │
-│  Staking Rewards (10-year emission)                        │
-│  250,000,000 CGT                                           │
-│                                                             │
-│  ████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 15%        │
-│  Team & Advisors (4-year vest, 1-year cliff)               │
-│  150,000,000 CGT                                           │
-│                                                             │
-│  ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 10%        │
-│  Development Fund                                          │
-│  100,000,000 CGT                                           │
-│                                                             │
-│  ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 10%        │
-│  Liquidity & Exchange Listings                             │
-│  100,000,000 CGT                                           │
-│                                                             │
-│  █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 5%         │
-│  Early Backers / Private Sale                              │
-│  50,000,000 CGT                                            │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│                         "To Create is to Earn"                              │
+│                                                                             │
+│   The Demiurge is the Creator God. In Gnostic cosmology, the Demiurge      │
+│   shapes reality through divine will. In the Demiurge-Blockchain,          │
+│   users become Creators—their in-world actions generate real value.        │
+│                                                                             │
+│   • Building structures in the Pleroma          → Mining CGT               │
+│   • Validating the network (Archons)            → Staking CGT              │
+│   • Governing the ecosystem (Aeons)             → Voting CGT               │
+│   • Trading creations (NFTs)                    → Exchanging CGT           │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Allocation Details
+---
 
-#### Ecosystem & Community Treasury (35%)
+## Distribution Buckets
 
-| Purpose | Allocation | Unlock |
-|---------|------------|--------|
-| Grants Program | 100,000,000 | Governance-controlled |
-| Bug Bounties | 25,000,000 | On-demand |
-| Community Events | 50,000,000 | Quarterly release |
-| Partnerships | 75,000,000 | Governance-controlled |
-| Reserve | 100,000,000 | Emergency only |
+### Genesis Allocation (13 Billion CGT)
 
-#### Team & Advisors (15%)
+```
+Total Supply: 13,000,000,000 CGT (100%)
+═══════════════════════════════════════════════════════════════════════════════
 
-| Milestone | % Unlocked | Cumulative |
-|-----------|------------|------------|
-| TGE | 0% | 0% |
-| Year 1 (Cliff) | 25% | 25% |
-| Year 2 | 25% | 50% |
-| Year 3 | 25% | 75% |
-| Year 4 | 25% | 100% |
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  ████████████████████████████████████████████████░░░░░░░░░░░░░░░  40%      │
+│  PLEROMA MINING (In-Game Creation & Play-to-Earn)                          │
+│  5,200,000,000 CGT                                                         │
+│                                                                             │
+│  ████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  20%      │
+│  ARCHON STAKING (Validator/Nominator Rewards)                              │
+│  2,600,000,000 CGT                                                         │
+│                                                                             │
+│  ██████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  15%      │
+│  DEMIURGE TREASURY (DAO-Managed Ecosystem Growth)                          │
+│  1,950,000,000 CGT                                                         │
+│                                                                             │
+│  ██████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  15%      │
+│  CORE TEAM & FOUNDERS (4-Year Linear Vesting)                              │
+│  1,950,000,000 CGT                                                         │
+│                                                                             │
+│  ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  10%      │
+│  GENESIS OFFERING (Initial Public Liquidity)                               │
+│  1,300,000,000 CGT                                                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Bucket Breakdown
+
+#### 1. Pleroma Mining (40% - 5.2B CGT)
+
+The largest allocation, designed to reward **in-world creators**:
+
+| Activity | CGT Reward | Frequency |
+|----------|------------|-----------|
+| Building a Structure | 10-1000 CGT | Per creation |
+| Completing a Quest | 1-100 CGT | Per quest |
+| Environmental Contribution | 0.1-10 CGT | Per action |
+| Content Creation (Art/Music) | 50-5000 CGT | Per submission |
+| Discovery Bonus | 100-10000 CGT | First-find rewards |
+
+**Emission Schedule:**
+- Year 1-3: 20% of bucket (1.04B CGT)
+- Year 4-6: 30% of bucket (1.56B CGT)
+- Year 7-10: 30% of bucket (1.56B CGT)
+- Reserve: 20% (1.04B CGT) - Governance-controlled
+
+#### 2. Archon Staking (20% - 2.6B CGT)
+
+Rewards for network validators (**Archons**) and nominators (**Aeons**):
+
+| Role | Minimum Stake | Annual Yield (Est.) |
+|------|---------------|---------------------|
+| Archon (Validator) | 1,000,000 CGT | 8-15% |
+| Aeon (Nominator) | 100 CGT | 6-12% |
+
+**Emission Schedule:**
+- 10-year linear emission
+- ~260M CGT per year in validator/nominator rewards
+- Decreasing rate as network matures
+
+#### 3. Demiurge Treasury (15% - 1.95B CGT)
+
+DAO-controlled funds for ecosystem development:
+
+| Purpose | Allocation | Control |
+|---------|------------|---------|
+| Grants Program | 500M CGT | Governance vote |
+| Bug Bounties | 100M CGT | On-demand |
+| Partnerships | 400M CGT | Governance vote |
+| Marketing | 300M CGT | Quarterly release |
+| Emergency Reserve | 650M CGT | 75% supermajority |
+
+#### 4. Core Team & Founders (15% - 1.95B CGT)
+
+**4-Year Linear Vesting Schedule:**
+
+| Milestone | % Unlocked | CGT Unlocked | Cumulative |
+|-----------|------------|--------------|------------|
+| TGE (Token Generation) | 0% | 0 | 0 |
+| Month 12 (Cliff) | 25% | 487,500,000 | 25% |
+| Month 24 | 25% | 487,500,000 | 50% |
+| Month 36 | 25% | 487,500,000 | 75% |
+| Month 48 | 25% | 487,500,000 | 100% |
+
+#### 5. Genesis Offering (10% - 1.3B CGT)
+
+Initial public liquidity distribution:
+
+| Phase | Allocation | Price | Duration |
+|-------|------------|-------|----------|
+| Private Round | 300M CGT | $0.008 | Pre-launch |
+| Public Sale | 500M CGT | $0.010 | 7 days |
+| DEX Liquidity | 300M CGT | Market | Permanent |
+| CEX Listings | 200M CGT | Market | As listed |
 
 ---
 
@@ -107,35 +177,37 @@ Total Supply: 1,000,000,000 CGT (100%)
 ### Primary Uses
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     CGT UTILITY MAP                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
-│  │   STAKING   │    │ GOVERNANCE  │    │   IN-GAME   │     │
-│  │             │    │             │    │   ECONOMY   │     │
-│  │ • Validate  │    │ • Vote      │    │ • Purchase  │     │
-│  │ • Nominate  │    │ • Propose   │    │ • Trade     │     │
-│  │ • Earn      │    │ • Delegate  │    │ • Craft     │     │
-│  └─────────────┘    └─────────────┘    └─────────────┘     │
-│         │                 │                 │               │
-│         └─────────────────┼─────────────────┘               │
-│                           │                                 │
-│                    ┌──────▼───────┐                        │
-│                    │     CGT      │                        │
-│                    └──────┬───────┘                        │
-│                           │                                 │
-│         ┌─────────────────┼─────────────────┐               │
-│         │                 │                 │               │
-│  ┌──────▼──────┐   ┌──────▼──────┐   ┌──────▼──────┐       │
-│  │    FEES     │   │   IDENTITY  │   │    NFTs     │       │
-│  │             │   │             │   │             │       │
-│  │ • Tx fees   │   │ • Qor ID    │   │ • Minting   │       │
-│  │ • Storage   │   │ • Premium   │   │ • Royalties │       │
-│  │ • Compute   │   │ • Badges    │   │ • Trading   │       │
-│  └─────────────┘   └─────────────┘   └─────────────┘       │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           CGT UTILITY MAP                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐              │
+│  │   STAKING     │    │  GOVERNANCE   │    │   PLEROMA     │              │
+│  │   (Archons)   │    │   (Aeons)     │    │   (Creators)  │              │
+│  │               │    │               │    │               │              │
+│  │ • Validate    │    │ • Vote        │    │ • Build       │              │
+│  │ • Nominate    │    │ • Propose     │    │ • Trade       │              │
+│  │ • Earn        │    │ • Delegate    │    │ • Create      │              │
+│  └───────┬───────┘    └───────┬───────┘    └───────┬───────┘              │
+│          │                    │                    │                       │
+│          └────────────────────┼────────────────────┘                       │
+│                               │                                            │
+│                        ┌──────▼──────┐                                     │
+│                        │     CGT     │                                     │
+│                        │  (13 Bil)   │                                     │
+│                        └──────┬──────┘                                     │
+│                               │                                            │
+│          ┌────────────────────┼────────────────────┐                       │
+│          │                    │                    │                       │
+│  ┌───────▼───────┐    ┌───────▼───────┐    ┌───────▼───────┐              │
+│  │     FEES      │    │   QOR ID      │    │     NFTs      │              │
+│  │               │    │               │    │               │              │
+│  │ • Tx fees     │    │ • Register    │    │ • Minting     │              │
+│  │ • Storage     │    │ • Premium     │    │ • Royalties   │              │
+│  │ • Compute     │    │ • Reputation  │    │ • Trading     │              │
+│  └───────────────┘    └───────────────┘    └───────────────┘              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Fee Structure
@@ -146,7 +218,9 @@ Total Supply: 1,000,000,000 CGT (100%)
 | Smart Contract Call | 0.01 CGT base | Validators |
 | NFT Minting | 1.0 CGT | 50% Burned / 50% Creator |
 | Qor ID Registration | 5.0 CGT | 100% Burned |
-| Governance Proposal | 100.0 CGT (refundable) | Locked until vote |
+| Qor ID Premium Badge | 100.0 CGT | 100% Burned |
+| Governance Proposal | 1000.0 CGT (refundable) | Locked until vote |
+| Archon Registration | 1,000,000 CGT | Staked |
 
 ---
 
@@ -154,22 +228,25 @@ Total Supply: 1,000,000,000 CGT (100%)
 
 ### Deflationary Mechanisms
 
-#### 1. Fee Burning
+#### 1. Fee Burning (80%)
 
 ```
-Every transaction burns a portion:
+Every transaction burns 80% of fees:
 
 Transfer: 0.001 CGT → 0.0008 CGT burned
                    → 0.0002 CGT to treasury
 
-Annual Burn Estimate (at 1M tx/day):
-= 1,000,000 × 0.0008 × 365
-= 292,000 CGT/year
+Annual Burn Estimate (at 10M tx/day):
+= 10,000,000 × 0.0008 × 365
+= 2,920,000 CGT/year
 ```
 
-#### 2. Slashing
+#### 2. Identity Burns
 
-Misbehaving validators lose staked CGT:
+- Qor ID Registration: **5 CGT** permanently burned
+- Premium Badges: **100 CGT** permanently burned
+
+#### 3. Slashing
 
 | Offense | Slash % | Destination |
 |---------|---------|-------------|
@@ -177,51 +254,54 @@ Misbehaving validators lose staked CGT:
 | Extended downtime | 1% | Treasury |
 | Invalid block | 5% | Burned |
 
-#### 3. Identity Burns
-
-Each Qor ID registration burns 5 CGT permanently.
-
 ### Inflationary Mechanisms
 
-#### Staking Rewards
+The **only** source of new CGT is from the **pre-mined buckets** (Pleroma Mining, Archon Staking).
 
-| Year | Annual Inflation | Total New CGT |
-|------|-----------------|---------------|
-| 1 | 5.0% | 50,000,000 |
-| 2 | 4.5% | 47,250,000 |
-| 3 | 4.0% | 44,100,000 |
-| 4 | 3.5% | 40,635,000 |
-| 5 | 3.0% | 36,889,500 |
-| 6-10 | 2.5%/year | ~125,000,000 |
+| Source | Annual Emission (Est.) | Duration |
+|--------|------------------------|----------|
+| Pleroma Mining | ~520M CGT | 10 years |
+| Archon Staking | ~260M CGT | 10 years |
 
-**Note:** Inflation rate decreases yearly. After year 10, governance decides continuation.
+**Note:** Total supply is FIXED at 13B. No new CGT is ever minted beyond genesis allocation.
 
 ### Net Supply Projection
 
 ```
-Year 1:  1,000,000,000 + 50,000,000 (staking) - ~500,000 (burns) ≈ 1,049,500,000
-Year 5:  ~1,200,000,000 (peak)
-Year 10: ~1,350,000,000 (equilibrium estimate)
+Year 1:  ~5,000,000,000 circulating (Genesis Offering + partial emissions)
+Year 5:  ~8,500,000,000 circulating
+Year 10: ~11,000,000,000 circulating
+Year 15: ~12,500,000,000 circulating (approaching max, burn > emission)
 
-Long-term: Burn rate designed to eventually exceed inflation
+Long-term equilibrium: ~12.5B CGT (500M permanently burned)
 ```
 
 ---
 
-## Governance
+## The Archon Consensus
+
+### Governance Model: Nominated Proof of Stake (NPoS)
+
+| Role | Gnostic Term | Function |
+|------|--------------|----------|
+| Validator | **Archon** | Produces blocks, validates transactions |
+| Nominator | **Aeon** | Delegates stake to Archons |
+| Council Member | **Syzygy** | Elected governance representative |
 
 ### Voting Power
 
 ```
-Voting Power = Staked CGT × Time Multiplier
+Voting Power = √(Staked CGT) × Reputation Multiplier
 
-Time Multiplier:
-- No lock: 1.0x
-- 1 month: 1.1x
-- 6 months: 1.5x
-- 1 year: 2.0x
-- 2 years: 3.0x
+Reputation Multiplier (Qor ID based):
+- New Account: 1.0x
+- Verified Human: 1.2x
+- Active Creator: 1.5x
+- Archon/Aeon: 2.0x
+- Council Member: 3.0x
 ```
+
+**Note:** Quadratic voting prevents whale domination while reputation rewards positive participation.
 
 ### Proposal Types
 
@@ -230,270 +310,109 @@ Time Multiplier:
 | Parameter Change | 50%+1 | 10% | 7 days |
 | Treasury Spend | 60% | 15% | 14 days |
 | Protocol Upgrade | 66.67% | 20% | 21 days |
-| Emergency | 75% | 25% | 3 days |
-
-### Delegation
-
-Users can delegate voting power while retaining token ownership:
-
-```rust
-// Delegation structure
-delegate(
-    delegatee: AccountId,
-    amount: Balance,
-    lock_period: Option<Duration>,
-    conviction: Conviction,  // 1x to 6x multiplier
-)
-```
+| Emergency Action | 75% | 25% | 3 days |
+| Constitutional | 80% | 33% | 28 days |
 
 ---
 
 ## Technical Implementation
 
-### Substrate Pallet Structure
+### Substrate Pallet Constants
 
 ```rust
 // pallet-cgt/src/lib.rs
 
-#![cfg_attr(not(feature = "std"), no_std)]
+/// CGT precision: 8 decimals
+pub const DECIMALS: u8 = 8;
 
-pub use pallet::*;
+/// One CGT in smallest units (Sparks)
+pub const CGT: u128 = 100_000_000; // 10^8
 
-#[frame_support::pallet]
-pub mod pallet {
-    use frame_support::{
-        pallet_prelude::*,
-        traits::{Currency, ReservableCurrency, ExistenceRequirement},
-    };
-    use frame_system::pallet_prelude::*;
-    use sp_runtime::traits::{Zero, Saturating};
+/// Total supply: 13 billion CGT (FIXED)
+pub const TOTAL_SUPPLY: u128 = 13_000_000_000 * CGT;
 
-    /// CGT precision: 8 decimals
-    pub const DECIMALS: u8 = 8;
-    
-    /// Total supply: 1 billion CGT
-    pub const TOTAL_SUPPLY: u128 = 1_000_000_000 * 10u128.pow(DECIMALS as u32);
-    
-    /// Minimum balance to keep account alive
-    pub const EXISTENTIAL_DEPOSIT: u128 = 100_000; // 0.001 CGT
+/// Existential deposit: 0.001 CGT
+pub const EXISTENTIAL_DEPOSIT: u128 = CGT / 1000;
 
-    #[pallet::pallet]
-    pub struct Pallet<T>(_);
+// ═══════════════════════════════════════════════════════════════════════════
+// TOKENOMICS: The Creation Model - Distribution Buckets
+// ═══════════════════════════════════════════════════════════════════════════
 
-    #[pallet::config]
-    pub trait Config: frame_system::Config {
-        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        
-        /// The currency mechanism
-        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-        
-        /// Burn destination (usually no-op for true burn)
-        type BurnDestination: OnUnbalanced<NegativeImbalanceOf<Self>>;
-        
-        /// Treasury account for fee collection
-        #[pallet::constant]
-        type TreasuryAccount: Get<Self::AccountId>;
-        
-        /// Percentage of fees burned (80% = 8000 basis points)
-        #[pallet::constant]
-        type BurnPercentage: Get<Permill>;
-    }
+/// 40% - Pleroma Mining: In-game creation rewards & Play-to-Earn
+pub const PLEROMA_MINING_ALLOCATION: u128 = 5_200_000_000 * CGT;
 
-    #[pallet::storage]
-    #[pallet::getter(fn total_burned)]
-    pub type TotalBurned<T> = StorageValue<_, u128, ValueQuery>;
+/// 20% - Archon Staking: Validator/Nominator rewards (NPoS)
+pub const ARCHON_STAKING_ALLOCATION: u128 = 2_600_000_000 * CGT;
 
-    #[pallet::storage]
-    #[pallet::getter(fn circulating_supply)]
-    pub type CirculatingSupply<T> = StorageValue<_, u128, ValueQuery>;
+/// 15% - Demiurge Treasury: DAO-managed ecosystem growth
+pub const TREASURY_ALLOCATION: u128 = 1_950_000_000 * CGT;
 
-    #[pallet::event]
-    #[pallet::generate_deposit(pub(super) fn deposit_event)]
-    pub enum Event<T: Config> {
-        /// CGT transferred [from, to, amount]
-        Transfer {
-            from: T::AccountId,
-            to: T::AccountId,
-            amount: u128,
-        },
-        /// CGT burned [amount, total_burned]
-        Burned {
-            amount: u128,
-            total_burned: u128,
-        },
-        /// CGT minted (staking rewards) [to, amount]
-        Minted {
-            to: T::AccountId,
-            amount: u128,
-        },
-    }
+/// 15% - Core Team & Founders: 4-year linear vesting
+pub const TEAM_ALLOCATION: u128 = 1_950_000_000 * CGT;
 
-    #[pallet::error]
-    pub enum Error<T> {
-        /// Insufficient balance for transfer
-        InsufficientBalance,
-        /// Transfer to self not allowed
-        SelfTransfer,
-        /// Amount below minimum
-        AmountTooLow,
-        /// Account would be killed
-        WouldKillAccount,
-    }
-
-    #[pallet::call]
-    impl<T: Config> Pallet<T> {
-        /// Transfer CGT with automatic fee deduction
-        #[pallet::call_index(0)]
-        #[pallet::weight(10_000)]
-        pub fn transfer(
-            origin: OriginFor<T>,
-            to: T::AccountId,
-            #[pallet::compact] amount: u128,
-        ) -> DispatchResult {
-            let from = ensure_signed(origin)?;
-            
-            ensure!(from != to, Error::<T>::SelfTransfer);
-            ensure!(amount > 0, Error::<T>::AmountTooLow);
-            
-            // Execute transfer with fee handling
-            Self::do_transfer(&from, &to, amount)?;
-            
-            Ok(())
-        }
-
-        /// Burn CGT from own account
-        #[pallet::call_index(1)]
-        #[pallet::weight(10_000)]
-        pub fn burn(
-            origin: OriginFor<T>,
-            #[pallet::compact] amount: u128,
-        ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            
-            Self::do_burn(&who, amount)?;
-            
-            Ok(())
-        }
-    }
-
-    impl<T: Config> Pallet<T> {
-        /// Internal transfer with fee calculation
-        fn do_transfer(
-            from: &T::AccountId,
-            to: &T::AccountId,
-            amount: u128,
-        ) -> DispatchResult {
-            // Calculate fee (0.1% of amount, min 0.001 CGT)
-            let fee = amount
-                .saturating_mul(10) // 0.1%
-                .saturating_div(10_000)
-                .max(100_000); // 0.001 CGT minimum
-            
-            let total_deduct = amount.saturating_add(fee);
-            
-            // Burn portion of fee
-            let burn_amount = T::BurnPercentage::get().mul_floor(fee);
-            let treasury_amount = fee.saturating_sub(burn_amount);
-            
-            // Execute transfers...
-            // (Implementation details)
-            
-            Self::deposit_event(Event::Transfer {
-                from: from.clone(),
-                to: to.clone(),
-                amount,
-            });
-            
-            if burn_amount > 0 {
-                Self::do_burn_internal(burn_amount)?;
-            }
-            
-            Ok(())
-        }
-
-        /// Internal burn implementation
-        fn do_burn(who: &T::AccountId, amount: u128) -> DispatchResult {
-            // Deduct from account
-            // Update TotalBurned
-            // Update CirculatingSupply
-            
-            let new_total = TotalBurned::<T>::get().saturating_add(amount);
-            TotalBurned::<T>::put(new_total);
-            
-            CirculatingSupply::<T>::mutate(|supply| {
-                *supply = supply.saturating_sub(amount);
-            });
-            
-            Self::deposit_event(Event::Burned {
-                amount,
-                total_burned: new_total,
-            });
-            
-            Ok(())
-        }
-    }
-}
+/// 10% - Initial Genesis Offering: Public liquidity
+pub const GENESIS_OFFERING_ALLOCATION: u128 = 1_300_000_000 * CGT;
 ```
 
-### Chain Specification
+### Genesis Configuration
 
 ```rust
-// Genesis configuration for CGT
+// chain_spec.rs - Genesis block allocation
 
-fn cgt_genesis_config() -> GenesisConfig {
-    GenesisConfig {
-        cgt: CgtConfig {
-            balances: vec![
-                // Treasury (35%)
-                (treasury_account(), 350_000_000 * CGT),
-                // Staking Rewards Pool (25%)
-                (staking_rewards_account(), 250_000_000 * CGT),
-                // Team (15%) - Vesting contract
-                (team_vesting_account(), 150_000_000 * CGT),
-                // Development Fund (10%)
-                (dev_fund_account(), 100_000_000 * CGT),
-                // Liquidity (10%)
-                (liquidity_account(), 100_000_000 * CGT),
-                // Early Backers (5%)
-                (early_backers_account(), 50_000_000 * CGT),
-            ],
-        },
+fn cgt_genesis_config() -> pallet_cgt::GenesisConfig<Runtime> {
+    pallet_cgt::GenesisConfig {
+        balances: vec![
+            // Pleroma Mining Pool (40%)
+            (pleroma_mining_account(), 5_200_000_000 * CGT),
+            // Archon Staking Pool (20%)
+            (archon_staking_account(), 2_600_000_000 * CGT),
+            // Demiurge Treasury (15%)
+            (treasury_account(), 1_950_000_000 * CGT),
+            // Team Vesting Contract (15%)
+            (team_vesting_account(), 1_950_000_000 * CGT),
+            // Genesis Offering (10%)
+            (genesis_offering_account(), 1_300_000_000 * CGT),
+        ],
     }
 }
-
-const CGT: u128 = 100_000_000; // 10^8 (8 decimals)
 ```
 
 ---
 
 ## Emission Schedule
 
-### Year 1-5 Staking Rewards
+### Block Production
+
+| Parameter | Value |
+|-----------|-------|
+| Block Time | 6 seconds |
+| Blocks/Year | 5,256,000 |
+| Era Duration | 24 hours |
+| Session Duration | 4 hours |
+
+### Pleroma Mining Emission (40% - 5.2B)
 
 ```
-Block Time: 6 seconds
-Blocks/Year: 5,256,000
+Total: 5,200,000,000 CGT over 10 years
 
-Year 1 Emission: 50,000,000 CGT
-Per Block: 50,000,000 / 5,256,000 ≈ 9.51 CGT/block
-
-Halving Schedule:
-- Year 1: 9.51 CGT/block
-- Year 2: 8.99 CGT/block  
-- Year 3: 8.39 CGT/block
-- Year 4: 7.73 CGT/block
-- Year 5: 7.02 CGT/block
+Year 1-3:  20% = 1,040,000,000 CGT (346.67M/year)
+Year 4-6:  30% = 1,560,000,000 CGT (520M/year)
+Year 7-10: 30% = 1,560,000,000 CGT (390M/year)
+Reserve:   20% = 1,040,000,000 CGT (governance-controlled)
 ```
 
-### Validator Reward Distribution
+### Archon Staking Emission (20% - 2.6B)
 
 ```
-Block Reward: X CGT
+Total: 2,600,000,000 CGT over 10 years
+Annual: 260,000,000 CGT
+Per Block: ~49.43 CGT
 
-Distribution:
-├── Block Producer: 20%
-├── All Validators (proportional to stake): 70%
-└── Treasury: 10%
+Distribution per Block:
+├── Block Producer (Archon): 20% (~9.89 CGT)
+├── All Archons (proportional): 60% (~29.66 CGT)
+├── Nominators (Aeons): 10% (~4.94 CGT)
+└── Treasury: 10% (~4.94 CGT)
 ```
 
 ---
@@ -502,15 +421,17 @@ Distribution:
 
 | Metric | Value |
 |--------|-------|
-| **Total Supply** | 1,000,000,000 CGT |
+| **Total Supply** | 13,000,000,000 CGT (FIXED) |
 | **Precision** | 8 decimals |
-| **Initial Circulating** | ~150,000,000 CGT |
-| **Year 1 Inflation** | 5% |
+| **Initial Circulating** | ~1,300,000,000 CGT (Genesis Offering) |
+| **Year 1 Emission** | ~606M CGT (Mining + Staking) |
 | **Burn Rate** | 80% of tx fees |
-| **Governance Threshold** | 50-75% based on type |
+| **Governance Model** | NPoS + Quadratic Voting |
+| **Validator Term** | Archon |
+| **Nominator Term** | Aeon |
 
 ---
 
 *Last Updated: January 12, 2026*  
-*Document Version: 1.0*  
+*Document Version: 2.0 (The Creation Model)*  
 *Maintainer: Alaustrup*

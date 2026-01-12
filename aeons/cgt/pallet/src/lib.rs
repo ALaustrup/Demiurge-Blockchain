@@ -5,9 +5,22 @@
 //! ## Overview
 //!
 //! CGT is the native token with:
-//! - **Total Supply**: 1,000,000,000 (1 billion)
+//! - **Total Supply**: 13,000,000,000 (13 Billion) - Fixed
 //! - **Decimals**: 8
 //! - **Symbol**: CGT
+//! - **Smallest Unit**: 1 Spark (0.00000001 CGT)
+//!
+//! ## Tokenomics: "The Creation Model"
+//!
+//! Distribution designed to reward creators and validators:
+//!
+//! | Bucket               | Allocation | Amount (CGT)  | Purpose                           |
+//! |----------------------|------------|---------------|-----------------------------------|
+//! | Pleroma Mining       | 40%        | 5,200,000,000 | In-game creation & Play-to-Earn   |
+//! | Archon Staking       | 20%        | 2,600,000,000 | Validator/Nominator rewards       |
+//! | Demiurge Treasury    | 15%        | 1,950,000,000 | DAO-managed ecosystem growth      |
+//! | Core Team & Founders | 15%        | 1,950,000,000 | 4-year linear vesting             |
+//! | Genesis Offering     | 10%        | 1,300,000,000 | Initial public liquidity          |
 //!
 //! ## Gnostic Philosophy
 //!
@@ -31,15 +44,40 @@ pub mod pallet {
     /// CGT precision: 8 decimal places
     pub const CGT_DECIMALS: u8 = 8;
     
+    /// One CGT in smallest units (Sparks)
+    pub const CGT_UNIT: u128 = 100_000_000; // 10^8
+    
     /// CGT total supply: 13,000,000,000 (13 billion)
     /// With 8 decimals: 13_000_000_000 * 10^8 = 1_300_000_000_000_000_000
-    pub const CGT_TOTAL_SUPPLY: u128 = 1_300_000_000_000_000_000;
+    pub const CGT_TOTAL_SUPPLY: u128 = 13_000_000_000 * CGT_UNIT;
     
     /// CGT symbol
     pub const CGT_SYMBOL: &str = "CGT";
     
     /// CGT name
     pub const CGT_NAME: &str = "Creator God Token";
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TOKENOMICS: The Creation Model - Distribution Buckets
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    /// 40% - Pleroma Mining: In-game creation rewards & Play-to-Earn
+    pub const PLEROMA_MINING_ALLOCATION: u128 = 5_200_000_000 * CGT_UNIT;
+    
+    /// 20% - Archon Staking: Validator/Nominator rewards (NPoS)
+    pub const ARCHON_STAKING_ALLOCATION: u128 = 2_600_000_000 * CGT_UNIT;
+    
+    /// 15% - Demiurge Treasury: DAO-managed ecosystem growth
+    pub const TREASURY_ALLOCATION: u128 = 1_950_000_000 * CGT_UNIT;
+    
+    /// 15% - Core Team & Founders: 4-year linear vesting
+    pub const TEAM_ALLOCATION: u128 = 1_950_000_000 * CGT_UNIT;
+    
+    /// 10% - Initial Genesis Offering: Public liquidity
+    pub const GENESIS_OFFERING_ALLOCATION: u128 = 1_300_000_000 * CGT_UNIT;
+    
+    /// Existential deposit: 0.001 CGT (prevents dust accounts)
+    pub const EXISTENTIAL_DEPOSIT: u128 = CGT_UNIT / 1000;
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
