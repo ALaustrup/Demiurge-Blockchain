@@ -22,7 +22,9 @@ public class DemiurgeClient : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"Json",
-			"JsonUtilities"
+			"JsonUtilities",
+			"RenderCore",  // For post-processing
+			"RHI"          // For render hardware interface
 		});
 	}
 }
