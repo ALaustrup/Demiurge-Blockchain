@@ -14,12 +14,19 @@ public class QorUI : ModuleRules
 			"Engine",
 			"UMG",
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"InputCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"RenderCore",
-			"RHI"
+			"RHI",
+			"DemiurgeWeb3"  // For UDemiurgeNetworkManager
+		});
+
+		// Include paths
+		PublicIncludePaths.AddRange(new string[] {
+			// Allows #include "DemiurgeNetworkManager.h" from QorUI
 		});
 	}
 }
