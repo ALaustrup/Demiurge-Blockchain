@@ -30,7 +30,7 @@ pub mod pallet {
         traits::{Currency, ExistenceRequirement, WithdrawReasons},
     };
     use frame_system::pallet_prelude::*;
-    use sp_runtime::traits::Saturating;
+    use sp_runtime::traits::{CheckedMul, Saturating};
     use sp_std::prelude::*;
 
     /// Maximum length for item names

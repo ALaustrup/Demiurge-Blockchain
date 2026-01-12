@@ -67,6 +67,8 @@ pub mod pallet {
         Permill,
     };
     use sp_std::prelude::*;
+    
+    use crate::weights::WeightInfo;
 
     /// CGT precision: 8 decimals
     pub const DECIMALS: u8 = 8;
@@ -171,7 +173,7 @@ pub mod pallet {
 
                 // Note: Actual minting would happen via Currency trait
                 // This is tracked for circulating supply
-                frame_support::log::info!(
+                log::info!(
                     "CGT Genesis: {:?} receives {} CGT",
                     account,
                     balance_u128 / CGT
@@ -179,7 +181,7 @@ pub mod pallet {
             }
 
             CirculatingSupply::<T>::put(total);
-            frame_support::log::info!(
+            log::info!(
                 "CGT Genesis complete. Circulating supply: {} CGT",
                 total / CGT
             );
