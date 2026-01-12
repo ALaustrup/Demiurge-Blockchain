@@ -8,21 +8,21 @@ public class DemiurgeClient : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] 
-		{ 
-			"Core", 
-			"CoreUObject", 
-			"Engine", 
+		PublicDependencyModuleNames.AddRange(new string[] {
+			"Core",
+			"CoreUObject",
+			"Engine",
 			"InputCore",
 			"UMG",
 			"Slate",
-			"SlateCore"
-		});
-
-		PrivateDependencyModuleNames.AddRange(new string[] 
-		{ 
+			"SlateCore",
 			"DemiurgeWeb3",
 			"QorUI"
+		});
+
+		PrivateDependencyModuleNames.AddRange(new string[] {
+			"Json",
+			"JsonUtilities"
 		});
 	}
 }
