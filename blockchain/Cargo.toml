@@ -10,7 +10,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 authors = ["Alaustrup <alaustrup@demiurge.io>"]
-edition = "2024"
+edition = "2021"
 license = "MIT"
 repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
 
@@ -18,7 +18,7 @@ repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
 # Substrate dependencies (use latest polkadot-stable branch)
 frame-support = { version = "38.0.0", default-features = false }
 frame-system = { version = "38.0.0", default-features = false }
-frame-benchmarking = { version = "38.0.0", default-features = false, optional = true }
+frame-benchmarking = { version = "38.0.0", default-features = false }
 sp-core = { version = "35.0.0", default-features = false }
 sp-io = { version = "38.0.0", default-features = false }
 sp-runtime = { version = "39.0.0", default-features = false }

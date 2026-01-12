@@ -16,11 +16,12 @@
 //! - ZK-proof based verification attestations
 //! - Identity recovery mechanisms
 //!
-//! ## Identity Format
+//! ## Identity Format (Username-Only)
 //!
-//! `username#discriminator` (e.g., `alaustrup#1337`)
-//! - Username: 3-20 alphanumeric characters
-//! - Discriminator: 0001-9999
+//! **Username:** Globally unique, 3-20 alphanumeric characters (case-insensitive)
+//! **Qor Key:** Visual short-key format `Q[hex]:[hex]` (e.g., `Q7A1:9F2`)
+//! - Derived from first 3 and last 3 bytes of AccountId
+//! - Used as "Digital Soul" reference for users
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -53,9 +54,6 @@ pub mod pallet {
     
     /// Minimum username length
     pub const MIN_USERNAME_LENGTH: u32 = 3;
-    
-    /// Maximum discriminator value
-    pub const MAX_DISCRIMINATOR: u16 = 9999;
 
     /// Type alias for balance
     pub type BalanceOf<T> =
@@ -65,10 +63,10 @@ pub mod pallet {
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
     #[scale_info(skip_type_params(T))]
     pub struct QorIdentity<T: Config> {
-        /// Username (lowercase, 3-20 chars)
+        /// Username (lowercase, 3-20 chars, globally unique)
         pub username: BoundedVec<u8, ConstU32<MAX_USERNAME_LENGTH>>,
-        /// Discriminator (0001-9999)
-        pub discriminator: u16,
+        /// Qor Key: Visual short format (6 bytes: first 3 + last 3 of AccountId)
+        pub qor_key: [u8; 6],
         /// Primary on-chain account
         pub primary_account: T::AccountId,
         /// Additional linked accounts
@@ -152,15 +150,16 @@ pub mod pallet {
         OptionQuery,
     >;
 
-    /// Map from username to used discriminators
+    /// Direct username to account mapping for availability checks
+    /// Usernames are case-insensitive and globally unique
     #[pallet::storage]
-    #[pallet::getter(fn username_discriminators)]
-    pub type UsernameDiscriminators<T: Config> = StorageMap<
+    #[pallet::getter(fn usernames)]
+    pub type Usernames<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
         BoundedVec<u8, ConstU32<MAX_USERNAME_LENGTH>>,
-        BoundedVec<u16, ConstU32<{ MAX_DISCRIMINATOR as u32 }>>,
-        ValueQuery,
+        T::AccountId,
+        OptionQuery,
     >;
 
     /// Total registered identities
@@ -172,12 +171,12 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// New Qor ID registered
-        /// [qor_id_hash, account, username, discriminator]
+        /// [qor_id_hash, account, username, qor_key]
         IdentityRegistered {
             qor_id_hash: [u8; 32],
             account: T::AccountId,
             username: Vec<u8>,
-            discriminator: u16,
+            qor_key: [u8; 6],
         },
 
         /// Account linked to Qor ID
@@ -221,8 +220,8 @@ pub mod pallet {
         UsernameTooLong,
         /// Invalid username characters (alphanumeric and underscore only)
         InvalidUsername,
-        /// No discriminator available for this username
-        NoDiscriminatorAvailable,
+        /// Username already taken (not available)
+        UsernameAlreadyTaken,
         /// Account already has a Qor ID
         AccountAlreadyRegistered,
         /// Qor ID not found
@@ -286,8 +285,14 @@ pub mod pallet {
                 .try_into()
                 .map_err(|_| Error::<T>::UsernameTooLong)?;
 
-            // Find available discriminator
-            let discriminator = Self::find_available_discriminator(&username_bounded)?;
+            // Check username availability (globally unique)
+            ensure!(
+                !Usernames::<T>::contains_key(&username_bounded),
+                Error::<T>::UsernameAlreadyTaken
+            );
+
+            // Generate Qor Key from account
+            let qor_key = Self::generate_qor_key(&who);
 
             // Charge registration fee (burned)
             let fee = T::RegistrationFee::get();
@@ -298,11 +303,11 @@ pub mod pallet {
                 frame_support::traits::ExistenceRequirement::KeepAlive,
             )?;
 
-            // Create identity
-            let qor_id_hash = Self::compute_qor_id_hash(&username_bounded, discriminator);
+            // Create identity (username-only, no discriminator)
+            let qor_id_hash = sp_core::blake2_256(&username_bounded);
             let identity = QorIdentity {
                 username: username_bounded.clone(),
-                discriminator,
+                qor_key,
                 primary_account: who.clone(),
                 linked_accounts: BoundedVec::default(),
                 status: IdentityStatus::Active,
@@ -310,14 +315,10 @@ pub mod pallet {
                 attestations: BoundedVec::default(),
             };
 
-            // Store identity
+            // Store identity and username mapping
             Identities::<T>::insert(qor_id_hash, identity);
             AccountToIdentity::<T>::insert(&who, qor_id_hash);
-
-            // Update discriminator tracking
-            UsernameDiscriminators::<T>::mutate(&username_bounded, |discs| {
-                let _ = discs.try_push(discriminator);
-            });
+            Usernames::<T>::insert(&username_bounded, &who);
 
             // Increment total
             TotalIdentities::<T>::mutate(|total| *total = total.saturating_add(1));
@@ -327,7 +328,7 @@ pub mod pallet {
                 qor_id_hash,
                 account: who,
                 username: username_lower,
-                discriminator,
+                qor_key,
             });
 
             Ok(())
@@ -454,41 +455,51 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        /// Compute the hash for a Qor ID
-        pub fn compute_qor_id_hash(
-            username: &BoundedVec<u8, ConstU32<MAX_USERNAME_LENGTH>>,
-            discriminator: u16,
-        ) -> [u8; 32] {
-            let mut input = username.to_vec();
-            input.push(b'#');
-            input.extend_from_slice(&discriminator.to_le_bytes());
-            sp_core::blake2_256(&input)
+        /// Generate Qor Key short format: Q[3-hex]:[3-hex]
+        /// Derivation: First 3 bytes + Last 3 bytes of AccountId
+        pub fn generate_qor_key(account: &T::AccountId) -> [u8; 6] {
+            use codec::Encode;
+            let account_bytes = account.encode();
+            let mut key = [0u8; 6];
+            
+            // First 3 bytes
+            key[0] = account_bytes[0];
+            key[1] = account_bytes[1];
+            key[2] = account_bytes[2];
+            
+            // Last 3 bytes
+            let len = account_bytes.len();
+            key[3] = account_bytes[len - 3];
+            key[4] = account_bytes[len - 2];
+            key[5] = account_bytes[len - 1];
+            
+            key
         }
-
-        /// Find an available discriminator for a username
-        fn find_available_discriminator(
-            username: &BoundedVec<u8, ConstU32<MAX_USERNAME_LENGTH>>,
-        ) -> Result<u16, Error<T>> {
-            let used = UsernameDiscriminators::<T>::get(username);
-
-            for d in 1..=MAX_DISCRIMINATOR {
-                if !used.contains(&d) {
-                    return Ok(d);
-                }
+        
+        /// Format Qor Key for display: "Q7A1:9F2"
+        pub fn format_qor_key(key: &[u8; 6]) -> Vec<u8> {
+            use sp_std::vec;
+            let formatted = sp_std::format!(
+                "Q{:02X}{:02X}:{:02X}{:02X}",
+                key[0], key[1], key[3], key[4]
+            );
+            formatted.into_bytes()
+        }
+        
+        /// Check if username is available (real-time UI check)
+        pub fn check_availability(username: Vec<u8>) -> bool {
+            let username_lower: Vec<u8> = username
+                .iter()
+                .map(|c| c.to_ascii_lowercase())
+                .collect();
+            
+            let username_bounded: Result<BoundedVec<u8, ConstU32<MAX_USERNAME_LENGTH>>, _> = 
+                username_lower.try_into();
+            
+            match username_bounded {
+                Ok(bounded) => !Usernames::<T>::contains_key(&bounded),
+                Err(_) => false,
             }
-
-            Err(Error::<T>::NoDiscriminatorAvailable)
-        }
-
-        /// Format Qor ID string (for display)
-        pub fn format_qor_id(
-            username: &[u8],
-            discriminator: u16,
-        ) -> Vec<u8> {
-            let mut result = username.to_vec();
-            result.push(b'#');
-            result.extend_from_slice(format!("{:04}", discriminator).as_bytes());
-            result
         }
     }
 }

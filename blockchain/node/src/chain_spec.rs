@@ -24,8 +24,15 @@ pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 /// CGT precision: 8 decimals
 const CGT: Balance = 100_000_000;
 
-/// Total CGT supply: 1 billion
-const TOTAL_SUPPLY: Balance = 1_000_000_000 * CGT;
+/// Total CGT supply: 13 billion (FIXED)
+const TOTAL_SUPPLY: Balance = 13_000_000_000 * CGT;
+
+// Distribution buckets (The Creation Model)
+const PLEROMA_MINING: Balance = 5_200_000_000 * CGT;      // 40%
+const ARCHON_STAKING: Balance = 2_600_000_000 * CGT;      // 20%
+const DEMIURGE_TREASURY: Balance = 1_950_000_000 * CGT;   // 15%
+const TEAM_ALLOCATION: Balance = 1_950_000_000 * CGT;     // 15%
+const GENESIS_OFFERING: Balance = 1_300_000_000 * CGT;    // 10%
 
 /// Genesis configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -148,7 +155,7 @@ fn local_testnet_genesis_config() -> serde_json::Value {
     )
 }
 
-/// Testnet genesis with proper tokenomics
+/// Testnet genesis with proper tokenomics (The Creation Model)
 fn testnet_genesis_config() -> serde_json::Value {
     // Use well-known dev accounts for testnet
     let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
@@ -161,31 +168,28 @@ fn testnet_genesis_config() -> serde_json::Value {
         authority_keys_from_seed("Charlie"),
     ];
     
-    // CGT Distribution per tokenomics:
-    // 35% Treasury, 25% Staking, 15% Team, 10% Dev, 10% Liquidity, 5% Early
-    let treasury = get_account_id_from_seed::<sr25519::Public>("Treasury");
-    let staking_rewards = get_account_id_from_seed::<sr25519::Public>("StakingRewards");
-    let team = get_account_id_from_seed::<sr25519::Public>("Team");
-    let dev_fund = get_account_id_from_seed::<sr25519::Public>("DevFund");
-    let liquidity = get_account_id_from_seed::<sr25519::Public>("Liquidity");
-    let early_backers = get_account_id_from_seed::<sr25519::Public>("EarlyBackers");
+    // CGT Distribution per The Creation Model:
+    // 40% Pleroma Mining, 20% Archon Staking, 15% Treasury, 15% Team, 10% Offering
+    let pleroma_mining = get_account_id_from_seed::<sr25519::Public>("PleromaMining");
+    let archon_staking = get_account_id_from_seed::<sr25519::Public>("ArchonStaking");
+    let treasury = get_account_id_from_seed::<sr25519::Public>("DemiurgeTreasury");
+    let team = get_account_id_from_seed::<sr25519::Public>("TeamVesting");
+    let genesis_offering = get_account_id_from_seed::<sr25519::Public>("GenesisOffering");
     
     genesis_config(
         authorities,
         Some(alice.clone()),
         vec![
-            // Ecosystem Treasury (35%)
-            (treasury, 350_000_000 * CGT),
-            // Staking Rewards Pool (25%)
-            (staking_rewards, 250_000_000 * CGT),
-            // Team & Advisors (15%) - vested
-            (team, 150_000_000 * CGT),
-            // Development Fund (10%)
-            (dev_fund, 100_000_000 * CGT),
-            // Liquidity (10%)
-            (liquidity, 100_000_000 * CGT),
-            // Early Backers (5%)
-            (early_backers, 50_000_000 * CGT),
+            // Pleroma Mining Pool (40%)
+            (pleroma_mining, PLEROMA_MINING),
+            // Archon Staking Pool (20%)
+            (archon_staking, ARCHON_STAKING),
+            // Demiurge Treasury (15%)
+            (treasury, DEMIURGE_TREASURY),
+            // Team Vesting Contract (15%)
+            (team, TEAM_ALLOCATION),
+            // Genesis Offering (10%)
+            (genesis_offering, GENESIS_OFFERING),
             // Small amounts for validators
             (alice, 1000 * CGT),
             (bob, 1000 * CGT),
