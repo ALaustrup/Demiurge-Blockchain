@@ -48,6 +48,8 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use sp_runtime::traits::Saturating;
     use sp_std::prelude::*;
+    
+    use crate::weights::WeightInfo;
 
     /// Maximum username length
     pub const MAX_USERNAME_LENGTH: u32 = 20;
@@ -477,13 +479,25 @@ pub mod pallet {
         }
         
         /// Format Qor Key for display: "Q7A1:9F2"
+        /// Returns bytes representing the formatted key
         pub fn format_qor_key(key: &[u8; 6]) -> Vec<u8> {
-            use sp_std::vec;
-            let formatted = sp_std::format!(
-                "Q{:02X}{:02X}:{:02X}{:02X}",
-                key[0], key[1], key[3], key[4]
-            );
-            formatted.into_bytes()
+            // Build string manually for no_std compatibility
+            // Format: Q[hex][hex]:[hex][hex]
+            let hex_chars: &[u8; 16] = b"0123456789ABCDEF";
+            
+            let mut result = Vec::with_capacity(10);
+            result.push(b'Q');
+            result.push(hex_chars[(key[0] >> 4) as usize]);
+            result.push(hex_chars[(key[0] & 0x0F) as usize]);
+            result.push(hex_chars[(key[1] >> 4) as usize]);
+            result.push(hex_chars[(key[1] & 0x0F) as usize]);
+            result.push(b':');
+            result.push(hex_chars[(key[3] >> 4) as usize]);
+            result.push(hex_chars[(key[3] & 0x0F) as usize]);
+            result.push(hex_chars[(key[4] >> 4) as usize]);
+            result.push(hex_chars[(key[4] & 0x0F) as usize]);
+            
+            result
         }
         
         /// Check if username is available (real-time UI check)
