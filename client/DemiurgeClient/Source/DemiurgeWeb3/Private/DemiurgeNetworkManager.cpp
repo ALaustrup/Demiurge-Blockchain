@@ -8,7 +8,9 @@
 
 UDemiurgeNetworkManager::UDemiurgeNetworkManager()
 {
-	CurrentNodeURL = TEXT("ws://127.0.0.1:9944");
+	// Default to Monad server (Pleroma) for production
+	// Change to ws://127.0.0.1:9944 for local development
+	CurrentNodeURL = TEXT("ws://51.210.209.112:9944");
 	bIsConnected = false;
 }
 
