@@ -31,9 +31,9 @@ pub mod pallet {
     /// CGT precision: 8 decimal places
     pub const CGT_DECIMALS: u8 = 8;
     
-    /// CGT total supply: 1,000,000,000 (1 billion)
-    /// With 8 decimals: 1_000_000_000 * 10^8 = 100_000_000_000_000_000
-    pub const CGT_TOTAL_SUPPLY: u128 = 100_000_000_000_000_000;
+    /// CGT total supply: 13,000,000,000 (13 billion)
+    /// With 8 decimals: 13_000_000_000 * 10^8 = 1_300_000_000_000_000_000
+    pub const CGT_TOTAL_SUPPLY: u128 = 1_300_000_000_000_000_000;
     
     /// CGT symbol
     pub const CGT_SYMBOL: &str = "CGT";

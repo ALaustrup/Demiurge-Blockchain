@@ -60,7 +60,7 @@ The divine currency of the Demiurge-Blockchain.
 
 ```
 Symbol:     CGT
-Supply:     1,000,000,000
+Supply:     13,000,000,000
 Decimals:   8
 Type:       Native Substrate Asset
 ```
