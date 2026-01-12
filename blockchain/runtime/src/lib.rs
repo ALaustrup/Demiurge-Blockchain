@@ -9,95 +9,42 @@
 //! - **pallet-timestamp**: Block timestamps
 //! - **pallet-cgt**: Creator God Token (13B supply)
 //! - **pallet-qor-identity**: Qor ID system (username-only)
+//! - **pallet-drc369**: Phygital Asset Standard
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "256"]
 
-// Make the WASM binary available.
-#[cfg(feature = "std")]
-include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
-
-use codec::{Decode, Encode, MaxEncodedLen};
-use scale_info::TypeInfo;
-use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys,
-    traits::{
-        AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, One, Verify,
-    },
-    transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, MultiSignature,
-};
-use sp_std::prelude::*;
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
-use sp_version::RuntimeVersion;
-
-// Frame imports
-use frame_support::{
+// Re-export pallets for node access
+pub use frame_support::{
     construct_runtime, parameter_types,
-    traits::{ConstU128, ConstU16, ConstU32, ConstU64, ConstU8, OnUnbalanced},
-    weights::{
-        constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, Weight, WeightToFeeCoefficient,
-        WeightToFeeCoefficients, WeightToFeePolynomial,
-    },
-    PalletId,
-};
-use frame_system::{
-    limits::{BlockLength, BlockWeights},
-    EnsureRoot,
+    traits::{ConstU128, ConstU32, ConstU64, ConstU8},
+    weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
-use sp_runtime::Perbill;
-
-/// Opaque types for the runtime.
-pub mod opaque {
-    use super::*;
-
-    pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
-
-    /// Opaque block header type.
-    pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
-    /// Opaque block type.
-    pub type Block = generic::Block<Header, UncheckedExtrinsic>;
-    /// Opaque block identifier type.
-    pub type BlockId = generic::BlockId<Block>;
-
-    impl_opaque_keys! {
-        pub struct SessionKeys {}
-    }
-}
-
-// Runtime version
-pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("demiurge"),
-    impl_name: create_runtime_str!("demiurge"),
-    authoring_version: 1,
-    spec_version: 100,
-    impl_version: 1,
-    apis: RUNTIME_API_VERSIONS,
-    transaction_version: 1,
-    state_version: 1,
+pub use sp_runtime::{
+    create_runtime_str, generic,
+    traits::{BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
+    transaction_validity::{TransactionSource, TransactionValidity},
+    ApplyExtrinsicResult, MultiSignature, Perbill,
 };
 
-/// Native version for the runtime.
 #[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion {
-    NativeVersion {
-        runtime_version: VERSION,
-        can_author_with: Default::default(),
-    }
-}
+use sp_version::NativeVersion;
+use sp_version::RuntimeVersion;
 
-// Type aliases
+/// An index to a block.
 pub type BlockNumber = u32;
+/// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
+/// Some way of identifying an account on the chain.
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
+/// Balance of an account.
 pub type Balance = u128;
+/// Index of a transaction in the chain.
 pub type Nonce = u32;
+/// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
 /// CGT constants (13B supply)
@@ -111,19 +58,52 @@ pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
 
+/// Opaque types for the runtime
+pub mod opaque {
+    use super::*;
+    pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+
+    pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+    pub type Block = generic::Block<Header, UncheckedExtrinsic>;
+    pub type BlockId = generic::BlockId<Block>;
+}
+
+/// Runtime version
+#[sp_version::runtime_version]
+pub const VERSION: RuntimeVersion = RuntimeVersion {
+    spec_name: create_runtime_str!("demiurge"),
+    impl_name: create_runtime_str!("demiurge"),
+    authoring_version: 1,
+    spec_version: 100,
+    impl_version: 1,
+    apis: RUNTIME_API_VERSIONS,
+    transaction_version: 1,
+    state_version: 1,
+};
+
+/// Native version
+#[cfg(feature = "std")]
+pub fn native_version() -> NativeVersion {
+    NativeVersion {
+        runtime_version: VERSION,
+        can_author_with: Default::default(),
+    }
+}
+
 // Configure frame_system
 parameter_types! {
     pub const BlockHashCount: BlockNumber = 2400;
     pub const Version: RuntimeVersion = VERSION;
-    pub BlockWeightsValue: BlockWeights = BlockWeights::simple_max(
-        Weight::from_parts(2u64 * WEIGHT_REF_TIME_PER_SECOND, u64::MAX),
-    );
+    pub BlockWeights: frame_system::limits::BlockWeights =
+        frame_system::limits::BlockWeights::simple_max(
+            Weight::from_parts(2u64 * WEIGHT_REF_TIME_PER_SECOND, u64::MAX),
+        );
     pub const SS58Prefix: u16 = 42;
 }
 
 impl frame_system::Config for Runtime {
     type BaseCallFilter = frame_support::traits::Everything;
-    type BlockWeights = BlockWeightsValue;
+    type BlockWeights = BlockWeights;
     type BlockLength = ();
     type DbWeight = ();
     type RuntimeOrigin = RuntimeOrigin;
@@ -132,9 +112,10 @@ impl frame_system::Config for Runtime {
     type Hash = Hash;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
-    type Lookup = AccountIdLookup<AccountId, ()>;
+    type Lookup = sp_runtime::traits::AccountIdLookup<AccountId, ()>;
     type Block = Block;
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeTask = RuntimeTask;
     type BlockHashCount = BlockHashCount;
     type Version = Version;
     type PalletInfo = PalletInfo;
@@ -145,6 +126,11 @@ impl frame_system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
     type MaxConsumers = ConstU32<16>;
+    type SingleBlockMigrations = ();
+    type MultiBlockMigrator = ();
+    type PreInherents = ();
+    type PostInherents = ();
+    type PostTransactions = ();
 }
 
 // Configure pallet_timestamp
@@ -176,22 +162,23 @@ impl pallet_balances::Config for Runtime {
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
-    type RuntimeHoldReason = ();
-    type RuntimeFreezeReason = ();
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
     type FreezeIdentifier = ();
-    type MaxFreezes = ();
+    type MaxFreezes = ConstU32<0>;
 }
 
 // Configure pallet_cgt
 parameter_types! {
     pub const CgtMinTransferAmount: Balance = CGT_UNIT / 1000; // 0.001 CGT
+    pub const CgtBurnPercentage: Perbill = Perbill::from_percent(80);
 }
 
 impl pallet_cgt::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type OnBurn = ();
-    type BurnPercentage = sp_runtime::Permill::from_percent(80);
+    type BurnPercentage = CgtBurnPercentage;
     type MinTransferAmount = CgtMinTransferAmount;
     type WeightInfo = pallet_cgt::weights::SubstrateWeight<Runtime>;
 }
@@ -228,13 +215,13 @@ construct_runtime!(
 
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
-/// Block header type as expected by this runtime.
+/// Block header type.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
-/// Block type as expected by this runtime.
+/// Block type.
 pub type Block = generic::Block<Header, UncheckedExtrinsic>;
-/// A Block signed with a Justification
+/// A Block signed with a Justification.
 pub type SignedBlock = generic::SignedBlock<Block>;
-/// BlockId type as expected by this runtime.
+/// BlockId type.
 pub type BlockId = generic::BlockId<Block>;
 /// The SignedExtension to the basic transaction logic.
 pub type SignedExtra = (
@@ -246,10 +233,10 @@ pub type SignedExtra = (
     frame_system::CheckNonce<Runtime>,
     frame_system::CheckWeight<Runtime>,
 );
-/// Unchecked extrinsic type as expected by this runtime.
+/// Unchecked extrinsic type.
 pub type UncheckedExtrinsic =
     generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
-/// Executive: handles dispatch to the various modules.
+/// Executive type handles dispatch.
 pub type Executive = frame_executive::Executive<
     Runtime,
     Block,
@@ -258,22 +245,8 @@ pub type Executive = frame_executive::Executive<
     AllPalletsWithSystem,
 >;
 
-#[cfg(feature = "runtime-benchmarks")]
-#[macro_use]
-extern crate frame_benchmarking;
-
-#[cfg(feature = "runtime-benchmarks")]
-mod benches {
-    define_benchmarks!(
-        [frame_system, SystemBench::<Runtime>]
-        [pallet_balances, Balances]
-        [pallet_cgt, Cgt]
-        [pallet_qor_identity, QorIdentity]
-        [pallet_drc369, Drc369]
-    );
-}
-
-impl_runtime_apis! {
+// Implement runtime APIs
+sp_api::impl_runtime_apis! {
     impl sp_api::Core<Block> for Runtime {
         fn version() -> RuntimeVersion {
             VERSION
@@ -283,17 +256,17 @@ impl_runtime_apis! {
             Executive::execute_block(block);
         }
 
-        fn initialize_block(header: &<Block as BlockT>::Header) {
+        fn initialize_block(header: &<Block as BlockT>::Header) -> sp_runtime::ExtrinsicInclusionMode {
             Executive::initialize_block(header)
         }
     }
 
     impl sp_api::Metadata<Block> for Runtime {
-        fn metadata() -> OpaqueMetadata {
-            OpaqueMetadata::new(Runtime::metadata().into())
+        fn metadata() -> sp_core::OpaqueMetadata {
+            sp_core::OpaqueMetadata::new(Runtime::metadata().into())
         }
 
-        fn metadata_at_version(version: u32) -> Option<OpaqueMetadata> {
+        fn metadata_at_version(version: u32) -> Option<sp_core::OpaqueMetadata> {
             Runtime::metadata_at_version(version)
         }
 
@@ -340,14 +313,14 @@ impl_runtime_apis! {
     }
 
     impl sp_session::SessionKeys<Block> for Runtime {
-        fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-            opaque::SessionKeys::generate(seed)
+        fn generate_session_keys(_seed: Option<sp_std::vec::Vec<u8>>) -> sp_std::vec::Vec<u8> {
+            sp_std::vec::Vec::new()
         }
 
         fn decode_session_keys(
-            encoded: Vec<u8>,
-        ) -> Option<Vec<(Vec<u8>, KeyTypeId)>> {
-            opaque::SessionKeys::decode_into_raw_public_keys(&encoded)
+            _encoded: sp_std::vec::Vec<u8>,
+        ) -> Option<sp_std::vec::Vec<(sp_std::vec::Vec<u8>, sp_core::crypto::KeyTypeId)>> {
+            None
         }
     }
 
@@ -357,62 +330,17 @@ impl_runtime_apis! {
         }
     }
 
-
-    #[cfg(feature = "runtime-benchmarks")]
-    impl frame_benchmarking::Benchmark<Block> for Runtime {
-        fn benchmark_metadata(extra: bool) -> (
-            Vec<frame_benchmarking::BenchmarkList>,
-            Vec<frame_support::traits::StorageInfo>,
-        ) {
-            use frame_benchmarking::{baseline, Benchmarking, BenchmarkList};
-            use frame_support::traits::StorageInfoTrait;
-            use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
-
-            let mut list = Vec::<BenchmarkList>::new();
-            list_benchmarks!(list, extra);
-
-            let storage_info = AllPalletsWithSystem::storage_info();
-
-            (list, storage_info)
+    impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
+        fn build_state(config: sp_std::vec::Vec<u8>) -> sp_genesis_builder::Result {
+            frame_support::genesis_builder_helper::build_state::<RuntimeGenesisConfig>(config)
         }
 
-        fn dispatch_benchmark(
-            config: frame_benchmarking::BenchmarkConfig
-        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-            use frame_benchmarking::{baseline, Benchmarking, BenchmarkBatch, TrackedStorageKey};
-
-            use frame_system_benchmarking::Pallet as SystemBench;
-            use baseline::Pallet as BaselineBench;
-
-            impl frame_system_benchmarking::Config for Runtime {}
-            impl baseline::Config for Runtime {}
-
-            use frame_support::traits::WhitelistedStorageKeys;
-            let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
-
-            let mut batches = Vec::<BenchmarkBatch>::new();
-            let params = (&config, &whitelist);
-            add_benchmarks!(params, batches);
-
-            Ok(batches)
-        }
-    }
-
-    #[cfg(feature = "try-runtime")]
-    impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
-            let weight = Executive::try_runtime_upgrade(checks).unwrap();
-            (weight, BlockWeights::get().max_block)
+        fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<sp_std::vec::Vec<u8>> {
+            frame_support::genesis_builder_helper::get_preset::<RuntimeGenesisConfig>(id, |_| None)
         }
 
-        fn execute_block(
-            block: Block,
-            state_root_check: bool,
-            signature_check: bool,
-            select: frame_try_runtime::TryStateSelect
-        ) -> Weight {
-            Executive::try_execute_block(block, state_root_check, signature_check, select).expect("execute-block failed")
+        fn preset_names() -> sp_std::vec::Vec<sp_genesis_builder::PresetId> {
+            sp_std::vec::Vec::new()
         }
     }
 }
