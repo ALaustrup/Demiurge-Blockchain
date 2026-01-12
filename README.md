@@ -1,66 +1,137 @@
 # Demiurge-Blockchain
 
-A Gnostic-inspired blockchain ecosystem featuring the **Creator God Token (CGT)** and the **Qor ID** identity system.
+<div align="center">
+
+![Demiurge](https://img.shields.io/badge/Demiurge-Blockchain-purple?style=for-the-badge)
+![CGT](https://img.shields.io/badge/CGT-1B_Supply-gold?style=for-the-badge)
+![Substrate](https://img.shields.io/badge/Substrate-Powered-black?style=for-the-badge)
+
+*A Gnostic-inspired blockchain ecosystem*
+
+**[Documentation](./docs)** · **[Contributing](./CONTRIBUTING.md)** · **[Security](./SECURITY.md)**
+
+</div>
+
+---
 
 ## 🌌 Philosophy
 
-The Demiurge-Blockchain follows Gnostic principles, with naming conventions derived from Aeons, Archons, and Syzygies. This is not just a blockchain—it's a cosmology.
+The Demiurge-Blockchain transcends traditional blockchain architecture by embodying Gnostic cosmology. Every component, every module, every line of code is an emanation from the divine source—the Monad.
 
-## 🏛️ Architecture
+> *"From the Monad, all emanates. To the Pleroma, all returns."*
 
-### Core Components
+## 📐 Architecture
 
-- **Monad**: The physical server (Pleroma hostname)
-- **Qor ID**: Singular, non-dual identity system for all users
-- **Creator God Token (CGT)**: Primary currency
-  - **Supply**: 1,000,000,000 CGT
-  - **Precision**: 8 decimals
-  - **Symbol**: CGT
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        PLEROMA                              │
+│                    (The Fullness)                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│   │   AEONS     │  │  ARCHONS    │  │  SYZYGIES   │        │
+│   │  (Features) │  │ (Governance)│  │  (Pairs)    │        │
+│   └──────┬──────┘  └──────┬──────┘  └──────┬──────┘        │
+│          │                │                │                │
+│   ┌──────┴──────┐  ┌──────┴──────┐  ┌──────┴──────┐        │
+│   │   Qor ID    │  │  Consensus  │  │   Client/   │        │
+│   │    CGT      │  │  Validators │  │   Server    │        │
+│   └─────────────┘  └─────────────┘  └─────────────┘        │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                        MONAD                                │
+│              (The Source Server - Pleroma)                  │
+│                    51.210.209.112                           │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### Tools
+### Core Emanations
 
-- **Qor Installer**: Initial setup and configuration
-- **Qor Launcher**: The central hub for interaction
+| Component | Description | Status |
+|-----------|-------------|--------|
+| **Qor ID** | Non-dual identity system | 🔨 In Development |
+| **CGT** | Creator God Token (1B supply, 8 decimals) | 📋 Planned |
+| **Qor Installer** | Setup wizard for new users | 📋 Planned |
+| **Qor Launcher** | Central hub for interaction | 📋 Planned |
+
+## 💰 Creator God Token (CGT)
+
+The divine currency of the Demiurge-Blockchain.
+
+```
+Symbol:     CGT
+Supply:     1,000,000,000
+Decimals:   8
+Type:       Native Substrate Asset
+```
 
 ## 🛠️ Technical Stack
 
-- **Blockchain Framework**: Substrate
-- **Game Engine**: Unreal Engine 5 (UE5)
-- **High-Entropy Operations**: Deployed on `/data` (RAID 0)
+- **Blockchain**: [Substrate](https://substrate.io/) - Modular blockchain framework
+- **Runtime**: WASM-compiled Rust pallets
+- **Game Engine**: Unreal Engine 5 (for immersive experiences)
+- **Infrastructure**: Monad server with RAID 0 for high-entropy operations
 
-## 📦 Installation
+## 📦 Quick Start
 
 ```bash
 # Clone the repository
 git clone https://github.com/Alaustrup/Demiurge-Blockchain.git
 cd Demiurge-Blockchain
 
-# Setup instructions coming soon
+# Run development setup
+./scripts/setup-dev.sh
+
+# Build the project (when ready)
+cargo build --release
 ```
 
 ## 🚀 Deployment
 
-**Primary Server**: Monad (51.210.209.112)  
-**Hostname**: Pleroma
+| Environment | Server | Path |
+|-------------|--------|------|
+| Production | Monad (Pleroma) | `/data/Demiurge-Blockchain` |
+| Development | Local | `./` |
 
-All production deployments target the Monad server with appropriate security measures.
+Deploy to Monad:
+```bash
+./scripts/deploy-monad.sh main
+```
+
+## 📁 Project Structure
+
+```
+Demiurge-Blockchain/
+├── aeons/              # Major features and modules
+│   ├── qor-id/         # Identity system
+│   └── cgt/            # Creator God Token
+├── archons/            # Governance and control
+├── syzygies/           # Paired systems
+├── tools/              # User-facing applications
+│   ├── qor-installer/  # Setup wizard
+│   └── qor-launcher/   # Central hub
+├── scripts/            # Deployment and utilities
+└── .github/            # CI/CD and templates
+```
 
 ## 🔐 Security
 
-- All sensitive operations require explicit confirmation
-- Secrets and keys are never committed (see `.gitignore`)
-- Production environment follows strict access control
+See [SECURITY.md](./SECURITY.md) for our security policy.
 
-## 📚 Development Guidelines
-
-1. **Naming Conventions**: Use Gnostic terminology (Aeons, Archons, Syzygies)
-2. **Hardware Requirements**: High-entropy operations must use `/data` (RAID 0)
-3. **Code Quality**: Modular, secure, and well-documented
-4. **Confirm Before Naming**: New modules require naming confirmation
+- SSH key-only authentication on Monad
+- No secrets in version control
+- Regular dependency audits
+- Explicit confirmation for destructive operations
 
 ## 🤝 Contributing
 
-This is a specialized project following unique philosophical and technical guidelines. Please refer to `.cursorrules` for the project's laws.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+**Key principles:**
+- Use Gnostic naming conventions
+- Confirm before naming new modules
+- High-entropy ops on `/data` (RAID 0)
+- Follow the Laws (`.cursorrules`)
 
 ## 📄 License
 
@@ -72,4 +143,8 @@ This is a specialized project following unique philosophical and technical guide
 
 ---
 
+<div align="center">
+
 *"In the beginning was the Monad, and the Monad was with the Pleroma..."*
+
+</div>
