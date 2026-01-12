@@ -35,7 +35,7 @@ ssh $MONAD_HOST << EOF
         sudo mkdir -p $DEPLOY_PATH
         sudo chown ubuntu:ubuntu $DEPLOY_PATH
         cd $DEPLOY_PATH
-        git clone https://github.com/Alaustrup/Demiurge-Blockchain.git .
+        git clone https://github.com/ALaustrup/Demiurge-Blockchain.git .
     }
 
     echo ">>> Fetching latest changes..."
