@@ -21,53 +21,53 @@ clap = { version = "4.5", features = ["derive"] }
 tokio = { version = "1.43", features = ["rt-multi-thread", "macros"] }
 futures = "0.3"
 
-# Substrate Client
-sc-cli = { version = "0.47.0", default-features = false }
-sc-service = { version = "0.46.0", default-features = false }
-sc-executor = { version = "0.40.0", default-features = false }
-sc-network = { version = "0.45.0", default-features = false }
-sc-network-sync = { version = "0.44.0", default-features = false }
-sc-consensus = { version = "0.44.0", default-features = false }
-sc-consensus-aura = { version = "0.45.0", default-features = false }
-sc-consensus-grandpa = { version = "0.30.0", default-features = false }
-sc-client-api = { version = "37.0.0", default-features = false }
-sc-rpc = { version = "40.0.0", default-features = false }
-sc-rpc-api = { version = "0.44.0", default-features = false }
-sc-transaction-pool = { version = "37.0.0", default-features = false }
-sc-transaction-pool-api = { version = "37.0.0", default-features = false }
-sc-telemetry = { version = "25.0.0", default-features = false }
-sc-keystore = { version = "36.0.0", default-features = false }
-sc-basic-authorship = { version = "0.45.0", default-features = false }
-sc-offchain = { version = "40.0.0", default-features = false }
-sc-sysinfo = { version = "38.0.0", default-features = false }
+# Substrate Client (native only - use default features)
+sc-cli = "0.47.0"
+sc-service = "0.46.0"
+sc-executor = "0.40.0"
+sc-network = "0.45.0"
+sc-network-sync = "0.44.0"
+sc-consensus = "0.44.0"
+sc-consensus-aura = "0.45.0"
+sc-consensus-grandpa = "0.30.0"
+sc-client-api = "37.0.0"
+sc-rpc = "40.0.0"
+sc-rpc-api = "0.44.0"
+sc-transaction-pool = "37.0.0"
+sc-transaction-pool-api = "37.0.0"
+sc-telemetry = "25.0.0"
+sc-keystore = "36.0.0"
+sc-basic-authorship = "0.45.0"
+sc-offchain = "40.0.0"
+sc-sysinfo = "38.0.0"
 
-# Substrate Primitives
-sp-core = { version = "35.0.0", default-features = false }
-sp-io = { version = "38.0.0", default-features = false }
-sp-runtime = { version = "39.0.0", default-features = false }
-sp-inherents = { version = "34.0.0", default-features = false }
-sp-timestamp = { version = "34.0.0", default-features = false }
-sp-keyring = { version = "39.0.0", default-features = false }
-sp-keystore = { version = "0.40.0", default-features = false }
-sp-consensus = { version = "0.40.0", default-features = false }
-sp-consensus-aura = { version = "0.40.0", default-features = false }
-sp-consensus-grandpa = { version = "21.0.0", default-features = false }
-sp-api = { version = "34.0.0", default-features = false }
-sp-blockchain = { version = "37.0.0", default-features = false }
-sp-block-builder = { version = "34.0.0", default-features = false }
-sp-transaction-pool = { version = "34.0.0", default-features = false }
+# Substrate Primitives (need std for native)
+sp-core = "35.0.0"
+sp-io = "38.0.0"
+sp-runtime = "39.0.0"
+sp-inherents = "34.0.0"
+sp-timestamp = "34.0.0"
+sp-keyring = "39.0.0"
+sp-keystore = "0.40.0"
+sp-consensus = "0.40.0"
+sp-consensus-aura = "0.40.0"
+sp-consensus-grandpa = "21.0.0"
+sp-api = "34.0.0"
+sp-blockchain = "37.0.0"
+sp-block-builder = "34.0.0"
+sp-transaction-pool = "34.0.0"
 
 # Frame
-frame-system = { version = "38.0.0", default-features = false }
-frame-benchmarking = { version = "38.0.0", default-features = false, optional = true }
+frame-system = "38.0.0"
+frame-benchmarking = { version = "38.0.0", optional = true }
 frame-benchmarking-cli = { version = "43.0.0", optional = true }
 
-# Consensus
-pallet-transaction-payment-rpc = { version = "41.0.0", default-features = false }
-substrate-frame-rpc-system = { version = "39.0.0", default-features = false }
+# RPC
+pallet-transaction-payment-rpc = "41.0.0"
+substrate-frame-rpc-system = "39.0.0"
 
 # Local
-demiurge-runtime = { path = "../runtime", default-features = false }
+demiurge-runtime = { path = "../runtime" }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -81,18 +81,9 @@ tracing = "0.1"
 substrate-build-script-utils = "11.0.0"
 
 [features]
-default = ["std"]
-std = [
-    "sc-cli/std",
-    "sc-service/std",
-    "sp-core/std",
-    "sp-io/std",
-    "sp-runtime/std",
-    "frame-system/std",
-    "demiurge-runtime/std",
-]
+default = []
 runtime-benchmarks = [
-    "frame-benchmarking/runtime-benchmarks",
+    "frame-benchmarking",
     "frame-benchmarking-cli",
     "demiurge-runtime/runtime-benchmarks",
 ]
