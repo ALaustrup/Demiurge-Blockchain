@@ -4,6 +4,7 @@ members = [
     "node",
     "pallets/pallet-cgt",
     "pallets/pallet-qor-identity",
+    "pallets/pallet-drc369",
     "runtime",
 ]
 

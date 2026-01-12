@@ -1,11 +1,11 @@
 [package]
-name = "demiurge-runtime"
+name = "pallet-drc369"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Runtime for the Demiurge Blockchain"
+description = "DRC-369: Phygital Asset Standard for Demiurge"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -18,13 +18,7 @@ frame-system = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 sp-core = { workspace = true }
-pallet-balances = { workspace = true }
-pallet-timestamp = { workspace = true }
-
-# Local pallets
-pallet-cgt = { workspace = true }
-pallet-qor-identity = { workspace = true }
-pallet-drc369 = { workspace = true }
+sp-io = { workspace = true }
 
 [features]
 default = ["std"]
@@ -36,26 +30,13 @@ std = [
     "sp-runtime/std",
     "sp-std/std",
     "sp-core/std",
-    "pallet-balances/std",
-    "pallet-timestamp/std",
-    "pallet-cgt/std",
-    "pallet-qor-identity/std",
-    "pallet-drc369/std",
+    "sp-io/std",
 ]
 runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
-    "pallet-balances/runtime-benchmarks",
-    "pallet-cgt/runtime-benchmarks",
-    "pallet-qor-identity/runtime-benchmarks",
-    "pallet-drc369/runtime-benchmarks",
 ]
 try-runtime = [
     "frame-support/try-runtime",
     "frame-system/try-runtime",
-    "pallet-balances/try-runtime",
-    "pallet-timestamp/try-runtime",
-    "pallet-cgt/try-runtime",
-    "pallet-qor-identity/try-runtime",
-    "pallet-drc369/try-runtime",
 ]

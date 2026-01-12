@@ -208,6 +208,12 @@ impl pallet_qor_identity::Config for Runtime {
     type WeightInfo = pallet_qor_identity::weights::SubstrateWeight<Runtime>;
 }
 
+// Configure pallet_drc369
+impl pallet_drc369::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+}
+
 // Construct runtime
 construct_runtime!(
     pub struct Runtime {
@@ -216,6 +222,7 @@ construct_runtime!(
         Balances: pallet_balances,
         Cgt: pallet_cgt,
         QorIdentity: pallet_qor_identity,
+        Drc369: pallet_drc369,
     }
 );
 
@@ -262,6 +269,7 @@ mod benches {
         [pallet_balances, Balances]
         [pallet_cgt, Cgt]
         [pallet_qor_identity, QorIdentity]
+        [pallet_drc369, Drc369]
     );
 }
 
