@@ -50,7 +50,7 @@ The Demiurge-Blockchain transcends traditional blockchain architecture by embody
 | Component | Description | Status |
 |-----------|-------------|--------|
 | **Qor ID** | Non-dual identity system | 🔨 In Development |
-| **CGT** | Creator God Token (1B supply, 8 decimals) | 📋 Planned |
+| **CGT** | Creator God Token (13B supply, 8 decimals) | 🔨 In Development |
 | **Qor Installer** | Setup wizard for new users | 📋 Planned |
 | **Qor Launcher** | Central hub for interaction | 📋 Planned |
 
@@ -60,7 +60,7 @@ The divine currency of the Demiurge-Blockchain.
 
 ```
 Symbol:     CGT
-Supply:     1,000,000,000
+Supply:     13,000,000,000
 Decimals:   8
 Type:       Native Substrate Asset
 ```
@@ -69,7 +69,7 @@ Type:       Native Substrate Asset
 
 - **Blockchain**: [Substrate](https://substrate.io/) - Modular blockchain framework
 - **Runtime**: WASM-compiled Rust pallets
-- **Game Engine**: Unreal Engine 5 (for immersive experiences)
+- **Game Engine**: Unreal Engine 5.7.1 (for immersive experiences)
 - **Infrastructure**: Monad server with RAID 0 for high-entropy operations
 
 ## 📦 Quick Start

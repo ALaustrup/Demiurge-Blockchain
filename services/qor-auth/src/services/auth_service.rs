@@ -1,0 +1,141 @@
+//! Authentication service.
+
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    Argon2,
+};
+use sqlx::PgPool;
+
+use crate::error::{AppError, AppResult};
+use crate::models::User;
+
+/// Authentication service
+pub struct AuthService {
+    db: PgPool,
+}
+
+impl AuthService {
+    /// Create new auth service
+    pub fn new(db: PgPool) -> Self {
+        Self { db }
+    }
+
+    /// Hash a password using Argon2id
+    pub fn hash_password(password: &str) -> AppResult<String> {
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        
+        let hash = argon2
+            .hash_password(password.as_bytes(), &salt)
+            .map_err(|e| AppError::InternalError(anyhow::anyhow!("Password hashing failed: {}", e)))?;
+        
+        Ok(hash.to_string())
+    }
+
+    /// Verify a password against a hash
+    pub fn verify_password(password: &str, hash: &str) -> AppResult<bool> {
+        let parsed_hash = PasswordHash::new(hash)
+            .map_err(|e| AppError::InternalError(anyhow::anyhow!("Invalid hash format: {}", e)))?;
+        
+        Ok(Argon2::default()
+            .verify_password(password.as_bytes(), &parsed_hash)
+            .is_ok())
+    }
+
+    /// Generate a unique discriminator for a username
+    pub async fn generate_discriminator(&self, username: &str) -> AppResult<i16> {
+        // Find existing discriminators for this username
+        let existing: Vec<i16> = sqlx::query_scalar(
+            "SELECT discriminator FROM users WHERE LOWER(username) = LOWER($1)"
+        )
+        .bind(username)
+        .fetch_all(&self.db)
+        .await?;
+
+        // Find first available discriminator (1-9999)
+        for d in 1..=9999i16 {
+            if !existing.contains(&d) {
+                return Ok(d);
+            }
+        }
+
+        Err(AppError::ValidationError(
+            "No available discriminators for this username".into()
+        ))
+    }
+
+    /// Find user by email
+    pub async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
+        let user = sqlx::query_as::<_, User>(
+            "SELECT * FROM users WHERE LOWER(email) = LOWER($1)"
+        )
+        .bind(email)
+        .fetch_optional(&self.db)
+        .await?;
+
+        Ok(user)
+    }
+
+    /// Find user by Qor ID
+    pub async fn find_by_qor_id(&self, username: &str, discriminator: i16) -> AppResult<Option<User>> {
+        let user = sqlx::query_as::<_, User>(
+            "SELECT * FROM users WHERE LOWER(username) = LOWER($1) AND discriminator = $2"
+        )
+        .bind(username)
+        .bind(discriminator)
+        .fetch_optional(&self.db)
+        .await?;
+
+        Ok(user)
+    }
+
+    /// Increment login attempts and lock if needed
+    pub async fn increment_login_attempts(&self, user_id: uuid::Uuid, max_attempts: u32, lockout_secs: i64) -> AppResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE users 
+            SET 
+                login_attempts = login_attempts + 1,
+                locked_until = CASE 
+                    WHEN login_attempts + 1 >= $2 
+                    THEN NOW() + INTERVAL '1 second' * $3
+                    ELSE locked_until
+                END
+            WHERE id = $1
+            "#
+        )
+        .bind(user_id)
+        .bind(max_attempts as i32)
+        .bind(lockout_secs)
+        .execute(&self.db)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Reset login attempts after successful login
+    pub async fn reset_login_attempts(&self, user_id: uuid::Uuid) -> AppResult<()> {
+        sqlx::query(
+            "UPDATE users SET login_attempts = 0, locked_until = NULL WHERE id = $1"
+        )
+        .bind(user_id)
+        .execute(&self.db)
+        .await?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_password_hash_and_verify() {
+        let password = "SecureP@ssw0rd!123";
+        let hash = AuthService::hash_password(password).unwrap();
+        
+        assert!(AuthService::verify_password(password, &hash).unwrap());
+        assert!(!AuthService::verify_password("wrong_password", &hash).unwrap());
+    }
+}

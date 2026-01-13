@@ -1,0 +1,137 @@
+# Demiurge Local Development Stack
+# 
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose logs -f        # Watch logs
+#   docker-compose down           # Stop all services
+#
+# Services:
+#   - PostgreSQL 18 (qor-auth database)
+#   - Redis 7.4 (session cache)
+#   - Adminer (database UI)
+
+version: '3.9'
+
+services:
+  # PostgreSQL 18 - Qor Auth Database
+  postgres:
+    image: postgres:18
+    container_name: demiurge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: qor_auth
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-demiurge_dev_password}
+      POSTGRES_DB: qor_auth
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../services/qor-auth/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qor_auth -d qor_auth"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - demiurge-network
+
+  # Redis 7.4 - Session Cache
+  redis:
+    image: redis:7.4-alpine
+    container_name: demiurge-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - demiurge-network
+
+  # QOR Auth Service
+  qor-auth:
+    build:
+      context: ../services/qor-auth
+      dockerfile: Dockerfile
+    container_name: demiurge-qor-auth
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://qor_auth:${POSTGRES_PASSWORD:-demiurge_dev_password}@postgres:5432/qor_auth
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-demiurge_dev_jwt_secret_change_in_production}
+      JWT_EXPIRY: 86400
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - demiurge-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Next.js Hub
+  hub:
+    build:
+      context: ../apps/hub
+      dockerfile: Dockerfile
+    container_name: demiurge-hub
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_QOR_AUTH_URL: http://localhost:8080
+      NEXT_PUBLIC_BLOCKCHAIN_WS_URL: ws://localhost:9944
+      NEXT_PUBLIC_BLOCKCHAIN_RPC_URL: http://localhost:9933
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../apps/hub:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - qor-auth
+    networks:
+      - demiurge-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Adminer - Database UI (optional, for development)
+  adminer:
+    image: adminer:latest
+    container_name: demiurge-adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+    networks:
+      - demiurge-network
+    profiles:
+      - dev
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  demiurge-network:
+    driver: bridge

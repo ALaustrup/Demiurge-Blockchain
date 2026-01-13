@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-demiurge-dark text-white antialiased;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-[rgba(15,15,15,0.85)] backdrop-blur-[20px];
+    @apply border border-transparent;
+    @apply rounded-lg;
+    @apply relative;
+  }
+  
+  .glass-panel::before {
+    content: '';
+    @apply absolute inset-0 rounded-lg;
+    @apply bg-gradient-to-r from-demiurge-cyan via-demiurge-violet to-demiurge-cyan;
+    @apply opacity-30 blur-sm;
+    @apply -z-10;
+    @apply animate-border-pulse;
+  }
+  
+  .glass-panel::after {
+    content: '';
+    @apply absolute inset-[1px] rounded-lg;
+    @apply bg-demiurge-dark;
+    @apply -z-10;
+  }
+  
+  .glass-border {
+    @apply border border-transparent;
+    @apply bg-gradient-to-r from-demiurge-cyan via-demiurge-violet to-demiurge-cyan;
+    @apply bg-clip-border;
+    @apply animate-border-pulse;
+  }
+  
+  .chroma-glow {
+    @apply shadow-[0_0_20px_rgba(0,242,255,0.3)];
+    @apply animate-glow-pulse;
+  }
+}

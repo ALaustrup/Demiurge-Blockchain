@@ -7,7 +7,7 @@ The primary currency of the Demiurge-Blockchain ecosystem.
 | Property | Value |
 |----------|-------|
 | **Symbol** | CGT |
-| **Total Supply** | 1,000,000,000 |
+| **Total Supply** | 13,000,000,000 |
 | **Decimals** | 8 |
 | **Type** | Native Asset |
 

@@ -1,0 +1,98 @@
+[package]
+name = "demiurge-runtime"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Runtime for the Demiurge Blockchain"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+# Encoding
+codec = { workspace = true }
+scale-info = { workspace = true }
+
+# Substrate Primitives
+sp-api = { version = "34.0.0", default-features = false }
+sp-block-builder = { version = "34.0.0", default-features = false }
+sp-core = { workspace = true }
+sp-inherents = { version = "34.0.0", default-features = false }
+sp-offchain = { version = "34.0.0", default-features = false }
+sp-runtime = { workspace = true }
+sp-session = { version = "35.0.0", default-features = false }
+sp-std = { workspace = true }
+sp-transaction-pool = { version = "34.0.0", default-features = false }
+sp-version = { version = "37.0.0", default-features = false }
+sp-genesis-builder = { version = "0.15.0", default-features = false }
+
+# Frame
+frame-executive = { version = "38.0.0", default-features = false }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+frame-system-rpc-runtime-api = { version = "34.0.0", default-features = false }
+
+# Pallets
+pallet-balances = { workspace = true }
+pallet-timestamp = { workspace = true }
+
+# Local pallets
+pallet-cgt = { workspace = true }
+pallet-qor-identity = { workspace = true }
+pallet-drc369 = { workspace = true }
+
+# Optional
+frame-benchmarking = { workspace = true, optional = true }
+frame-try-runtime = { version = "0.44.0", default-features = false, optional = true }
+
+[build-dependencies]
+substrate-wasm-builder = { version = "24.0.0", optional = true }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "scale-info/std",
+    "sp-api/std",
+    "sp-block-builder/std",
+    "sp-core/std",
+    "sp-inherents/std",
+    "sp-offchain/std",
+    "sp-runtime/std",
+    "sp-session/std",
+    "sp-std/std",
+    "sp-transaction-pool/std",
+    "sp-version/std",
+    "sp-genesis-builder/std",
+    "frame-executive/std",
+    "frame-support/std",
+    "frame-system/std",
+    "frame-system-rpc-runtime-api/std",
+    "pallet-balances/std",
+    "pallet-timestamp/std",
+    "pallet-cgt/std",
+    "pallet-qor-identity/std",
+    "pallet-drc369/std",
+    "substrate-wasm-builder",
+]
+runtime-benchmarks = [
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-balances/runtime-benchmarks",
+    "pallet-cgt/runtime-benchmarks",
+    "pallet-qor-identity/runtime-benchmarks",
+    "pallet-drc369/runtime-benchmarks",
+]
+try-runtime = [
+    "frame-try-runtime/try-runtime",
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-balances/try-runtime",
+    "pallet-timestamp/try-runtime",
+    "pallet-cgt/try-runtime",
+    "pallet-qor-identity/try-runtime",
+    "pallet-drc369/try-runtime",
+]
