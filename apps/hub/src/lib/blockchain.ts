@@ -8,7 +8,11 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
 import { KeyringPair } from '@polkadot/keyring/types';
 
-const DEFAULT_WS_URL = process.env.NEXT_PUBLIC_BLOCKCHAIN_WS_URL || 'ws://localhost:9944';
+// Default to production Monad server, fallback to localhost for development
+const DEFAULT_WS_URL = process.env.NEXT_PUBLIC_BLOCKCHAIN_WS_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'demiurge.cloud' 
+    ? 'ws://51.210.209.112:9944' 
+    : 'ws://localhost:9944');
 
 export class BlockchainClient {
   private api: ApiPromise | null = null;
@@ -44,11 +48,21 @@ export class BlockchainClient {
 
     try {
       // Query balance from pallet-cgt
+      // The pallet-cgt stores balances as AccountData with free balance
       const accountData = await this.api!.query.cgt.account(address);
-      // TODO: Parse and format balance (with 8 decimals)
-      return accountData.toString();
+      
+      // Parse the account data (assuming it's a struct with 'free' field)
+      // Format: { free: Balance } where Balance is u128 with 8 decimals
+      if (accountData && typeof accountData === 'object' && 'free' in accountData) {
+        const free = (accountData as any).free;
+        return free.toString();
+      }
+      
+      // Fallback: try to parse as direct balance
+      return accountData.toString() || '0';
     } catch (error) {
       console.error('Failed to query CGT balance:', error);
+      // If pallet doesn't exist or query fails, return 0
       return '0';
     }
   }
@@ -89,9 +103,35 @@ export class BlockchainClient {
 
     try {
       // Query owner_items from pallet-drc369
+      // Returns a BTreeMap or Vec of asset UUIDs
       const items = await this.api!.query.drc369.ownerItems(address);
-      // TODO: Fetch metadata for each item
-      return [];
+      
+      // Convert to array format
+      const assets: any[] = [];
+      
+      if (items && typeof items === 'object') {
+        // Handle different response formats
+        if (Array.isArray(items)) {
+          items.forEach((item: any, index: number) => {
+            assets.push({
+              uuid: item?.toString() || index.toString(),
+              // TODO: Fetch full metadata from pallet-drc369
+            });
+          });
+        } else if ('toHuman' in items) {
+          // Convert to human-readable format
+          const human = items.toHuman();
+          if (Array.isArray(human)) {
+            human.forEach((item: any, index: number) => {
+              assets.push({
+                uuid: item?.toString() || index.toString(),
+              });
+            });
+          }
+        }
+      }
+      
+      return assets;
     } catch (error) {
       console.error('Failed to query user assets:', error);
       return [];

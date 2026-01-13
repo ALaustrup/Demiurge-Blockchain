@@ -52,13 +52,28 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
       switch (type) {
         case 'GET_BALANCE':
           try {
-            // TODO: Fetch actual balance from blockchain
-            const balance = 1000.5; // Mock data
-            iframe.contentWindow?.postMessage({
-              type: 'CGT_BALANCE_RESPONSE',
-              messageId,
-              balance,
-            }, '*');
+            // Get user's on-chain address
+            const profile = await qorAuth.getProfile();
+            const address = profile.on_chain?.address;
+            
+            if (address) {
+              // TODO: Fetch actual balance from blockchain
+              // const balanceStr = await blockchainClient.getCGTBalance(address);
+              // const balance = parseFloat(balanceStr) / 1e8; // Convert from 8 decimals
+              const balance = 1000.5; // Mock data until blockchain is connected
+              
+              iframe.contentWindow?.postMessage({
+                type: 'CGT_BALANCE_RESPONSE',
+                messageId,
+                balance,
+              }, '*');
+            } else {
+              iframe.contentWindow?.postMessage({
+                type: 'CGT_BALANCE_RESPONSE',
+                messageId,
+                balance: 0,
+              }, '*');
+            }
           } catch (err) {
             iframe.contentWindow?.postMessage({
               type: 'CGT_BALANCE_RESPONSE',
@@ -98,13 +113,27 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
 
         case 'GET_USER_ASSETS':
           try {
-            // TODO: Fetch actual assets from blockchain
-            const assets: any[] = []; // Mock data
-            iframe.contentWindow?.postMessage({
-              type: 'USER_ASSETS_RESPONSE',
-              messageId,
-              assets,
-            }, '*');
+            // Get user's on-chain address
+            const profile = await qorAuth.getProfile();
+            const address = profile.on_chain?.address;
+            
+            if (address) {
+              // TODO: Fetch actual assets from blockchain
+              // const assets = await blockchainClient.getUserAssets(address);
+              const assets: any[] = []; // Mock data until blockchain is connected
+              
+              iframe.contentWindow?.postMessage({
+                type: 'USER_ASSETS_RESPONSE',
+                messageId,
+                assets,
+              }, '*');
+            } else {
+              iframe.contentWindow?.postMessage({
+                type: 'USER_ASSETS_RESPONSE',
+                messageId,
+                assets: [],
+              }, '*');
+            }
           } catch (err) {
             iframe.contentWindow?.postMessage({
               type: 'USER_ASSETS_RESPONSE',

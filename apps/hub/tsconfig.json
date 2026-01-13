@@ -20,6 +20,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/contexts/*": ["./src/contexts/*"],
       "@demiurge/qor-sdk": ["../../packages/qor-sdk/src"],
       "@demiurge/ui-shared": ["../../packages/ui-shared/src"]
     }

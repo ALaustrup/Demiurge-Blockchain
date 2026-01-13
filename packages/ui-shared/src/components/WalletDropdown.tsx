@@ -1,17 +1,45 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { qorAuth } from '@demiurge/qor-sdk';
 
 export function WalletDropdown() {
   const [balance, setBalance] = useState<number>(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [address, setAddress] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Fetch balance from blockchain
-    // For now, use mock data
-    setBalance(1000.5);
-    setLoading(false);
+    async function loadBalance() {
+      try {
+        // Get user profile to fetch on-chain address
+        const profile = await qorAuth.getProfile();
+        const userAddress = profile.on_chain?.address;
+        
+        if (userAddress) {
+          setAddress(userAddress);
+          // TODO: Fetch real balance from blockchain
+          // For now, use mock data until blockchain is fully connected
+          // const balanceStr = await blockchainClient.getCGTBalance(userAddress);
+          // setBalance(parseFloat(balanceStr) / 1e8); // Convert from 8 decimals
+          setBalance(1000.5); // Mock data
+        } else {
+          // No on-chain address yet
+          setBalance(0);
+        }
+      } catch (error) {
+        console.error('Failed to load balance:', error);
+        setBalance(0);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    if (qorAuth.isAuthenticated()) {
+      loadBalance();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   return (
