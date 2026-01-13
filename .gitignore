@@ -20,6 +20,10 @@ yarn-debug.log*
 yarn-error.log*
 package-lock.json
 .pnpm-debug.log*
+.next/
+.turbo/
+dist/
+*.tsbuildinfo
 
 # Python
 __pycache__/

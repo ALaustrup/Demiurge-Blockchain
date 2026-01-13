@@ -242,7 +242,7 @@ Net->MintItem(Item, OnMinted);
 ## Technical Specifications
 
 ### Engine
-- **Version:** Unreal Engine 5.7.1 (source build)
+- **Version:** Unreal Engine 5.7.1 (Launcher installation)
 - **Platform:** Linux (Ubuntu 22.04+) / Windows
 - **Rendering:** Lumen (Global Illumination), Nanite (Virtual Geometry)
 

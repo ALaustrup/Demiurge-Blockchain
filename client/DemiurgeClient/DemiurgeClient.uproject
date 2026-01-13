@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.7",
+	"EngineAssociation": "{BEAE441A-4B27-F9F7-E02E-179D2D0B9575}",
 	"Category": "",
 	"Description": "Demiurge Client - The 3D interface to the Demiurge Blockchain ecosystem",
 	"Modules": [

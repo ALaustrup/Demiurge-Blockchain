@@ -35,3 +35,8 @@ scale-info = { version = "2.11", default-features = false, features = ["derive"]
 pallet-cgt = { path = "pallets/pallet-cgt", default-features = false }
 pallet-qor-identity = { path = "pallets/pallet-qor-identity", default-features = false }
 pallet-drc369 = { path = "pallets/pallet-drc369", default-features = false }
+
+# Force unified schnorrkel version at workspace level
+# This resolves conflict between sp-core (expects 0.9.1) and substrate-bip39 (pulls 0.11.5)
+[workspace.dependencies.schnorrkel]
+version = "0.9.1"
