@@ -42,6 +42,8 @@ pub struct Claims {
     pub qor_id: String,
     /// Session ID
     pub sid: String,
+    /// User role
+    pub role: Option<String>, // 'user', 'moderator', 'admin', 'god'
     /// Scopes
     pub scopes: Vec<Scope>,
     /// Issuer

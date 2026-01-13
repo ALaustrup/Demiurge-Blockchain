@@ -26,6 +26,7 @@ impl SessionService {
         &self,
         user_id: Uuid,
         qor_id: &str,
+        role: Option<&str>, // User role: 'user', 'moderator', 'admin', 'god'
         device_id: &str,
         ip_address: &str,
         user_agent: Option<&str>,
@@ -51,14 +52,14 @@ impl SessionService {
         // Store session in Redis
         self.store_session(&session).await?;
 
-        // Generate tokens
-        let tokens = self.generate_tokens(&session)?;
+        // Generate tokens with role
+        let tokens = self.generate_tokens(&session, role)?;
 
         Ok((session, tokens))
     }
 
     /// Generate JWT access and refresh tokens
-    pub fn generate_tokens(&self, session: &Session) -> AppResult<TokenPair> {
+    pub fn generate_tokens(&self, session: &Session, role: Option<&str>) -> AppResult<TokenPair> {
         let now = Utc::now();
 
         // Access token claims
@@ -66,6 +67,7 @@ impl SessionService {
             sub: session.user_id.to_string(),
             qor_id: session.qor_id.clone(),
             sid: session.session_id.to_string(),
+            role: role.map(|r| r.to_string()),
             scopes: session.scopes.clone(),
             iss: self.jwt_config.issuer.clone(),
             iat: now.timestamp(),
@@ -77,6 +79,7 @@ impl SessionService {
             sub: session.user_id.to_string(),
             qor_id: session.qor_id.clone(),
             sid: session.session_id.to_string(),
+            role: role.map(|r| r.to_string()),
             scopes: vec![], // Refresh tokens don't carry scopes
             iss: self.jwt_config.issuer.clone(),
             iat: now.timestamp(),

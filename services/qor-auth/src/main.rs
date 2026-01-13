@@ -98,10 +98,17 @@ async fn main() -> anyhow::Result<()> {
         // ZK verification endpoints
         .nest("/api/v1/zk", zk_routes())
         
-        // Admin endpoints (protected)
+        // Admin endpoints (protected - God-level)
         .nest("/api/v1/admin", admin_routes())
         
-        // Middleware
+        // Middleware - inject state into extensions for nested routes
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            move |State(state): State<Arc<AppState>>, mut request: Request, next: Next| async move {
+                request.extensions_mut().insert(state);
+                next.run(request).await
+            }
+        ))
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .layer(
@@ -156,14 +163,19 @@ fn zk_routes() -> Router<Arc<AppState>> {
         .route("/attestations", post(handlers::zk::create_attestation))
 }
 
-/// Admin routes (protected + admin role)
+/// Admin routes (protected - God-level access)
 fn admin_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/users", get(handlers::admin::list_users))
         .route("/users/:id", get(handlers::admin::get_user))
         .route("/users/:id/ban", post(handlers::admin::ban_user))
+        .route("/users/:id/unban", post(handlers::admin::unban_user))
+        .route("/users/:id/role", post(handlers::admin::update_role))
+        .route("/tokens/transfer", post(handlers::admin::transfer_tokens))
+        .route("/tokens/refund", post(handlers::admin::refund_tokens))
         .route("/stats", get(handlers::admin::get_stats))
-        .layer(middleware::from_fn(app_middleware::auth::require_admin))
+        .route("/audit", get(handlers::admin::get_audit_log))
+        .layer(middleware::from_fn(app_middleware::auth::require_god))
 }
 
 /// Graceful shutdown signal handler

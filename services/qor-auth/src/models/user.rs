@@ -33,6 +33,19 @@ pub enum UserRole {
     Moderator,
     Admin,
     System,
+    God, // God-level access - full system control
+}
+
+impl UserRole {
+    /// Check if role has admin privileges
+    pub fn is_admin(&self) -> bool {
+        matches!(self, UserRole::Admin | UserRole::God | UserRole::System)
+    }
+
+    /// Check if role has God-level access
+    pub fn is_god(&self) -> bool {
+        matches!(self, UserRole::God)
+    }
 }
 
 /// User account status
