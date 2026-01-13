@@ -1,0 +1,13 @@
+[package]
+name = "demiurge-node"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "TBD"
+publish = false
+
+description = "Demiurge-Blockchain node scaffold (Monad/Pleroma)."
+repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
+
+[dependencies]
+
