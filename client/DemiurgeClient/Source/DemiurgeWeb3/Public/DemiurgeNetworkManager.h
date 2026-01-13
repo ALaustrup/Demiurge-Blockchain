@@ -7,6 +7,9 @@
 #include "DemiurgeTypes.h"
 #include "DemiurgeNetworkManager.generated.h"
 
+// Forward declarations
+class IWebSocket;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConnected, bool, bSuccess);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDisconnected, const FString&, Reason);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBalanceUpdated, int64, NewBalance);
@@ -14,6 +17,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQorIDUpdated, const FString&, Us
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemReceived, const FDRC369Item&, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTradeOfferReceived, const FDemiurgeTradeOffer&, Offer);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTransactionConfirmed, const FString&, TxHash, bool, bSuccess);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChainInfoUpdated, const FString&, ChainName, const FString&, Version, int32, BlockNumber);
 
 /**
  * Demiurge Network Manager - Substrate RPC Bridge
@@ -55,6 +59,10 @@ public:
 	/** Get the current node URL */
 	UFUNCTION(BlueprintPure, Category = "Demiurge|Network")
 	FString GetNodeURL() const { return CurrentNodeURL; }
+
+	/** Enable/disable auto-reconnection */
+	UFUNCTION(BlueprintCallable, Category = "Demiurge|Network")
+	void SetAutoReconnect(bool bEnabled, float DelaySeconds = 5.0f);
 
 	// ═══════════════════════════════════════════════════════════════════════════
 	// CGT (Creator God Token)
@@ -113,6 +121,22 @@ public:
 	void CancelTrade(const FString& OfferID);
 
 	// ═══════════════════════════════════════════════════════════════════════════
+	// SUBSTRATE SYSTEM RPC
+	// ═══════════════════════════════════════════════════════════════════════════
+
+	/** Get chain name and version */
+	UFUNCTION(BlueprintCallable, Category = "Demiurge|System")
+	void GetChainInfo();
+
+	/** Subscribe to new block headers */
+	UFUNCTION(BlueprintCallable, Category = "Demiurge|System")
+	void SubscribeNewHeads();
+
+	/** Get current block number */
+	UFUNCTION(BlueprintCallable, Category = "Demiurge|System")
+	void GetBlockNumber();
+
+	// ═══════════════════════════════════════════════════════════════════════════
 	// EVENTS
 	// ═══════════════════════════════════════════════════════════════════════════
 
@@ -144,6 +168,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Demiurge|Events")
 	FOnTransactionConfirmed OnTransactionConfirmed;
 
+	/** Fired when chain info is updated */
+	UPROPERTY(BlueprintAssignable, Category = "Demiurge|Events")
+	FOnChainInfoUpdated OnChainInfoUpdated;
+
 protected:
 	/** Current node URL */
 	FString CurrentNodeURL;
@@ -152,13 +180,40 @@ protected:
 	bool bIsConnected;
 
 	/** WebSocket connection handle */
-	// TSharedPtr<IWebSocket> WebSocket;
+	TSharedPtr<class IWebSocket> WebSocket;
+
+	/** Request ID counter for JSON-RPC */
+	int32 NextRequestID;
+
+	/** Map of pending requests (RequestID -> Method) */
+	TMap<int32, FString> PendingRequests;
+
+	/** Reconnection timer handle */
+	FTimerHandle ReconnectTimerHandle;
+
+	/** Auto-reconnect enabled */
+	bool bAutoReconnect;
+
+	/** Reconnection delay in seconds */
+	float ReconnectDelay;
 
 	/** Process incoming JSON-RPC message */
 	void ProcessMessage(const FString& Message);
 
-	/** Send JSON-RPC request */
-	void SendRPCRequest(const FString& Method, const TArray<FString>& Params);
+	/** Send JSON-RPC request and return request ID */
+	int32 SendRPCRequest(const FString& Method, const TArray<FString>& Params);
+
+	/** Send JSON-RPC request with custom params object */
+	int32 SendRPCRequestWithParams(const FString& Method, const TSharedPtr<FJsonObject>& ParamsObject);
+
+	/** Handle RPC response by request ID */
+	void HandleRPCResponse(int32 RequestID, const TSharedPtr<FJsonObject>& ResultObject);
+
+	/** Handle RPC error */
+	void HandleRPCError(int32 RequestID, const TSharedPtr<FJsonObject>& ErrorObject);
+
+	/** Attempt reconnection */
+	void AttemptReconnection();
 
 	/** Handle connection opened */
 	void OnWebSocketConnected();
