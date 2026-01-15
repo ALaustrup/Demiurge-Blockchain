@@ -1,0 +1,11 @@
+{
+  "id": "template-game",
+  "title": "Template Game",
+  "description": "A template game for the Demiurge ecosystem. Replace this with your game's information.",
+  "thumbnail": "/games/template-game/thumb.jpg",
+  "entryPoint": "index.html",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "tags": ["template", "example"],
+  "minLevel": 1
+}

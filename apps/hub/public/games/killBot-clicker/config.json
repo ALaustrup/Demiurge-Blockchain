@@ -1,0 +1,6 @@
+{
+    "api_endpoint": "http://51.210.209.112:8082",
+    "version": "1.0.0",
+    "environment": "production",
+    "mock_fallback": true
+}

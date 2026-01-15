@@ -1,0 +1,13 @@
+{
+  "id": "galaga-creator",
+  "title": "Pixel Starship Genesis",
+  "description": "Infinite procedural gameplay with enemy swarms. Earn CGT by defeating enemies, collect coins, and unlock powerful ship skins!",
+  "thumbnail": "/games/galaga-creator/assets/player_ship.webp",
+  "entryPoint": "index.html",
+  "version": "1.0.0",
+  "author": "Demiurge Games",
+  "tags": ["action", "arcade", "shooter", "space"],
+  "minLevel": 1,
+  "cgtPool": 0,
+  "activeUsers": 0
+}
