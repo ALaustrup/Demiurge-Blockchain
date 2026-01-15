@@ -9,7 +9,14 @@
 //! - **pallet-timestamp**: Block timestamps
 //! - **pallet-cgt**: Creator God Token (13B supply)
 //! - **pallet-qor-identity**: Qor ID system (username-only)
-//! - **pallet-drc369**: Phygital Asset Standard
+//! - **pallet-drc369**: Phygital Asset Standard (with Stateful NFTs)
+//! - **pallet-game-assets**: Multi-Asset System with Zero-Gas Transfers
+//! - **pallet-energy**: Regenerating Currencies (Hybrid Energy Model)
+//! - **pallet-composable-nfts**: RMRK-style Equippable & Nested NFTs
+//! - **pallet-dex**: Automatic Liquidity Pairs DEX
+//! - **pallet-fractional-assets**: Guild-Owned Assets with Scheduling
+//! - **pallet-drc369-ocw**: Off-Chain Workers for Game Data Integration
+//! - **pallet-governance**: Game Studio Governance for Soft-Forks
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "256"]
@@ -19,6 +26,7 @@ pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{ConstU128, ConstU32, ConstU64, ConstU8},
     weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
+    PalletId,
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
@@ -201,6 +209,50 @@ impl pallet_drc369::Config for Runtime {
     type Currency = Balances;
 }
 
+// Configure pallet_game_assets
+parameter_types! {
+    pub const GameAssetsMinFeelessStake: Balance = 10 * CGT_UNIT; // 10 CGT
+    pub const GameAssetsTreasuryPalletId: PalletId = PalletId(*b"game/trsy");
+}
+
+impl pallet_game_assets::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type MinFeelessStake = GameAssetsMinFeelessStake;
+    type TreasuryPalletId = GameAssetsTreasuryPalletId;
+}
+
+// Configure pallet_energy
+impl pallet_energy::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
+
+// Configure pallet_composable_nfts
+impl pallet_composable_nfts::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
+
+// Configure pallet_dex
+impl pallet_dex::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+}
+
+// Configure pallet_fractional_assets
+impl pallet_fractional_assets::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+}
+
+// Configure pallet_drc369_ocw
+parameter_types! {
+    pub const MaxGameSources: u32 = 100;
+}
+
+impl pallet_drc369_ocw::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MaxGameSources = MaxGameSources;
+}
+
 // Construct runtime
 construct_runtime!(
     pub struct Runtime {
@@ -210,6 +262,13 @@ construct_runtime!(
         Cgt: pallet_cgt,
         QorIdentity: pallet_qor_identity,
         Drc369: pallet_drc369,
+        GameAssets: pallet_game_assets,
+        Energy: pallet_energy,
+        ComposableNfts: pallet_composable_nfts,
+        Dex: pallet_dex,
+        FractionalAssets: pallet_fractional_assets,
+        Drc369Ocw: pallet_drc369_ocw,
+        Governance: pallet_governance,
     }
 );
 

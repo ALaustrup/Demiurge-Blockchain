@@ -16,20 +16,21 @@ codec = { workspace = true }
 scale-info = { workspace = true }
 
 # Substrate Primitives
+# Aligned to sp-core 34.0.0
 sp-api = { version = "34.0.0", default-features = false }
 sp-block-builder = { version = "34.0.0", default-features = false }
 sp-core = { workspace = true }
 sp-inherents = { version = "34.0.0", default-features = false }
 sp-offchain = { version = "34.0.0", default-features = false }
 sp-runtime = { workspace = true }
-sp-session = { version = "35.0.0", default-features = false }
+sp-session = { version = "34.0.0", default-features = false }
 sp-std = { workspace = true }
 sp-transaction-pool = { version = "34.0.0", default-features = false }
-sp-version = { version = "37.0.0", default-features = false }
+sp-version = { version = "34.0.0", default-features = false }
 sp-genesis-builder = { version = "0.15.0", default-features = false }
 
 # Frame
-frame-executive = { version = "38.0.0", default-features = false }
+frame-executive = { version = "34.0.0", default-features = false }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 frame-system-rpc-runtime-api = { version = "34.0.0", default-features = false }
@@ -42,10 +43,17 @@ pallet-timestamp = { workspace = true }
 pallet-cgt = { workspace = true }
 pallet-qor-identity = { workspace = true }
 pallet-drc369 = { workspace = true }
+pallet-game-assets = { workspace = true }
+pallet-energy = { workspace = true }
+pallet-composable-nfts = { workspace = true }
+pallet-dex = { workspace = true }
+pallet-fractional-assets = { workspace = true }
+pallet-drc369-ocw = { workspace = true }
+pallet-governance = { workspace = true }
 
 # Optional
 frame-benchmarking = { workspace = true, optional = true }
-frame-try-runtime = { version = "0.44.0", default-features = false, optional = true }
+frame-try-runtime = { version = "0.43.0", default-features = false, optional = true }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "24.0.0", optional = true }
@@ -75,6 +83,13 @@ std = [
     "pallet-cgt/std",
     "pallet-qor-identity/std",
     "pallet-drc369/std",
+    "pallet-game-assets/std",
+    "pallet-energy/std",
+    "pallet-composable-nfts/std",
+    "pallet-dex/std",
+    "pallet-fractional-assets/std",
+    "pallet-drc369-ocw/std",
+    "pallet-governance/std",
     "substrate-wasm-builder",
 ]
 runtime-benchmarks = [
@@ -85,6 +100,13 @@ runtime-benchmarks = [
     "pallet-cgt/runtime-benchmarks",
     "pallet-qor-identity/runtime-benchmarks",
     "pallet-drc369/runtime-benchmarks",
+    "pallet-game-assets/runtime-benchmarks",
+    "pallet-energy/runtime-benchmarks",
+    "pallet-composable-nfts/runtime-benchmarks",
+    "pallet-dex/runtime-benchmarks",
+    "pallet-fractional-assets/runtime-benchmarks",
+    "pallet-drc369-ocw/runtime-benchmarks",
+    "pallet-governance/runtime-benchmarks",
 ]
 try-runtime = [
     "frame-try-runtime/try-runtime",

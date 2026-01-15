@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { PersistentHUD } from '@demiurge/ui-shared'
 import { BlockchainProvider } from '@/contexts/BlockchainContext'
+import { WalletDropdownWrapper } from '@/components/WalletDropdownWrapper'
+import { QorIdHeaderWrapper } from '@/components/QorIdHeaderWrapper'
+import { BlockchainStatusBanner } from '@/components/BlockchainStatusBanner'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -20,10 +23,14 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <BlockchainProvider>
-          <PersistentHUD />
+          <PersistentHUD 
+            walletComponent={<WalletDropdownWrapper />}
+            qorIdComponent={<QorIdHeaderWrapper />}
+          />
           <div className="pt-20">
             {children}
           </div>
+          <BlockchainStatusBanner />
         </BlockchainProvider>
       </body>
     </html>

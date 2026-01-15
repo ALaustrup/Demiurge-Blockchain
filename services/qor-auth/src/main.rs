@@ -22,7 +22,8 @@ use std::sync::Arc;
 use axum::{
     Router,
     routing::{get, post},
-    middleware,
+    extract::{Request, State},
+    middleware::{Next, from_fn, from_fn_with_state},
 };
 use sqlx::postgres::PgPoolOptions;
 use tower_http::{
@@ -35,7 +36,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod config;
 mod error;
 mod handlers;
-mod middleware as app_middleware;
+mod middleware;
 mod models;
 mod services;
 mod state;
@@ -102,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api/v1/admin", admin_routes())
         
         // Middleware - inject state into extensions for nested routes
-        .layer(axum::middleware::from_fn_with_state(
+        .layer(from_fn_with_state(
             state.clone(),
             move |State(state): State<Arc<AppState>>, mut request: Request, next: Next| async move {
                 request.extensions_mut().insert(state);
@@ -141,6 +142,7 @@ fn auth_routes() -> Router<Arc<AppState>> {
         .route("/verify-email", post(handlers::auth::verify_email))
         .route("/forgot-password", post(handlers::auth::forgot_password))
         .route("/reset-password", post(handlers::auth::reset_password))
+        .route("/check-username", post(handlers::auth::check_username))
 }
 
 /// Profile routes (protected)
@@ -150,9 +152,9 @@ fn profile_routes() -> Router<Arc<AppState>> {
         .route("/", post(handlers::profile::update_profile))
         .route("/avatar", post(handlers::profile::upload_avatar))
         .route("/sessions", get(handlers::profile::list_sessions))
-        .route("/sessions/:id", axum::routing::delete(handlers::profile::revoke_session))
+        .route("/sessions/{id}", axum::routing::delete(handlers::profile::revoke_session))
         .route("/link-wallet", post(handlers::profile::link_wallet))
-        .layer(middleware::from_fn(app_middleware::auth::require_auth))
+        .layer(from_fn(crate::middleware::auth::require_auth))
 }
 
 /// ZK-proof verification routes
@@ -167,15 +169,15 @@ fn zk_routes() -> Router<Arc<AppState>> {
 fn admin_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/users", get(handlers::admin::list_users))
-        .route("/users/:id", get(handlers::admin::get_user))
-        .route("/users/:id/ban", post(handlers::admin::ban_user))
-        .route("/users/:id/unban", post(handlers::admin::unban_user))
-        .route("/users/:id/role", post(handlers::admin::update_role))
+        .route("/users/{id}", get(handlers::admin::get_user))
+        .route("/users/{id}/ban", post(handlers::admin::ban_user))
+        .route("/users/{id}/unban", post(handlers::admin::unban_user))
+        .route("/users/{id}/role", post(handlers::admin::update_role))
         .route("/tokens/transfer", post(handlers::admin::transfer_tokens))
         .route("/tokens/refund", post(handlers::admin::refund_tokens))
         .route("/stats", get(handlers::admin::get_stats))
         .route("/audit", get(handlers::admin::get_audit_log))
-        .layer(middleware::from_fn(app_middleware::auth::require_god))
+        .layer(from_fn(crate::middleware::auth::require_god))
 }
 
 /// Graceful shutdown signal handler

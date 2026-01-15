@@ -10,6 +10,7 @@ interface BlockchainContextType {
   getBalance: (address: string) => Promise<string>;
   transfer: (fromPair: any, toAddress: string, amount: string) => Promise<string>;
   getUserAssets: (address: string) => Promise<any[]>;
+  getApi: () => any | null;
 }
 
 const BlockchainContext = createContext<BlockchainContextType | null>(null);
@@ -21,7 +22,14 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
     // Auto-connect on mount
     connect();
     
+    // Poll connection status periodically
+    const statusInterval = setInterval(() => {
+      const connected = blockchainClient.isConnected();
+      setIsConnected(connected);
+    }, 5000); // Check every 5 seconds
+    
     return () => {
+      clearInterval(statusInterval);
       disconnect();
     };
   }, []);
@@ -29,9 +37,14 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
   const connect = async () => {
     try {
       await blockchainClient.connect();
-      setIsConnected(true);
-    } catch (error) {
-      console.error('Failed to connect to blockchain:', error);
+      // Check actual connection status after connect attempt
+      const connected = blockchainClient.isConnected();
+      setIsConnected(connected);
+    } catch (error: any) {
+      // Suppress WebSocket connection errors - they're expected if the node isn't running
+      if (!error.message?.includes('disconnected') && !error.message?.includes('1006')) {
+        console.warn('Blockchain connection warning:', error.message);
+      }
       setIsConnected(false);
     }
   };
@@ -66,6 +79,10 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
     return blockchainClient.getUserAssets(address);
   };
 
+  const getApi = () => {
+    return blockchainClient.getApi();
+  };
+
   return (
     <BlockchainContext.Provider
       value={{
@@ -75,6 +92,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
         getBalance,
         transfer,
         getUserAssets,
+        getApi,
       }}
     >
       {children}

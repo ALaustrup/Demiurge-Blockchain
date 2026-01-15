@@ -1,0 +1,124 @@
+'use client';
+
+import { useState } from 'react';
+import { qorAuth } from '@demiurge/qor-sdk';
+
+interface QorIdLoginModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onLoginSuccess: () => void;
+  onSwitchToRegister: () => void;
+}
+
+export function QorIdLoginModal({ isOpen, onClose, onLoginSuccess, onSwitchToRegister }: QorIdLoginModalProps) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      // Login accepts email or QOR ID (username#discriminator)
+      // The backend will handle both formats
+      await qorAuth.login(username, password);
+
+      onLoginSuccess();
+      onClose();
+    } catch (err: any) {
+      // Provide more helpful error messages
+      let errorMessage = 'Login failed. Please check your credentials.';
+      
+      if (err.message?.includes('not available') || err.message?.includes('Network Error')) {
+        errorMessage = 'QOR Auth service is not available. Please ensure the service is running on port 8080.';
+      } else if (err.code === 'ERR_NETWORK') {
+        errorMessage = 'Cannot connect to QOR Auth service. Please ensure the service is running.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="glass-panel p-8 rounded-lg w-full max-w-md border-2 border-demiurge-cyan/50">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-demiurge-cyan">CONNECT WITH QOR ID</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors text-2xl"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Username or Email</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your QOR ID or email"
+              className="w-full bg-gray-800/50 border border-gray-700 rounded p-3 text-white placeholder-gray-500 focus:border-demiurge-cyan focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Safe Word (Password)</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your safe word"
+              className="w-full bg-gray-800/50 border border-gray-700 rounded p-3 text-white placeholder-gray-500 focus:border-demiurge-cyan focus:outline-none"
+              required
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-900/30 border border-red-500/50 rounded p-3 text-red-400 text-sm space-y-2">
+              <div className="font-semibold">Login Error</div>
+              <div>{error}</div>
+              {error.includes('not available') && (
+                <div className="text-xs text-gray-400 mt-2">
+                  To start the QOR Auth service, run: <code className="bg-gray-800 px-2 py-1 rounded">cd services/qor-auth && cargo run</code>
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading || !username || !password}
+            className="w-full bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-white font-bold py-3 rounded-lg hover:chroma-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Connecting...' : 'LOGIN TO JOIN'}
+          </button>
+
+          <div className="text-center pt-4 border-t border-demiurge-cyan/20">
+            <button
+              type="button"
+              onClick={onSwitchToRegister}
+              className="text-demiurge-cyan hover:text-demiurge-violet transition-colors underline"
+            >
+              GET QOR ID
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

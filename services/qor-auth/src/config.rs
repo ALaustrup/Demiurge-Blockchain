@@ -71,7 +71,7 @@ impl AppConfig {
             // Start with default values
             .set_default("server.host", "0.0.0.0")?
             .set_default("server.port", 3000)?
-            .set_default("server.environment", &env)?
+            .set_default("server.environment", env.as_str())?
             .set_default("database.max_connections", 10)?
             .set_default("jwt.access_expiry_secs", 900)?
             .set_default("jwt.refresh_expiry_secs", 2592000)?

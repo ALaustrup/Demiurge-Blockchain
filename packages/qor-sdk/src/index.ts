@@ -6,7 +6,11 @@ export * from './leveling';
 // Export asset management
 export * from './assets';
 
-const DEFAULT_API_URL = process.env.NEXT_PUBLIC_QOR_AUTH_URL || 'http://localhost:8080';
+// Default to production server, fallback to localhost for development
+const DEFAULT_API_URL = process.env.NEXT_PUBLIC_QOR_AUTH_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'demiurge.cloud'
+    ? 'http://51.210.209.112:8080'
+    : 'http://localhost:8080');
 
 export interface QorId {
   username: string;
@@ -20,6 +24,12 @@ export interface User {
   role: 'user' | 'moderator' | 'admin' | 'god';
   created_at?: string;
   updated_at?: string;
+  avatar_url?: string | null;
+  on_chain?: {
+    address: string;
+    cgt_balance?: string;
+  };
+  on_chain_address?: string; // Legacy field name
 }
 
 export interface LoginResponse {
@@ -92,18 +102,40 @@ export class QorAuthClient {
   }
 
   async register(data: RegisterRequest): Promise<LoginResponse> {
-    const response = await this.client.post<LoginResponse>('/api/v1/auth/register', data);
-    
-    if (response.data.token) {
-      this.setToken(response.data.token);
+    try {
+      const response = await this.client.post<LoginResponse>('/api/v1/auth/register', data);
+      
+      if (response.data.token) {
+        this.setToken(response.data.token);
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        throw new Error('QOR Auth service is not available. Please ensure the service is running on port 8080.');
+      }
+      // Handle API errors
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw error;
     }
-    
-    return response.data;
   }
 
   async getProfile(): Promise<User> {
-    const response = await this.client.get<User>('/api/v1/profile');
-    return response.data;
+    try {
+      const response = await this.client.get<User>('/api/v1/profile');
+      return response.data;
+    } catch (error: any) {
+      // Handle network errors gracefully
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        throw new Error('QOR Auth service is not available. Please ensure the service is running on port 8080.');
+      }
+      throw error;
+    }
   }
 
   async refreshToken(refreshToken: string): Promise<LoginResponse> {
@@ -146,6 +178,59 @@ export class QorAuthClient {
 
   isAuthenticated(): boolean {
     return this.getToken() !== null;
+  }
+
+  async checkUsername(username: string): Promise<{ available: boolean; username: string }> {
+    try {
+      const response = await this.client.post<{ available: boolean; username: string }>('/api/v1/auth/check-username', {
+        username,
+      });
+      return response.data;
+    } catch (error: any) {
+      // If service is not available, assume username is available (for offline mode)
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        return { available: true, username: username.toLowerCase() };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Upload avatar image and mint as DRC-369 NFT
+   * 
+   * @param file Image file to upload
+   * @param qorId User's QOR ID for the NFT metadata
+   * @returns Avatar URL
+   */
+  async uploadAvatar(file: File, qorId: string): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      formData.append('qor_id', qorId);
+
+      const response = await this.client.post<{ avatar_url: string; asset_uuid?: string }>(
+        '/api/v1/profile/avatar',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      return response.data.avatar_url;
+    } catch (error: any) {
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        throw new Error('QOR Auth service is not available. Please ensure the service is running on port 8080.');
+      }
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw error;
+    }
   }
 }
 

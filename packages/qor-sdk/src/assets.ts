@@ -141,13 +141,13 @@ export class MetadataResolver {
    * Resolve asset metadata from IPFS/Arweave
    */
   async resolveMetadata(asset: Drc369Asset): Promise<AssetMetadata> {
-    // If metadata is already loaded, return it
-    if (asset.metadata) {
+    // If metadata is already fully loaded (has description/image), return it
+    if (asset.metadata && asset.metadata.description) {
       return asset.metadata;
     }
     
-    // Try to fetch from IPFS
-    if (asset.metadata.ipfsHash) {
+    // Try to fetch from IPFS if hash is available
+    if (asset.metadata?.ipfsHash) {
       try {
         const response = await fetch(`${this.ipfsGateway}${asset.metadata.ipfsHash}`);
         const metadata = await response.json();

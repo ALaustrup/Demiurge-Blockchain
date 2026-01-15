@@ -3,8 +3,24 @@
 import { useState, useEffect } from 'react';
 import { qorAuth } from '@demiurge/qor-sdk';
 
-export function WalletDropdown() {
-  const [balance, setBalance] = useState<number>(0);
+// Import blockchain client (will be available in hub app)
+// For ui-shared package, we'll use a callback pattern
+interface WalletDropdownProps {
+  onSendClick?: () => void;
+  onReceiveClick?: () => void;
+  onHistoryClick?: () => void;
+  balance?: string; // Raw balance string (in smallest units)
+  address?: string | null;
+}
+
+export function WalletDropdown({ 
+  onSendClick,
+  onReceiveClick,
+  onHistoryClick,
+  balance: externalBalance,
+  address: externalAddress,
+}: WalletDropdownProps = {}) {
+  const [balance, setBalance] = useState<string>('0');
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState<string | null>(null);
@@ -14,22 +30,25 @@ export function WalletDropdown() {
       try {
         // Get user profile to fetch on-chain address
         const profile = await qorAuth.getProfile();
-        const userAddress = profile.on_chain?.address;
+        const userAddress = profile.on_chain?.address || externalAddress;
         
         if (userAddress) {
           setAddress(userAddress);
-          // TODO: Fetch real balance from blockchain
-          // For now, use mock data until blockchain is fully connected
-          // const balanceStr = await blockchainClient.getCGTBalance(userAddress);
-          // setBalance(parseFloat(balanceStr) / 1e8); // Convert from 8 decimals
-          setBalance(1000.5); // Mock data
+          
+          // Use external balance if provided, otherwise use mock for now
+          if (externalBalance) {
+            setBalance(externalBalance);
+          } else {
+            // Mock data - will be replaced by real blockchain query in hub app
+            setBalance('100050000000'); // 1000.5 CGT in smallest units
+          }
         } else {
           // No on-chain address yet
-          setBalance(0);
+          setBalance('0');
         }
       } catch (error) {
         console.error('Failed to load balance:', error);
-        setBalance(0);
+        setBalance('0');
       } finally {
         setLoading(false);
       }
@@ -40,7 +59,19 @@ export function WalletDropdown() {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [externalBalance, externalAddress]);
+
+  // Format balance for display (8 decimals)
+  const formatBalance = (rawBalance: string): string => {
+    const CGT_UNIT = 100_000_000;
+    const balanceNum = BigInt(rawBalance);
+    const whole = balanceNum / BigInt(CGT_UNIT);
+    const fractional = balanceNum % BigInt(CGT_UNIT);
+    const fractionalStr = fractional.toString().padStart(8, '0');
+    return `${whole}.${fractionalStr}`;
+  };
+
+  const displayBalance = formatBalance(balance);
 
   return (
     <div className="relative">
@@ -50,7 +81,7 @@ export function WalletDropdown() {
       >
         <span className="text-demiurge-cyan font-bold">CGT</span>
         <span className="text-white">
-          {loading ? '...' : balance.toFixed(2)}
+          {loading ? '...' : parseFloat(displayBalance).toFixed(2)}
         </span>
       </button>
       
@@ -61,16 +92,39 @@ export function WalletDropdown() {
             <div className="flex justify-between items-center pb-3 border-b border-demiurge-cyan/20">
               <span className="text-gray-300">Balance:</span>
               <span className="text-demiurge-cyan font-bold text-xl">
-                {balance.toFixed(2)} CGT
+                {parseFloat(displayBalance).toFixed(2)} CGT
               </span>
             </div>
-            <button className="w-full glass-panel py-2 rounded hover:chroma-glow transition-all">
+            {address && (
+              <div className="text-xs text-gray-400 font-mono break-all pb-3 border-b border-demiurge-cyan/20">
+                {address}
+              </div>
+            )}
+            <button 
+              onClick={() => {
+                onSendClick?.();
+                setIsOpen(false);
+              }}
+              className="w-full glass-panel py-2 rounded hover:chroma-glow transition-all"
+            >
               Send CGT
             </button>
-            <button className="w-full glass-panel py-2 rounded hover:chroma-glow transition-all">
+            <button 
+              onClick={() => {
+                onReceiveClick?.();
+                setIsOpen(false);
+              }}
+              className="w-full glass-panel py-2 rounded hover:chroma-glow transition-all"
+            >
               Receive CGT
             </button>
-            <button className="w-full glass-panel py-2 rounded hover:chroma-glow transition-all">
+            <button 
+              onClick={() => {
+                onHistoryClick?.();
+                setIsOpen(false);
+              }}
+              className="w-full glass-panel py-2 rounded hover:chroma-glow transition-all"
+            >
               Transaction History
             </button>
           </div>

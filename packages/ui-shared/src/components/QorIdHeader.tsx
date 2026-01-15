@@ -16,8 +16,14 @@ export function QorIdHeader() {
         try {
           const profile = await qorAuth.getProfile();
           setUser(profile);
-        } catch (error) {
-          console.error('Failed to load user profile:', error);
+        } catch (error: any) {
+          // Handle network errors gracefully
+          if (error.message?.includes('not available') || error.code === 'ERR_NETWORK') {
+            console.warn('QOR Auth service not available - running in offline mode');
+            // Don't show error to user, just show login button
+          } else {
+            console.error('Failed to load user profile:', error);
+          }
         }
       }
       setLoading(false);
@@ -55,6 +61,7 @@ export function QorIdHeader() {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 glass-panel px-4 py-2 rounded-lg hover:chroma-glow transition-all"
       >
+        {/* Avatar will be injected by hub app */}
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-demiurge-cyan to-demiurge-violet flex items-center justify-center text-sm font-bold">
           {user.qor_id.charAt(0).toUpperCase()}
         </div>

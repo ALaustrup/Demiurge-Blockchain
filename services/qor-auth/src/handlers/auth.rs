@@ -24,10 +24,10 @@ pub async fn register(
         ));
     }
 
-    // Validate password strength
-    if req.password.len() < 12 {
+    // Validate password strength (safe word - minimum 6 characters)
+    if req.password.len() < 6 {
         return Err(AppError::ValidationError(
-            "Password must be at least 12 characters".into()
+            "Safe word must be at least 6 characters".into()
         ));
     }
 
@@ -131,5 +131,40 @@ pub async fn reset_password(
     
     Ok(Json(json!({
         "message": "Password reset successfully"
+    })))
+}
+
+/// Check username availability
+#[derive(serde::Deserialize)]
+pub struct CheckUsernameRequest {
+    username: String,
+}
+
+pub async fn check_username(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CheckUsernameRequest>,
+) -> AppResult<Json<Value>> {
+    // Validate username format
+    if !crate::models::QorId::is_valid_username(&req.username) {
+        return Ok(Json(json!({
+            "available": false,
+            "reason": "invalid_format"
+        })));
+    }
+
+    // Check if username exists in database
+    let username_lower = req.username.to_lowercase();
+    let exists: Option<i64> = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM users WHERE LOWER(username) = $1"
+    )
+    .bind(&username_lower)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let available = exists.map(|count| count == 0).unwrap_or(true);
+
+    Ok(Json(json!({
+        "available": available,
+        "username": username_lower,
     })))
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { qorAuth } from '@demiurge/qor-sdk';
+import { useBlockchain } from '@/contexts/BlockchainContext';
 
 interface GameWrapperProps {
   gameId: string;
@@ -12,6 +13,7 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { getBalance, getUserAssets } = useBlockchain();
 
   useEffect(() => {
     // Inject HUD script into iframe when it loads
@@ -54,24 +56,24 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
           try {
             // Get user's on-chain address
             const profile = await qorAuth.getProfile();
-            const address = profile.on_chain?.address;
+            const address = profile.on_chain?.address || profile.on_chain_address;
             
             if (address) {
-              // TODO: Fetch actual balance from blockchain
-              // const balanceStr = await blockchainClient.getCGTBalance(address);
-              // const balance = parseFloat(balanceStr) / 1e8; // Convert from 8 decimals
-              const balance = 1000.5; // Mock data until blockchain is connected
+              // Fetch actual balance from blockchain
+              const balanceStr = await getBalance(address);
+              // Balance is in smallest units (8 decimals), convert to CGT
+              const balance = parseFloat(balanceStr) / 100_000_000;
               
               iframe.contentWindow?.postMessage({
                 type: 'CGT_BALANCE_RESPONSE',
                 messageId,
-                balance,
+                balance: balanceStr, // Send raw balance string (smallest units)
               }, '*');
             } else {
               iframe.contentWindow?.postMessage({
                 type: 'CGT_BALANCE_RESPONSE',
                 messageId,
-                balance: 0,
+                balance: '0',
               }, '*');
             }
           } catch (err) {
@@ -115,12 +117,11 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
           try {
             // Get user's on-chain address
             const profile = await qorAuth.getProfile();
-            const address = profile.on_chain?.address;
+            const address = profile.on_chain?.address || profile.on_chain_address;
             
             if (address) {
-              // TODO: Fetch actual assets from blockchain
-              // const assets = await blockchainClient.getUserAssets(address);
-              const assets: any[] = []; // Mock data until blockchain is connected
+              // Fetch actual assets from blockchain
+              const assets = await getUserAssets(address);
               
               iframe.contentWindow?.postMessage({
                 type: 'USER_ASSETS_RESPONSE',

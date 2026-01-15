@@ -8,8 +8,6 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::error::AppResult;
-use crate::models::Claims;
 use crate::services::SessionService;
 use crate::state::AppState;
 
@@ -157,7 +155,7 @@ pub async fn require_admin(
 
 /// Middleware to require God-level access
 pub async fn require_god(
-    request: Request,
+    mut request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
     // Get state from extensions
