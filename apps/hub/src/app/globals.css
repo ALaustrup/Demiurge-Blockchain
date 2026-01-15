@@ -4,44 +4,186 @@
 
 @layer base {
   body {
-    @apply bg-demiurge-dark text-white antialiased;
+    @apply text-white antialiased;
+    font-family: var(--font-space-grotesk), sans-serif;
+    background-color: #050510;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-orbitron), sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  
+  .font-grunge {
+    font-family: var(--font-orbitron), sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  
+  .font-grunge-alt {
+    font-family: var(--font-rajdhani), sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.08em;
   }
 }
 
 @layer components {
+  /* Liquid Neon Glow Background */
+  .liquid-glow {
+    position: absolute;
+    inset: -50%;
+    background: radial-gradient(
+      ellipse at 20% 50%,
+      rgba(0, 255, 255, 0.15) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 80% 80%,
+      rgba(255, 0, 255, 0.15) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 40% 20%,
+      rgba(0, 255, 136, 0.1) 0%,
+      transparent 50%
+    );
+    animation: liquid-glow 8s ease-in-out infinite;
+    filter: blur(80px);
+    opacity: 0.6;
+  }
+  
+  /* Neon Grid Pattern */
+  .neon-grid {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+  }
+  
+  /* Enhanced Glass Panel with Liquid Neon Border */
   .glass-panel {
-    @apply bg-[rgba(15,15,15,0.85)] backdrop-blur-[20px];
-    @apply border border-transparent;
+    @apply bg-[rgba(10,10,15,0.85)] backdrop-blur-[20px];
+    @apply border;
     @apply rounded-lg;
     @apply relative;
+    @apply overflow-hidden;
+    border-color: rgba(0, 255, 255, 0.3);
+    box-shadow: 
+      0 0 20px rgba(0, 255, 255, 0.1),
+      inset 0 0 20px rgba(0, 255, 255, 0.05);
+    animation: morph-border 6s ease-in-out infinite;
   }
   
   .glass-panel::before {
     content: '';
     @apply absolute inset-0 rounded-lg;
-    @apply bg-gradient-to-r from-demiurge-cyan via-demiurge-violet to-demiurge-cyan;
-    @apply opacity-30 blur-sm;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 255, 255, 0.1) 0%,
+      rgba(255, 0, 255, 0.1) 50%,
+      rgba(0, 255, 136, 0.1) 100%
+    );
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+    @apply opacity-50;
     @apply -z-10;
-    @apply animate-border-pulse;
   }
   
   .glass-panel::after {
     content: '';
     @apply absolute inset-[1px] rounded-lg;
-    @apply bg-demiurge-dark;
     @apply -z-10;
+    background-color: #050510;
   }
   
-  .glass-border {
-    @apply border border-transparent;
-    @apply bg-gradient-to-r from-demiurge-cyan via-demiurge-violet to-demiurge-cyan;
-    @apply bg-clip-border;
-    @apply animate-border-pulse;
+  /* Liquid Neon Border Effect */
+  .liquid-border {
+    position: relative;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, rgba(10, 10, 15, 0.9), rgba(15, 15, 20, 0.9)) padding-box,
+                linear-gradient(135deg, 
+                  rgba(0, 255, 255, 0.5),
+                  rgba(255, 0, 255, 0.5),
+                  rgba(0, 255, 136, 0.5),
+                  rgba(0, 255, 255, 0.5)
+                ) border-box;
+    background-size: 200% 200%;
+    animation: gradient-shift 6s ease infinite;
+    box-shadow: 
+      0 0 15px rgba(0, 255, 255, 0.3),
+      0 0 30px rgba(255, 0, 255, 0.2),
+      inset 0 0 15px rgba(0, 255, 136, 0.1);
   }
   
+  /* Enhanced Chroma Glow */
   .chroma-glow {
-    @apply shadow-[0_0_20px_rgba(0,242,255,0.3)];
-    @apply animate-glow-pulse;
+    text-shadow: 
+      0 0 10px rgba(0, 255, 255, 0.8),
+      0 0 20px rgba(0, 255, 255, 0.6),
+      0 0 30px rgba(0, 255, 255, 0.4);
+    animation: neon-flicker 3s ease-in-out infinite;
+  }
+  
+  /* Grunge Text Effect */
+  .grunge-text {
+    @apply font-grunge;
+    text-shadow: 
+      2px 2px 0px rgba(0, 255, 255, 0.3),
+      -1px -1px 0px rgba(255, 0, 255, 0.3),
+      0 0 20px rgba(0, 255, 255, 0.5);
+    background: linear-gradient(135deg, #00ffff, #ff00ff, #00ff88);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 200%;
+    animation: gradient-shift 4s ease infinite;
+  }
+  
+  /* Neon Button */
+  .neon-button {
+    @apply relative;
+    @apply px-6 py-3;
+    @apply font-grunge-alt;
+    @apply text-sm;
+    @apply uppercase;
+    @apply tracking-wider;
+    background: rgba(10, 10, 15, 0.8);
+    border: 1px solid rgba(0, 255, 255, 0.5);
+    color: #00ffff;
+    transition: all 0.3s ease;
+    box-shadow: 
+      0 0 10px rgba(0, 255, 255, 0.3),
+      inset 0 0 10px rgba(0, 255, 255, 0.1);
+  }
+  
+  .neon-button:hover {
+    border-color: rgba(255, 0, 255, 0.8);
+    color: #ff00ff;
+    box-shadow: 
+      0 0 20px rgba(255, 0, 255, 0.5),
+      inset 0 0 20px rgba(255, 0, 255, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  .neon-button::before {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(135deg, 
+      rgba(0, 255, 255, 0.1),
+      rgba(255, 0, 255, 0.1)
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .neon-button:hover::before {
+    opacity: 1;
   }
 }
 

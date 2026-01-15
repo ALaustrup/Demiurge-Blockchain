@@ -294,6 +294,62 @@ export class BlockchainClient {
   }
 
   /**
+   * Get full metadata for a DRC-369 asset
+   * 
+   * @param uuid Asset UUID (32-byte hash as hex string)
+   * @returns Full asset metadata including state, resources, and nesting info
+   */
+  async getAssetMetadata(uuid: string): Promise<any> {
+    if (!this.api) {
+      await this.connect();
+    }
+
+    try {
+      // Query asset metadata from pallet-drc369
+      const assetData = await this.api!.query.drc369.assets(uuid);
+      
+      if (!assetData || assetData.isEmpty) {
+        throw new Error(`Asset ${uuid} not found`);
+      }
+
+      // Convert to human-readable format
+      const asset = assetData.toHuman();
+      
+      // Format the response
+      return {
+        uuid: uuid,
+        name: asset?.name || 'Unknown',
+        creatorQorId: asset?.creator_qor_id || '',
+        creatorAccount: asset?.creator_account || '',
+        owner: asset?.owner || '',
+        assetType: 'virtual', // Can be determined from metadata
+        xpLevel: asset?.level || 0,
+        experiencePoints: asset?.experience_points || 0,
+        durability: asset?.durability || 100,
+        killCount: asset?.kill_count || 0,
+        classId: asset?.class_id || 0,
+        isSoulbound: asset?.is_soulbound || false,
+        royaltyFeePercent: asset?.royalty_fee_percent || 0,
+        mintedAt: asset?.minted_at || 0,
+        metadata: {
+          description: asset?.description || '',
+          image: asset?.image || '',
+          attributes: asset?.attributes || {},
+          resources: asset?.resources || [],
+          parentUuid: asset?.parent_uuid || null,
+          childrenUuids: asset?.children_uuids || [],
+          equipmentSlots: asset?.equipment_slots || [],
+          delegation: asset?.delegation || null,
+          customState: asset?.custom_state || {}
+        }
+      };
+    } catch (error) {
+      console.error('Failed to query asset metadata:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Mint avatar as DRC-369 NFT asset
    * 
    * @param fromPair Keyring pair of the creator

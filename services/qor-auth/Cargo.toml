@@ -34,14 +34,16 @@ rand = "0.8"
 uuid = { version = "1.11", features = ["v4", "serde"] }
 
 # Cryptography
-ed25519-dalek = "2.1"
+ed25519-dalek = { version = "2.1", default-features = false, features = ["rand_core"] }
 sha2 = "0.10"
 hex = "0.4"
+base64 = "0.22"
 
-# Zero-Knowledge Proofs
-ark-groth16 = "0.5"
-ark-bn254 = "0.5"
-ark-serialize = "0.5"
+# Zero-Knowledge Proofs (commented out to avoid aws-lc-sys build issues on Windows)
+# Can be enabled later when ZK features are fully implemented
+# ark-groth16 = "0.5"
+# ark-bn254 = "0.5"
+# ark-serialize = "0.5"
 
 # Validation
 validator = { version = "0.18", features = ["derive"] }
@@ -63,7 +65,7 @@ dotenvy = "0.15"
 
 # Metrics
 metrics = "0.24"
-metrics-exporter-prometheus = "0.16"
+# metrics-exporter-prometheus = "0.16"  # Commented out - requires aws-lc-sys which has Windows build issues
 
 # Health Checks
 tokio-graceful-shutdown = "0.15"

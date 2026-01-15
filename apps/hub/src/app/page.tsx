@@ -43,23 +43,23 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="min-h-screen relative overflow-hidden bg-demiurge-dark">
-      {/* Animated Background Gradient */}
+    <main className="min-h-screen relative overflow-hidden">
+      {/* Enhanced Animated Background with Liquid Neon */}
       <div 
-        className="fixed inset-0 opacity-30"
+        className="fixed inset-0 opacity-40"
         style={{
-          background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(0,242,255,0.3) 0%, rgba(112,0,255,0.2) 50%, transparent 70%)`,
-          transition: 'background 0.3s ease-out',
+          background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(0,255,255,0.2) 0%, rgba(255,0,255,0.15) 30%, rgba(0,255,136,0.1) 60%, transparent 80%)`,
+          transition: 'background 0.5s ease-out',
         }}
       />
       
-      {/* Floating Particles */}
+      {/* Floating Neon Particles */}
       {isMounted && (
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           {particles.map((particle, i) => (
             <div
               key={i}
-              className="absolute rounded-full bg-demiurge-cyan opacity-20 animate-float"
+              className="absolute rounded-full animate-float"
               style={{
                 width: particle.width,
                 height: particle.height,
@@ -67,6 +67,12 @@ export default function Home() {
                 top: particle.top,
                 animationDelay: particle.animationDelay,
                 animationDuration: particle.animationDuration,
+                background: i % 3 === 0 
+                  ? 'radial-gradient(circle, rgba(0,255,255,0.6), transparent)'
+                  : i % 3 === 1
+                  ? 'radial-gradient(circle, rgba(255,0,255,0.6), transparent)'
+                  : 'radial-gradient(circle, rgba(0,255,136,0.6), transparent)',
+                boxShadow: `0 0 ${Math.random() * 10 + 5}px currentColor`,
               }}
             />
           ))}
@@ -77,27 +83,21 @@ export default function Home() {
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-8">
         {/* Hero Section */}
         <div className="text-center mb-16 space-y-8">
-          {/* Main Title with Glitch Effect */}
-          <h1 className="text-8xl md:text-9xl font-black mb-4 relative">
-            <span 
-              className="block bg-gradient-to-r from-demiurge-cyan via-demiurge-violet to-demiurge-gold bg-clip-text text-transparent"
-              style={{
-                backgroundSize: '200% 200%',
-                animation: 'gradient-shift 8s ease infinite',
-              }}
-            >
+          {/* Main Title with Grunge Style */}
+          <h1 className="text-7xl md:text-9xl font-grunge mb-4 relative">
+            <span className="grunge-text block">
               DEMIURGE
             </span>
-            <span className="block text-4xl md:text-5xl mt-4 text-demiurge-cyan font-light tracking-widest">
+            <span className="block text-3xl md:text-5xl mt-4 font-grunge-alt text-neon-cyan tracking-[0.2em] chroma-glow">
               .CLOUD
             </span>
           </h1>
 
           {/* Subtitle */}
-          <p className="text-2xl md:text-3xl text-gray-300 font-light mb-4">
+          <p className="text-2xl md:text-3xl text-gray-200 font-body font-light mb-4">
             The Metaverse Operating System
           </p>
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto font-body leading-relaxed">
             From the Monad, all emanates. To the Pleroma, all returns.
           </p>
         </div>
@@ -106,48 +106,48 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl w-full mb-12">
           {/* Portal Card */}
           <Link href="/portal" className="group">
-            <div className="glass-panel p-8 h-full hover:scale-105 transition-all duration-300 cursor-pointer">
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🎮</div>
-              <h3 className="text-2xl font-bold text-demiurge-cyan mb-2">Casino Portal</h3>
-              <p className="text-gray-400">Enter the realm of infinite games</p>
-              <div className="mt-4 text-demiurge-violet group-hover:translate-x-2 transition-transform inline-block">
-                → Enter
+            <div className="glass-panel liquid-border p-8 h-full hover:scale-105 transition-all duration-300 cursor-pointer">
+              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform filter drop-shadow-[0_0_10px_rgba(0,255,255,0.5)]">🎮</div>
+              <h3 className="text-2xl font-grunge-alt text-neon-cyan mb-2 chroma-glow">CASINO PORTAL</h3>
+              <p className="text-gray-300 font-body">Enter the realm of infinite games</p>
+              <div className="mt-4 text-neon-magenta group-hover:translate-x-2 transition-transform inline-block font-grunge-alt">
+                → ENTER
               </div>
             </div>
           </Link>
 
           {/* NFT Portal Card */}
           <Link href="/nft-portal" className="group">
-            <div className="glass-panel p-8 h-full hover:scale-105 transition-all duration-300 cursor-pointer">
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🎨</div>
-              <h3 className="text-2xl font-bold text-demiurge-gold mb-2">NFT Portal</h3>
-              <p className="text-gray-400">Manage DRC-369 assets & collections</p>
-              <div className="mt-4 text-demiurge-violet group-hover:translate-x-2 transition-transform inline-block">
-                → Open Portal
+            <div className="glass-panel liquid-border p-8 h-full hover:scale-105 transition-all duration-300 cursor-pointer">
+              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform filter drop-shadow-[0_0_10px_rgba(255,0,255,0.5)]">🎨</div>
+              <h3 className="text-2xl font-grunge-alt text-neon-purple mb-2 chroma-glow">NFT PORTAL</h3>
+              <p className="text-gray-300 font-body">Manage DRC-369 assets & collections</p>
+              <div className="mt-4 text-neon-pink group-hover:translate-x-2 transition-transform inline-block font-grunge-alt">
+                → OPEN
               </div>
             </div>
           </Link>
 
           {/* Marketplace Card */}
           <Link href="/marketplace" className="group">
-            <div className="glass-panel p-8 h-full hover:scale-105 transition-all duration-300 cursor-pointer">
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🛒</div>
-              <h3 className="text-2xl font-bold text-demiurge-violet mb-2">Marketplace</h3>
-              <p className="text-gray-400">Discover DRC-369 assets & NFTs</p>
-              <div className="mt-4 text-demiurge-violet group-hover:translate-x-2 transition-transform inline-block">
-                → Explore
+            <div className="glass-panel liquid-border p-8 h-full hover:scale-105 transition-all duration-300 cursor-pointer">
+              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform filter drop-shadow-[0_0_10px_rgba(0,255,136,0.5)]">🛒</div>
+              <h3 className="text-2xl font-grunge-alt text-neon-green mb-2 chroma-glow">MARKETPLACE</h3>
+              <p className="text-gray-300 font-body">Discover DRC-369 assets & NFTs</p>
+              <div className="mt-4 text-neon-cyan group-hover:translate-x-2 transition-transform inline-block font-grunge-alt">
+                → EXPLORE
               </div>
             </div>
           </Link>
 
           {/* Social Card */}
           <Link href="/social" className="group">
-            <div className="glass-panel p-8 h-full hover:scale-105 transition-all duration-300 cursor-pointer">
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🌐</div>
-              <h3 className="text-2xl font-bold text-demiurge-gold mb-2">Social</h3>
-              <p className="text-gray-400">Connect with the Pantheon</p>
-              <div className="mt-4 text-demiurge-violet group-hover:translate-x-2 transition-transform inline-block">
-                → Connect
+            <div className="glass-panel liquid-border p-8 h-full hover:scale-105 transition-all duration-300 cursor-pointer">
+              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform filter drop-shadow-[0_0_10px_rgba(255,0,128,0.5)]">🌐</div>
+              <h3 className="text-2xl font-grunge-alt text-neon-pink mb-2 chroma-glow">VYB SOCIAL</h3>
+              <p className="text-gray-300 font-body">Connect with the Pantheon</p>
+              <div className="mt-4 text-neon-magenta group-hover:translate-x-2 transition-transform inline-block font-grunge-alt">
+                → CONNECT
               </div>
             </div>
           </Link>
@@ -157,45 +157,53 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row gap-4">
           <Link
             href="/login"
-            className="glass-panel px-12 py-4 rounded-lg hover:chroma-glow transition-all text-xl font-bold text-demiurge-cyan border-2 border-demiurge-cyan/50 hover:border-demiurge-cyan"
+            className="neon-button"
           >
-            Login / Register
+            LOGIN / REGISTER
           </Link>
           <Link
             href="/play/galaga-creator"
-            className="glass-panel px-12 py-4 rounded-lg hover:chroma-glow transition-all text-xl font-bold bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-white"
+            className="neon-button bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green text-white border-none"
           >
-            Play Now
+            PLAY NOW
           </Link>
         </div>
 
         {/* Stats Bar */}
-        <div className="mt-16 glass-panel p-6 rounded-lg">
+        <div className="mt-16 glass-panel liquid-border p-6 rounded-lg">
           <div className="grid grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-3xl font-bold text-demiurge-cyan">13B</div>
-              <div className="text-sm text-gray-400">CGT Supply</div>
+              <div className="text-4xl font-grunge text-neon-cyan chroma-glow">13B</div>
+              <div className="text-sm text-gray-400 font-body uppercase tracking-wider mt-2">CGT Supply</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-demiurge-violet">∞</div>
-              <div className="text-sm text-gray-400">Games</div>
+              <div className="text-4xl font-grunge text-neon-magenta chroma-glow">∞</div>
+              <div className="text-sm text-gray-400 font-body uppercase tracking-wider mt-2">Games</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-demiurge-gold">QOR</div>
-              <div className="text-sm text-gray-400">Identity</div>
+              <div className="text-4xl font-grunge text-neon-green chroma-glow">QOR</div>
+              <div className="text-sm text-gray-400 font-body uppercase tracking-wider mt-2">Identity</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Wave Animation */}
+      {/* Bottom Wave Animation with Neon Glow */}
       <div className="fixed bottom-0 left-0 right-0 h-32 overflow-hidden pointer-events-none">
-        <div className="absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-demiurge-dark to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-blockchain-dark to-transparent" />
         <svg className="absolute bottom-0 w-full h-32" viewBox="0 0 1200 120" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="neonWave" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="rgba(0,255,255,0.2)" />
+              <stop offset="50%" stopColor="rgba(255,0,255,0.2)" />
+              <stop offset="100%" stopColor="rgba(0,255,136,0.2)" />
+            </linearGradient>
+          </defs>
           <path
             d="M0,60 Q300,20 600,60 T1200,60 L1200,120 L0,120 Z"
-            fill="rgba(0,242,255,0.1)"
+            fill="url(#neonWave)"
             className="animate-wave"
+            filter="drop-shadow(0 0 20px rgba(0,255,255,0.3))"
           />
         </svg>
       </div>

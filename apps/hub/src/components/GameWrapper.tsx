@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { qorAuth } from '@demiurge/qor-sdk';
 import { useBlockchain } from '@/contexts/BlockchainContext';
+import { gameRegistry } from '@/lib/game-registry';
 
 interface GameWrapperProps {
   gameId: string;
@@ -10,15 +12,100 @@ interface GameWrapperProps {
 }
 
 export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
+  const router = useRouter();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const startTimeRef = useRef<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [gameMetadata, setGameMetadata] = useState<any>(null);
   const { getBalance, getUserAssets } = useBlockchain();
 
+  const handleExit = useCallback(() => {
+    if (confirm('Exit game and return to portal?')) {
+      router.push('/portal');
+    }
+  }, [router]);
+
+  const handlePause = useCallback(() => {
+    setIsPaused((prev) => {
+      const newPaused = !prev;
+      // Send pause message to game iframe
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage({
+          type: newPaused ? 'GAME_PAUSE' : 'GAME_RESUME',
+        }, '*');
+      }
+      return newPaused;
+    });
+  }, []);
+
+  const handleFullscreen = useCallback(async () => {
+    try {
+      if (!isFullscreen) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
+    }
+  }, [isFullscreen]);
+
   useEffect(() => {
+    // Fetch game metadata
+    const metadata = gameRegistry.getById(gameId);
+    setGameMetadata(metadata);
+
+    // Track game start analytics
+    startTimeRef.current = Date.now();
+    const trackGameStart = async () => {
+      try {
+        // Send analytics event
+        await fetch('/api/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'game_start',
+            gameId,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      } catch (err) {
+        console.error('Analytics error:', err);
+      }
+    };
+    trackGameStart();
+
     // Inject HUD script into iframe when it loads
     const iframe = iframeRef.current;
     if (!iframe) return;
+
+    // Handle fullscreen changes
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    // Handle keyboard shortcuts
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // ESC to exit fullscreen or show exit confirmation
+      if (e.key === 'Escape') {
+        if (isFullscreen) {
+          document.exitFullscreen();
+        } else {
+          handleExit();
+        }
+      }
+      // Space to pause/unpause (if game supports it)
+      if (e.key === ' ' && e.target === document.body) {
+        e.preventDefault();
+        handlePause();
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
 
     const handleLoad = () => {
       try {
@@ -173,32 +260,155 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
     return () => {
       iframe.removeEventListener('load', handleLoad);
       window.removeEventListener('message', handleMessage);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('keydown', handleKeyPress);
+      
+      // Track game end analytics
+      if (startTimeRef.current) {
+        const endTime = Date.now();
+        const duration = Math.floor((endTime - startTimeRef.current) / 1000);
+        const trackGameEnd = async () => {
+          try {
+            await fetch('/api/analytics', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event: 'game_end',
+                gameId,
+                duration,
+                timestamp: new Date().toISOString(),
+              }),
+            });
+          } catch (err) {
+            console.error('Analytics error:', err);
+          }
+        };
+        trackGameEnd();
+      }
     };
-  }, [gameId, gameUrl]);
+  }, [gameId, gameUrl, isFullscreen, handleExit, handlePause]);
 
   return (
     <div className="fixed inset-0 z-40 bg-black">
-      <div className="absolute top-4 left-4 z-50">
-        <a
-          href="/portal"
-          className="glass-panel px-4 py-2 rounded-lg hover:chroma-glow transition-all"
-        >
-          ← Exit Game
-        </a>
+      {/* Game Controls Overlay */}
+      <div className="absolute top-4 left-4 right-4 z-50 flex justify-between items-start">
+        <div className="flex gap-2">
+          <button
+            onClick={handleExit}
+            className="glass-panel px-4 py-2 rounded-lg hover:chroma-glow transition-all text-sm"
+          >
+            ← Exit
+          </button>
+          {gameMetadata && (
+            <div className="glass-panel px-4 py-2 rounded-lg text-sm">
+              <span className="text-demiurge-cyan font-semibold">{gameMetadata.title}</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={handlePause}
+            className="glass-panel px-4 py-2 rounded-lg hover:chroma-glow transition-all text-sm"
+            title={isPaused ? 'Resume' : 'Pause'}
+          >
+            {isPaused ? '▶ Resume' : '⏸ Pause'}
+          </button>
+          <button
+            onClick={handleFullscreen}
+            className="glass-panel px-4 py-2 rounded-lg hover:chroma-glow transition-all text-sm"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? '⤓ Exit FS' : '⤢ Fullscreen'}
+          </button>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="glass-panel px-4 py-2 rounded-lg hover:chroma-glow transition-all text-sm"
+          >
+            ⚙ Settings
+          </button>
+        </div>
       </div>
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="absolute top-16 right-4 z-50 glass-panel p-6 rounded-lg min-w-[300px]">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-demiurge-cyan">Game Settings</h3>
+            <button
+              onClick={() => setShowSettings(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="space-y-4">
+            {gameMetadata && (
+              <div>
+                <div className="text-sm text-gray-400 mb-1">Game Info</div>
+                <div className="text-sm text-white">
+                  <div>Version: {gameMetadata.version}</div>
+                  {gameMetadata.author && <div>Author: {gameMetadata.author}</div>}
+                </div>
+              </div>
+            )}
+            <div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={isPaused}
+                  onChange={(e) => setIsPaused(e.target.checked)}
+                />
+                Pause Game
+              </label>
+            </div>
+            <button
+              onClick={handleExit}
+              className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 py-2 rounded transition-colors text-sm"
+            >
+              Exit Game
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Pause Overlay */}
+      {isPaused && (
+        <div className="absolute inset-0 z-45 bg-black/80 flex items-center justify-center">
+          <div className="glass-panel p-8 rounded-lg text-center">
+            <div className="text-4xl mb-4">⏸</div>
+            <div className="text-2xl font-bold text-demiurge-cyan mb-2">Game Paused</div>
+            <button
+              onClick={handlePause}
+              className="glass-panel px-6 py-2 rounded-lg hover:chroma-glow transition-all mt-4"
+            >
+              Resume
+            </button>
+          </div>
+        </div>
+      )}
       
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center z-40">
           <div className="glass-panel p-8 rounded-lg">
-            <div className="text-demiurge-cyan text-xl">Loading game...</div>
+            <div className="text-demiurge-cyan text-xl mb-2">Loading game...</div>
+            {gameMetadata && (
+              <div className="text-sm text-gray-400">{gameMetadata.title}</div>
+            )}
           </div>
         </div>
       )}
       
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center z-40">
           <div className="glass-panel p-8 rounded-lg border border-red-500">
-            <div className="text-red-400 text-xl">{error}</div>
+            <div className="text-red-400 text-xl mb-4">{error}</div>
+            <button
+              onClick={() => window.location.reload()}
+              className="glass-panel px-4 py-2 rounded hover:chroma-glow transition-all"
+            >
+              Retry
+            </button>
           </div>
         </div>
       )}
@@ -206,9 +416,10 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
       <iframe
         ref={iframeRef}
         src={gameUrl}
-        className="w-full h-full border-0"
+        className={`w-full h-full border-0 ${isPaused ? 'pointer-events-none' : ''}`}
         allow="fullscreen"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+        style={{ opacity: isPaused ? 0.5 : 1 }}
       />
     </div>
   );

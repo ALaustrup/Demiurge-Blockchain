@@ -87,17 +87,23 @@ class GameRegistry {
 // Export singleton instance
 export const gameRegistry = new GameRegistry();
 
-// Register Galaga Creator game
-gameRegistry.register({
-  id: 'galaga-creator',
-  title: 'Pixel Starship Genesis',
-  description: 'Infinite procedural gameplay with enemy swarms. Earn CGT by defeating enemies, collect coins, and unlock powerful ship skins!',
-  thumbnail: '/games/galaga-creator/assets/player_ship.webp',
-  entryPoint: 'index.html',
-  version: '1.0.0',
-  author: 'Demiurge Games',
-  tags: ['action', 'arcade', 'shooter', 'space'],
-  minLevel: 1,
-  cgtPool: 0,
-  activeUsers: 0,
-});
+// Initialize registry with default games
+function initializeRegistry() {
+  // Register Galaga Creator game
+  gameRegistry.register({
+    id: 'galaga-creator',
+    title: 'Pixel Starship Genesis',
+    description: 'Infinite procedural gameplay with enemy swarms. Earn CGT by defeating enemies, collect coins, and unlock powerful ship skins!',
+    thumbnail: '/games/galaga-creator/assets/player_ship.webp',
+    entryPoint: 'index.html',
+    version: '1.0.0',
+    author: 'Demiurge Games',
+    tags: ['action', 'arcade', 'shooter', 'space'],
+    minLevel: 1,
+    cgtPool: 0,
+    activeUsers: 0,
+  });
+}
+
+// Initialize on module load
+initializeRegistry();

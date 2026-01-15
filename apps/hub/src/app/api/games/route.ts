@@ -8,8 +8,10 @@ import { gameRegistry } from '@/lib/game-registry';
 export async function GET(request: NextRequest) {
   try {
     const games = gameRegistry.getAll();
+    console.log(`[API /games] Returning ${games.length} games:`, games.map(g => g.id));
     return NextResponse.json({ games });
   } catch (error: any) {
+    console.error('[API /games] Error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch games' },
       { status: 500 }

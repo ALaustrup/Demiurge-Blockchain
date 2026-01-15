@@ -5,6 +5,13 @@ members = [
     "pallets/pallet-cgt",
     "pallets/pallet-qor-identity",
     "pallets/pallet-drc369",
+    "pallets/pallet-game-assets",
+    "pallets/pallet-energy",
+    "pallets/pallet-composable-nfts",
+    "pallets/pallet-dex",
+    "pallets/pallet-fractional-assets",
+    "pallets/pallet-drc369-ocw",
+    "pallets/pallet-governance",
     "runtime",
 ]
 
@@ -16,16 +23,17 @@ license = "MIT"
 repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
 
 [workspace.dependencies]
-# Substrate dependencies (use latest polkadot-stable branch)
-frame-support = { version = "38.0.0", default-features = false }
-frame-system = { version = "38.0.0", default-features = false }
-frame-benchmarking = { version = "38.0.0", default-features = false }
-sp-core = { version = "35.0.0", default-features = false }
-sp-io = { version = "38.0.0", default-features = false }
-sp-runtime = { version = "39.0.0", default-features = false }
+# Substrate dependencies - Aligned to sp-core 34.0.0 for compatibility with sc-* crates
+# Using sp-core 34.0.0 to match available sc-* versions and avoid dependency conflicts
+frame-support = { version = "34.0.0", default-features = false }
+frame-system = { version = "34.0.0", default-features = false }
+frame-benchmarking = { version = "34.0.0", default-features = false }
+sp-core = { version = "34.0.0", default-features = false }
+sp-io = { version = "34.0.0", default-features = false }
+sp-runtime = { version = "34.0.0", default-features = false }
 sp-std = { version = "14.0.0", default-features = false }
-pallet-balances = { version = "39.0.0", default-features = false }
-pallet-timestamp = { version = "37.0.0", default-features = false }
+pallet-balances = { version = "34.0.0", default-features = false }
+pallet-timestamp = { version = "34.0.0", default-features = false }
 
 # Encoding
 codec = { package = "parity-scale-codec", version = "3.7", default-features = false, features = ["derive"] }
@@ -35,8 +43,20 @@ scale-info = { version = "2.11", default-features = false, features = ["derive"]
 pallet-cgt = { path = "pallets/pallet-cgt", default-features = false }
 pallet-qor-identity = { path = "pallets/pallet-qor-identity", default-features = false }
 pallet-drc369 = { path = "pallets/pallet-drc369", default-features = false }
+pallet-game-assets = { path = "pallets/pallet-game-assets", default-features = false }
+pallet-energy = { path = "pallets/pallet-energy", default-features = false }
+pallet-composable-nfts = { path = "pallets/pallet-composable-nfts", default-features = false }
+pallet-dex = { path = "pallets/pallet-dex", default-features = false }
+pallet-fractional-assets = { path = "pallets/pallet-fractional-assets", default-features = false }
+pallet-drc369-ocw = { path = "pallets/pallet-drc369-ocw", default-features = false }
+pallet-governance = { path = "pallets/pallet-governance", default-features = false }
 
 # Force unified schnorrkel version at workspace level
-# This resolves conflict between sp-core (expects 0.9.1) and substrate-bip39 (pulls 0.11.5)
+# sp-core 34.0.0 uses schnorrkel 0.9.1
 [workspace.dependencies.schnorrkel]
 version = "0.9.1"
+
+# Dependency Resolution Strategy:
+# All dependencies are specified with exact compatible versions in node/Cargo.toml and runtime/Cargo.toml
+# This ensures no old sp-core@18.0.0 is pulled in transitively.
+# If conflicts persist, they indicate incompatible sc-* crate versions that need updating.

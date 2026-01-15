@@ -10,35 +10,59 @@ interface PersistentHUDProps {
 
 export function PersistentHUD({ walletComponent, qorIdComponent }: PersistentHUDProps = {}) {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass-panel p-4 border-b border-demiurge-cyan/20">
+    <nav className="fixed top-0 left-0 right-0 z-50 glass-panel liquid-border p-4 border-b-2">
       <div className="flex justify-between items-center max-w-7xl mx-auto">
+        {/* Left: Logo */}
         <div className="flex items-center gap-4">
-          <a href="/" className="text-2xl font-bold bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
+          <a href="/" className="grunge-text text-3xl font-grunge tracking-wider hover:scale-105 transition-transform">
             DEMIURGE
           </a>
+          <div className="h-8 w-px bg-gradient-to-b from-transparent via-neon-cyan to-transparent opacity-50"></div>
+          <span className="text-xs font-grunge-alt text-gray-400 uppercase tracking-widest">
+            Blockchain Ecosystem
+          </span>
         </div>
-        <div className="flex gap-6 items-center">
-          {/* Center: QOR ID Avatar */}
-          <div className="absolute left-1/2 -translate-x-1/2">
-            {qorIdComponent}
-          </div>
-          
-          {/* Right: Wallet and Social */}
-          <div className="flex gap-6 items-center ml-auto">
-            {walletComponent || <WalletDropdown />}
+        
+        {/* Center: QOR ID Avatar */}
+        <div className="absolute left-1/2 -translate-x-1/2">
+          {qorIdComponent}
+        </div>
+        
+        {/* Right: Navigation */}
+        <div className="flex gap-4 items-center ml-auto">
+          {walletComponent || <WalletDropdown />}
+          <nav className="flex gap-4 items-center">
+            <a
+              href="/games"
+              className="font-grunge-alt text-sm uppercase tracking-wider text-gray-300 hover:text-neon-cyan transition-all duration-300 hover:chroma-glow px-3 py-1 rounded"
+            >
+              Games
+            </a>
+            <a
+              href="/portal"
+              className="font-grunge-alt text-sm uppercase tracking-wider text-gray-300 hover:text-neon-magenta transition-all duration-300 hover:chroma-glow px-3 py-1 rounded"
+            >
+              Portal
+            </a>
             <a
               href="/wallet"
-              className="text-demiurge-cyan hover:text-demiurge-violet transition-colors"
+              className="font-grunge-alt text-sm uppercase tracking-wider text-gray-300 hover:text-neon-green transition-all duration-300 hover:chroma-glow px-3 py-1 rounded"
             >
               Wallet
             </a>
             <a
               href="/social"
-              className="text-demiurge-cyan hover:text-demiurge-violet transition-colors"
+              className="font-grunge-alt text-sm uppercase tracking-wider text-gray-300 hover:text-neon-pink transition-all duration-300 hover:chroma-glow px-3 py-1 rounded"
             >
-              Social
+              VYB
             </a>
-          </div>
+            <a
+              href="/nft-portal"
+              className="font-grunge-alt text-sm uppercase tracking-wider text-gray-300 hover:text-neon-purple transition-all duration-300 hover:chroma-glow px-3 py-1 rounded"
+            >
+              NFTs
+            </a>
+          </nav>
         </div>
       </div>
     </nav>
