@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { blockchainClient } from '@/lib/blockchain';
 
 interface BlockchainContextType {
@@ -18,6 +18,30 @@ const BlockchainContext = createContext<BlockchainContextType | null>(null);
 export function BlockchainProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
 
+  const connect = useCallback(async () => {
+    try {
+      await blockchainClient.connect();
+      // Check actual connection status after connect attempt
+      const connected = blockchainClient.isConnected();
+      setIsConnected(connected);
+    } catch (error: any) {
+      // Suppress WebSocket connection errors - they're expected if the node isn't running
+      if (!error.message?.includes('disconnected') && !error.message?.includes('1006')) {
+        console.warn('Blockchain connection warning:', error.message);
+      }
+      setIsConnected(false);
+    }
+  }, []);
+
+  const disconnect = useCallback(async () => {
+    try {
+      await blockchainClient.disconnect();
+      setIsConnected(false);
+    } catch (error) {
+      console.error('Failed to disconnect from blockchain:', error);
+    }
+  }, []);
+
   useEffect(() => {
     // Auto-connect on mount
     connect();
@@ -32,31 +56,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
       clearInterval(statusInterval);
       disconnect();
     };
-  }, []);
-
-  const connect = async () => {
-    try {
-      await blockchainClient.connect();
-      // Check actual connection status after connect attempt
-      const connected = blockchainClient.isConnected();
-      setIsConnected(connected);
-    } catch (error: any) {
-      // Suppress WebSocket connection errors - they're expected if the node isn't running
-      if (!error.message?.includes('disconnected') && !error.message?.includes('1006')) {
-        console.warn('Blockchain connection warning:', error.message);
-      }
-      setIsConnected(false);
-    }
-  };
-
-  const disconnect = async () => {
-    try {
-      await blockchainClient.disconnect();
-      setIsConnected(false);
-    } catch (error) {
-      console.error('Failed to disconnect from blockchain:', error);
-    }
-  };
+  }, [connect, disconnect]);
 
   const getBalance = async (address: string): Promise<string> => {
     if (!isConnected) {
