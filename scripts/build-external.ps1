@@ -24,10 +24,24 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Handle being run from any directory
+$ScriptPath = $MyInvocation.MyCommand.Path
+if (-not $ScriptPath) {
+    # If run directly, use PSScriptRoot
+    $ScriptDir = $PSScriptRoot
+} else {
+    $ScriptDir = Split-Path -Parent $ScriptPath
+}
 $ProjectRoot = Split-Path -Parent $ScriptDir
 $BlockchainDir = Join-Path $ProjectRoot "blockchain"
 $BuildMode = if ($Docker) { "docker" } else { "local" }
+
+# Verify paths exist
+if (-not (Test-Path $BlockchainDir)) {
+    Write-Host "Error: Cannot find blockchain directory at: $BlockchainDir" -ForegroundColor Red
+    Write-Host "Please run this script from the project root or blockchain directory." -ForegroundColor Yellow
+    exit 1
+}
 
 Write-Host ""
 Write-Host "================================================================================" -ForegroundColor Cyan

@@ -19,11 +19,18 @@ Always use:
 
 ### Option 1: PowerShell Script (Windows)
 
+**From project root:**
 ```powershell
-# In an external PowerShell terminal
 .\scripts\build-external.ps1
+```
 
-# With options
+**From blockchain directory:**
+```powershell
+..\scripts\build-external.ps1
+```
+
+**With options:**
+```powershell
 .\scripts\build-external.ps1 -Clean      # Clean before building
 .\scripts\build-external.ps1 -Docker     # Build with Docker
 .\scripts\build-external.ps1 -Check      # Only check compilation
@@ -32,10 +39,10 @@ Always use:
 ### Option 2: Bash Script (Linux/Mac/WSL)
 
 ```bash
-# Make executable
+# Make executable (first time only)
 chmod +x scripts/build-external.sh
 
-# Run build
+# Run build (from project root)
 ./scripts/build-external.sh
 
 # With options
@@ -94,7 +101,8 @@ sudo apt-get install -y \
     libc++abi-dev \
     cmake \
     pkg-config \
-    libssl-dev
+    libssl-dev \
+    protobuf-compiler
 ```
 
 ### Windows
@@ -177,6 +185,8 @@ cargo clean
 cargo build --release
 ```
 
+**Note**: See `DEPENDENCY_CONFLICT_RESOLUTION.md` for librocksdb-sys conflicts.
+
 ### Missing System Dependencies
 
 **Linux**: Install build dependencies (see Prerequisites)
@@ -189,6 +199,14 @@ cargo build --release
 - CPU: 4+ cores
 - RAM: 8+ GB
 - Disk: 20+ GB free
+
+### Script Not Found
+
+**PowerShell**: Make sure you're running from the correct directory:
+- From project root: `.\scripts\build-external.ps1`
+- From blockchain dir: `..\scripts\build-external.ps1`
+
+**Bash**: Ensure script is executable: `chmod +x scripts/build-external.sh`
 
 ---
 
@@ -251,3 +269,4 @@ For build issues:
 2. Verify prerequisites are installed
 3. Try clean build: `cargo clean && cargo build --release`
 4. Check GitHub Actions logs for CI/CD failures
+5. See `DEPENDENCY_CONFLICT_RESOLUTION.md` for known issues
