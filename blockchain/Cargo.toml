@@ -12,6 +12,7 @@ members = [
     "pallets/pallet-fractional-assets",
     "pallets/pallet-drc369-ocw",
     "pallets/pallet-governance",
+    "pallets/pallet-session-keys",
     "runtime",
 ]
 
@@ -49,6 +50,7 @@ pallet-dex = { path = "pallets/pallet-dex", default-features = false }
 pallet-fractional-assets = { path = "pallets/pallet-fractional-assets", default-features = false }
 pallet-drc369-ocw = { path = "pallets/pallet-drc369-ocw", default-features = false }
 pallet-governance = { path = "pallets/pallet-governance", default-features = false }
+pallet-session-keys = { path = "pallets/pallet-session-keys", default-features = false }
 
 # Force unified schnorrkel version at workspace level
 [workspace.dependencies.schnorrkel]
