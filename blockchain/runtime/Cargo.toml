@@ -16,24 +16,24 @@ codec = { workspace = true }
 scale-info = { workspace = true }
 
 # Substrate Primitives
-# Aligned to sp-core 34.0.0
-sp-api = { version = "34.0.0", default-features = false }
-sp-block-builder = { version = "34.0.0", default-features = false }
+# Updated to sp-core 38.0.0 to match node dependencies
+sp-api = { version = "38.0.0", default-features = false }
+sp-block-builder = { version = "38.0.0", default-features = false }
 sp-core = { workspace = true }
-sp-inherents = { version = "34.0.0", default-features = false }
-sp-offchain = { version = "34.0.0", default-features = false }
+sp-inherents = { version = "38.0.0", default-features = false }
+sp-offchain = { version = "38.0.0", default-features = false }
 sp-runtime = { workspace = true }
-sp-session = { version = "34.0.0", default-features = false }
+sp-session = { version = "38.0.0", default-features = false }
 sp-std = { workspace = true }
-sp-transaction-pool = { version = "34.0.0", default-features = false }
-sp-version = { version = "34.0.0", default-features = false }
+sp-transaction-pool = { version = "38.0.0", default-features = false }
+sp-version = { version = "38.0.0", default-features = false }
 sp-genesis-builder = { version = "0.15.0", default-features = false }
 
 # Frame
-frame-executive = { version = "34.0.0", default-features = false }
+frame-executive = { version = "38.0.0", default-features = false }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
-frame-system-rpc-runtime-api = { version = "34.0.0", default-features = false }
+frame-system-rpc-runtime-api = { version = "38.0.0", default-features = false }
 
 # Pallets
 pallet-balances = { workspace = true }

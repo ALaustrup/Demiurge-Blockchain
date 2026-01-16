@@ -22,47 +22,46 @@ tokio = { version = "1.43", features = ["rt-multi-thread", "macros"] }
 futures = "0.3"
 
 # Substrate Client (native only - use default features)
-# Aligned to sp-core 34.0.0 for compatibility
-sc-cli = "0.47.0"
-sc-service = "0.46.0"
+# Using latest available versions - will need to align sp-core to match
+sc-cli = "0.56.0"
+sc-service = "0.56.0"
 sc-executor = "0.40.0"
-sc-network = "0.45.0"
-sc-network-gossip = "0.45.0"
-sc-network-sync = "0.44.0"
-sc-network-common = "0.44.0"
-sc-consensus = "0.44.0"
-sc-consensus-aura = "0.45.0"
-sc-consensus-grandpa = "0.24.0"
-sc-finality-grandpa = "0.24.0"
-sc-client-api = "34.0.0"
+sc-network = "0.54.0"
+sc-network-gossip = "0.54.0"
+sc-network-sync = "0.54.0"
+sc-network-common = "0.52.0"
+sc-consensus = "0.54.0"
+sc-consensus-aura = "0.54.0"
+sc-consensus-grandpa = "0.39.0"
+sc-client-api = "38.0.0"
 sc-rpc = "40.0.0"
-sc-rpc-api = "0.44.0"
-sc-transaction-pool = "34.0.0"
-sc-transaction-pool-api = "34.0.0"
-sc-telemetry = "25.0.0"
+sc-rpc-api = "0.54.0"
+sc-transaction-pool = "38.0.0"
+sc-transaction-pool-api = "38.0.0"
+sc-telemetry = "30.0.0"
 sc-keystore = "36.0.0"
-sc-basic-authorship = "0.45.0"
+sc-basic-authorship = "0.53.0"
 sc-offchain = "40.0.0"
-sc-sysinfo = "34.0.0"
-sc-chain-spec = "34.0.0"
+sc-sysinfo = "38.0.0"
+sc-chain-spec = "38.0.0"
 sc-block-builder = "0.42.0"
 
 # Substrate Primitives (need std for native)
-# Aligned to sp-core 34.0.0
-sp-core = { workspace = true }
-sp-io = { workspace = true }
-sp-runtime = { workspace = true }
-sp-inherents = "34.0.0"
-sp-timestamp = "34.0.0"
-sp-keyring = "34.0.0"
+# Updated to match sc-* crate requirements
+sp-core = { version = "38.0.0", default-features = false }
+sp-io = { version = "38.0.0", default-features = false }
+sp-runtime = { version = "38.0.0", default-features = false }
+sp-inherents = "38.0.0"
+sp-timestamp = "38.0.0"
+sp-keyring = "38.0.0"
 sp-keystore = "0.40.0"
 sp-consensus = "0.40.0"
 sp-consensus-aura = "0.40.0"
 sp-consensus-grandpa = "21.0.0"
-sp-api = "34.0.0"
-sp-blockchain = "34.0.0"
-sp-block-builder = "34.0.0"
-sp-transaction-pool = "34.0.0"
+sp-api = "38.0.0"
+sp-blockchain = "38.0.0"
+sp-block-builder = "38.0.0"
+sp-transaction-pool = "38.0.0"
 
 # Frame
 frame-system = { workspace = true }
@@ -70,7 +69,6 @@ frame-benchmarking = { workspace = true, optional = true }
 frame-benchmarking-cli = { version = "43.0.0", optional = true }
 
 # RPC
-pallet-transaction-payment-rpc = "40.0.0"
 substrate-frame-rpc-system = "38.0.0"
 jsonrpsee = { version = "0.20", features = ["server", "macros", "async-client"] }
 hex = "0.4"

@@ -188,14 +188,14 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 		)?;
 
 		// Start GRANDPA finality gadget
-		let (grandpa_block_import, grandpa_link) = sc_finality_grandpa::block_import(
+		let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
 			client.clone(),
 			&client,
 			grandpa_select_chain,
 			None,
 		)?;
 
-		let grandpa_config = sc_finality_grandpa::Config {
+		let grandpa_config = sc_consensus_grandpa::Config {
 			gossip_duration: std::time::Duration::from_millis(333),
 			justification_period: 512,
 			name: Some(config.network.node_name().clone()),
@@ -205,7 +205,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			telemetry: None,
 		};
 
-		let (grandpa, network) = sc_finality_grandpa::start_grandpa(
+		let (grandpa, network) = sc_consensus_grandpa::start_grandpa(
 			grandpa_config,
 			grandpa_link,
 			network.clone(),

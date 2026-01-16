@@ -1,0 +1,135 @@
+name: Build Demiurge Blockchain Node
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'blockchain/**'
+      - '.github/workflows/build-blockchain.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'blockchain/**'
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: 'Build mode'
+        required: false
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - check
+          - docker
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  check:
+    name: Check Compilation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            blockchain/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      
+      - name: Check code
+        working-directory: ./blockchain
+        run: cargo check --workspace
+      
+      - name: Check formatting
+        working-directory: ./blockchain
+        run: cargo fmt -- --check || true
+
+  build-release:
+    name: Build Release Binary
+    runs-on: ubuntu-latest
+    needs: check
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            libclang-dev \
+            llvm-dev \
+            libc++-dev \
+            libc++abi-dev \
+            cmake \
+            pkg-config \
+            libssl-dev
+      
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            blockchain/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      
+      - name: Build release binary
+        working-directory: ./blockchain
+        run: cargo build --release --bin demiurge-node
+      
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: demiurge-node-linux
+          path: blockchain/target/release/demiurge-node
+          retention-days: 7
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: check
+    if: github.event_name != 'pull_request' || github.event.inputs.build_mode == 'docker'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./blockchain
+          file: ./blockchain/Dockerfile
+          push: false
+          tags: demiurge-node:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Test Docker image
+        run: |
+          docker run --rm demiurge-node:latest --version

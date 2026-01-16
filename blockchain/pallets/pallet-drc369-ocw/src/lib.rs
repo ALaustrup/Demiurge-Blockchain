@@ -24,7 +24,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use sp_runtime::{
         offchain::http,
-        traits::{Saturating, Zero},
+        traits::{CheckedSub, Saturating, Zero},
     };
     use sp_std::prelude::*;
 
@@ -37,7 +37,7 @@ pub mod pallet {
     /// Game data source configuration
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
     #[scale_info(skip_type_params(T))]
-    pub struct GameDataSource<T: Config> where T: Config {
+    pub struct GameDataSource<T: Config> {
         /// Game identifier
         pub game_id: BoundedVec<u8, ConstU32<MAX_GAME_ID_LENGTH>>,
         
@@ -159,9 +159,21 @@ pub mod pallet {
             // For now, iterate through all sources in storage
             for (_game_id, source) in GameDataSources::<T>::iter() {
                 // Check if it's time to update
-                let blocks_since_update = block_number.saturating_sub(source.last_updated);
-                if blocks_since_update < source.update_interval {
-                    continue;
+                // Use CheckedSub to safely compute difference, then compare
+                // Both values are BlockNumberFor<T>, so comparison should work
+                match block_number.checked_sub(&source.last_updated) {
+                    Some(blocks_since_update) => {
+                        // Explicitly type both sides to ensure type matching
+                        let update_interval: BlockNumberFor<T> = source.update_interval;
+                        if blocks_since_update < update_interval {
+                            continue;
+                        }
+                    }
+                    None => {
+                        // If subtraction underflows, it means block_number < last_updated
+                        // This shouldn't happen in normal operation, but skip update if it does
+                        continue;
+                    }
                 }
 
                 // Fetch game data (simplified - in production, would fetch for specific NFTs)
@@ -285,7 +297,7 @@ pub mod pallet {
             }
             
             // Parse JSON response (simplified - in production would parse actual game data)
-            let body = response.body().collect::<Vec<u8>>();
+            let _body = response.body().collect::<Vec<u8>>();
             
             // In production, would parse JSON and extract:
             // - Player scores

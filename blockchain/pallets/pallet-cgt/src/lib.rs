@@ -63,7 +63,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use sp_runtime::{
-        traits::{AccountIdConversion, Saturating, Zero},
+        traits::Zero,
         Permill,
     };
     use sp_std::prelude::*;
@@ -259,7 +259,11 @@ pub mod pallet {
 
             // Calculate fee (0.1% of amount, minimum 0.001 CGT)
             let fee = Self::calculate_fee(amount);
-            let total_debit = amount.saturating_add(fee);
+            // Convert to u128 for arithmetic, then back
+            let amount_u128: u128 = amount.try_into().unwrap_or(0);
+            let fee_u128: u128 = fee.try_into().unwrap_or(0);
+            let total_debit_u128 = amount_u128.saturating_add(fee_u128);
+            let total_debit: BalanceOf<T> = total_debit_u128.try_into().unwrap_or_else(|_| amount);
 
             // Ensure sender has enough balance
             let sender_balance = T::Currency::free_balance(&from);
@@ -326,8 +330,22 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         /// Get the treasury account ID
+        /// Converts PalletId to AccountId using Substrate's standard account derivation
         pub fn treasury_account() -> T::AccountId {
-            PALLET_ID.into_account_truncating()
+            // Standard Substrate account derivation: "modl" + pallet_id_bytes -> blake2_256 -> AccountId32
+            let pallet_id_bytes = PALLET_ID.0;
+            let mut input = [0u8; 12];
+            input[0..4].copy_from_slice(b"modl");
+            input[4..12].copy_from_slice(&pallet_id_bytes);
+            
+            // Use sp_core::hashing for blake2_256 (available in no_std)
+            let hash = sp_core::hashing::blake2_256(&input);
+            
+            // Convert [u8; 32] to AccountId using Decode trait
+            // AccountId32 can be decoded from raw bytes
+            use codec::Decode;
+            T::AccountId::decode(&mut &hash[..])
+                .expect("Failed to decode treasury account ID - AccountId must be AccountId32")
         }
 
         /// Calculate transfer fee (0.1% minimum 0.001 CGT)
@@ -353,7 +371,11 @@ pub mod pallet {
             // Calculate burn amount (80%)
             let burn_percentage = T::BurnPercentage::get();
             let burn_amount = burn_percentage.mul_floor(fee);
-            let treasury_amount = fee.saturating_sub(burn_amount);
+            // Convert to u128 for arithmetic
+            let fee_u128: u128 = fee.try_into().unwrap_or(0);
+            let burn_amount_u128: u128 = burn_amount.try_into().unwrap_or(0);
+            let treasury_amount_u128 = fee_u128.saturating_sub(burn_amount_u128);
+            let treasury_amount: BalanceOf<T> = treasury_amount_u128.try_into().unwrap_or_else(|_| Zero::zero());
 
             // Withdraw fee from sender
             let imbalance = T::Currency::withdraw(
