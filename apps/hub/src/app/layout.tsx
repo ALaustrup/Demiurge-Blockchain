@@ -57,7 +57,7 @@ export default function RootLayout({
             walletComponent={<WalletDropdownWrapper />}
             qorIdComponent={<QorIdHeaderWrapper />}
           />
-          <div className="pt-20 relative z-10">
+          <div className="relative z-10">
             {children}
           </div>
           <BlockchainStatusBanner />

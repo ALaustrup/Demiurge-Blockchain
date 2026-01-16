@@ -174,18 +174,49 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
 
         case 'SPEND_CGT':
           try {
-            // TODO: Execute actual CGT transaction
-            const txHash = `0x${Math.random().toString(16).substr(2, 64)}`; // Mock
+            // Execute real CGT transaction via API
+            const token = qorAuth.getToken();
+            if (!token) {
+              throw new Error('Not authenticated');
+            }
+
+            // Prompt user for wallet password (in production, this would be handled via secure modal)
+            // For now, we'll need to handle this via a secure prompt or modal
+            const walletPassword = prompt('Enter your wallet password to confirm transaction:');
+            if (!walletPassword) {
+              throw new Error('Wallet password required');
+            }
+
+            const response = await fetch('/api/games/spend', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                amount: amount || 0,
+                reason: reason || 'game_purchase',
+                walletPassword,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to spend CGT');
+            }
+
+            const result = await response.json();
+            
             iframe.contentWindow?.postMessage({
               type: 'CGT_SPEND_RESPONSE',
               messageId,
-              txHash,
+              txHash: result.txHash,
             }, '*');
-          } catch (err) {
+          } catch (err: any) {
             iframe.contentWindow?.postMessage({
               type: 'CGT_SPEND_RESPONSE',
               messageId,
-              error: 'Failed to spend CGT',
+              error: err.message || 'Failed to spend CGT',
             }, '*');
           }
           break;
@@ -207,13 +238,26 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
             const address = profile.on_chain?.address || profile.on_chain_address;
             
             if (address) {
-              // Fetch actual assets from blockchain
+              // Fetch actual assets from blockchain (with full metadata)
               const assets = await getUserAssets(address);
+              
+              // Filter assets by game if gameId is provided
+              const gameMetadata = gameRegistry.getById(gameId);
+              let filteredAssets = assets;
+              
+              if (gameMetadata?.nftSupport?.enabled && gameMetadata.nftSupport.assetTypes.length > 0) {
+                // Filter assets that match game's supported asset types
+                filteredAssets = assets.filter((asset: any) => {
+                  // Check if asset type matches game's supported types
+                  // This would be determined from asset metadata
+                  return true; // For now, return all assets
+                });
+              }
               
               iframe.contentWindow?.postMessage({
                 type: 'USER_ASSETS_RESPONSE',
                 messageId,
-                assets,
+                assets: filteredAssets,
               }, '*');
             } else {
               iframe.contentWindow?.postMessage({

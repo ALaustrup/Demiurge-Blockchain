@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { qorAuth } from '@demiurge/qor-sdk';
+import { getQorIdFromRequest } from '@/lib/auth-utils';
 
 /**
  * Game Data Storage API
@@ -31,17 +31,14 @@ const gameDataStore = new Map<string, GameData>();
  */
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Extract QOR ID from auth token
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader) {
+    // Extract QOR ID from auth token
+    const qorId = await getQorIdFromRequest(request);
+    if (!qorId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - QOR ID required' },
         { status: 401 }
       );
     }
-
-    // For now, use a placeholder - in production, extract from JWT
-    const qorId = 'placeholder'; // TODO: Extract from token
     
     const gameId = request.nextUrl.searchParams.get('gameId');
     if (!gameId) {
@@ -85,16 +82,14 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader) {
+    // Extract QOR ID from auth token
+    const qorId = await getQorIdFromRequest(request);
+    if (!qorId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - QOR ID required' },
         { status: 401 }
       );
     }
-
-    // TODO: Extract QOR ID from auth token
-    const qorId = 'placeholder'; // TODO: Extract from token
     
     const body = await request.json();
     const { gameId, score, highScore, cgtEarned, upgrades, ownedSkins, equippedSkin, killCount, playTime } = body;

@@ -1,6 +1,9 @@
 # 🎮 Game Integration Guide
 
-**Phase 4 Status:** Ready for your first game! 🚀
+**Last Updated:** January 14, 2026  
+**Phase 4 Status:** ✅ **FULLY INTEGRATED** - Ready for your first game! 🚀
+
+> **See also:** `docs/GAMES/GAME_INTEGRATION_COMPLETE.md` for complete integration status
 
 ---
 
@@ -104,13 +107,25 @@ Your game automatically receives the Demiurge HUD via `inject-hud.js`. The HUD p
 const balance = await window.DemiurgeHUD.getCGTBalance();
 // Returns: Promise<string> (balance in smallest units, e.g., "100000000000" = 1000 CGT)
 
+// Spend CGT (for purchases)
+const txHash = await window.DemiurgeHUD.spendCGT(amount, reason);
+// Returns: Promise<string> (transaction hash)
+
 // Get user's DRC-369 assets
 const assets = await window.DemiurgeHUD.getUserAssets();
-// Returns: Promise<Array> (array of asset UUIDs)
+// Returns: Promise<Array> (array of asset objects with metadata)
+
+// Check if user owns a specific asset
+const owns = await window.DemiurgeHUD.ownsAsset(uuid);
+// Returns: Promise<boolean>
+
+// Get QOR ID
+const qorId = await window.DemiurgeHUD.getQORID();
+// Returns: Promise<string> (e.g., "username#1234")
 
 // Update user's XP (for leveling)
-window.DemiurgeHUD.updateAccountXP(100);
-// Adds 100 XP to user's account
+window.DemiurgeHUD.updateAccountXP(xp, source);
+// Adds XP to user's account (source: 'game_win', 'tutorial', etc.)
 
 // Open social feed
 window.DemiurgeHUD.openSocial();

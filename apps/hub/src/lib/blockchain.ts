@@ -282,8 +282,15 @@ export class BlockchainClient {
         }
         
         // Fetch full metadata for each asset
-        // TODO: Query pallet-drc369.assets(uuid) for each asset
-        // For now, return UUIDs only
+        for (const asset of assets) {
+          try {
+            const assetMetadata = await this.getAssetMetadata(asset.uuid);
+            Object.assign(asset, assetMetadata);
+          } catch (error) {
+            // If metadata fetch fails, keep UUID only
+            console.warn(`Failed to fetch metadata for asset ${asset.uuid}:`, error);
+          }
+        }
       }
       
       return assets;

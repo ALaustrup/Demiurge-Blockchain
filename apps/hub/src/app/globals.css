@@ -3,10 +3,20 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+  
   body {
     @apply text-white antialiased;
     font-family: var(--font-space-grotesk), sans-serif;
     background-color: #050510;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    position: relative;
   }
   
   h1, h2, h3, h4, h5, h6 {
