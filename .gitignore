@@ -89,3 +89,10 @@ docker-compose.override.yml
 Thumbs.db
 .DS_Store
 *.tmp
+
+# UE5 Source (large, not tracked)
+ue5-source/
+ue5_*.log
+
+# Server-specific backups
+/tmp/*-backup-*
