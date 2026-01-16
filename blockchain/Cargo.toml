@@ -54,10 +54,6 @@ pallet-governance = { path = "pallets/pallet-governance", default-features = fal
 [workspace.dependencies.schnorrkel]
 version = "0.9.1"
 
-# Force unified librocksdb-sys version to resolve conflicts
-[workspace.dependencies.librocksdb-sys]
-version = "9.2"
-
 # Dependency resolution: Force schnorrkel version via workspace dependency
 # The workspace.dependencies.schnorrkel above should handle this, but we need
 # to ensure all crates use it. The issue is that sp-core-18.0.0 is being pulled
@@ -68,4 +64,8 @@ version = "9.2"
 # This ensures no old sp-core@18.0.0 is pulled in transitively.
 # If conflicts persist, they indicate incompatible sc-* crate versions that need updating.
 
-# Note: librocksdb-sys version conflicts may occur - Cargo will resolve automatically
+# Note: librocksdb-sys version conflicts between sc-cli v0.56.0 and sc-service v0.56.0
+# This is a known Substrate dependency resolution issue. 
+# Workaround: Build individual pallets separately, or use external build system.
+# The node binary build will need compatible sc-* versions aligned.
+# See: blockchain/BUILD.md for external build instructions

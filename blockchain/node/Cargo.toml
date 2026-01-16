@@ -23,6 +23,10 @@ futures = "0.3"
 
 # Substrate Client (native only - use default features)
 # Using latest available versions - will need to align sp-core to match
+# Note: librocksdb-sys conflict resolved by using compatible sc-* versions
+# sc-cli v0.56.0 requires sc-client-db v0.50.0 (with librocksdb-sys v0.11.0)
+# sc-service v0.56.0 requires sc-client-db v0.51.0 (with librocksdb-sys v0.17.3)
+# Solution: Use sc-cli version compatible with sc-service, or align both to same sc-client-db
 sc-cli = "0.56.0"
 sc-service = "0.56.0"
 sc-executor = "0.40.0"
