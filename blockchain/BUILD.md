@@ -32,7 +32,7 @@ Always use:
 **With options:**
 ```powershell
 .\scripts\build-external.ps1 -Clean      # Clean before building
-.\scripts\build-external.ps1 -Docker     # Build with Docker
+.\scripts\build-external.ps1 -Docker     # Build with Docker (recommended)
 .\scripts\build-external.ps1 -Check      # Only check compilation
 ```
 
@@ -51,18 +51,42 @@ chmod +x scripts/build-external.sh
 ./scripts/build-external.sh --check      # Only check compilation
 ```
 
-### Option 3: Docker Build
+### Option 3: Docker Build (Recommended)
+
+**Docker builds avoid dependency conflicts:**
 
 ```bash
 # Build Docker image
 cd blockchain
 docker build -t demiurge-node:latest .
 
+# Or use the script
+.\scripts\build-external.ps1 -Docker
+
 # Run container
 docker run -it --rm demiurge-node:latest --dev
 ```
 
-### Option 4: Manual Cargo Build
+### Option 4: Build Pallets Individually (Phase 11 Development)
+
+**For pallet development, build individually to avoid node dependency conflicts:**
+
+```powershell
+# Build a specific pallet
+cd blockchain\pallets\pallet-session-keys
+cargo check
+
+# Or build all pallets (without node)
+cd blockchain\pallets
+Get-ChildItem -Directory | ForEach-Object { 
+    Write-Host "Checking $_..."
+    Set-Location $_.FullName
+    cargo check
+    Set-Location ..
+}
+```
+
+### Option 5: Manual Cargo Build
 
 ```bash
 cd blockchain
@@ -122,6 +146,8 @@ Only verifies compilation without creating binary:
 cargo check --release
 ```
 
+**Note:** May fail with librocksdb-sys conflict. Use pallet-only builds instead.
+
 ### 2. Release Build (Slow - ~30-60 minutes)
 
 Full optimized binary:
@@ -130,12 +156,23 @@ Full optimized binary:
 cargo build --release --bin demiurge-node
 ```
 
-### 3. Docker Build (Isolated)
+**Note:** Currently blocked by librocksdb-sys dependency conflict. Use Docker build instead.
 
-Builds in containerized environment:
+### 3. Docker Build (Isolated - Recommended)
+
+Builds in containerized environment, avoids dependency conflicts:
 
 ```bash
 docker build -t demiurge-node:latest ./blockchain
+```
+
+### 4. Pallet-Only Build (Phase 11 Development)
+
+Build individual pallets without node dependencies:
+
+```bash
+cd blockchain/pallets/pallet-session-keys
+cargo check
 ```
 
 ---
@@ -165,6 +202,28 @@ docker build -t demiurge-node:latest ./blockchain
 ---
 
 ## Troubleshooting
+
+### librocksdb-sys Dependency Conflict
+
+**Error:** `failed to select a version for librocksdb-sys`
+
+**Cause:** `sc-cli v0.56.0` and `sc-service v0.56.0` have incompatible dependencies.
+
+**Solutions:**
+
+1. **Use Docker Build** (Recommended):
+   ```powershell
+   .\scripts\build-external.ps1 -Docker
+   ```
+
+2. **Build Pallets Individually** (For Phase 11 development):
+   ```powershell
+   cd blockchain\pallets\pallet-session-keys
+   cargo check
+   ```
+
+3. **See Documentation:**
+   - `blockchain/DEPENDENCY_CONFLICT_RESOLUTION.md` for detailed workarounds
 
 ### Build Fails with "Out of Memory"
 
@@ -238,6 +297,7 @@ cargo clippy -- -D warnings
 2. **Cache dependencies** - CI/CD caches `target/` directory
 3. **Incremental builds** - Only rebuild changed crates
 4. **Parallel builds** - Uses all CPU cores by default
+5. **Build pallets individually** - Faster for development
 
 ---
 
@@ -270,3 +330,14 @@ For build issues:
 3. Try clean build: `cargo clean && cargo build --release`
 4. Check GitHub Actions logs for CI/CD failures
 5. See `DEPENDENCY_CONFLICT_RESOLUTION.md` for known issues
+6. Use Docker builds to avoid dependency conflicts
+
+---
+
+## Current Status
+
+- ✅ **Pallets**: All compile successfully individually
+- ✅ **Runtime**: Compiles successfully
+- ⚠️ **Node Binary**: Blocked by librocksdb-sys conflict
+- ✅ **Docker Builds**: Work correctly
+- ✅ **Phase 11 Development**: Can proceed with pallet-only builds
