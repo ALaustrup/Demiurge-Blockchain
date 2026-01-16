@@ -20,7 +20,13 @@ export default class GameScene extends Phaser.Scene {
     }
 
     init(data) {
-        this.api = data.api;
+        this.blockchain = data.blockchain || data.api; // Support both old and new
+        // If old API manager, create blockchain manager
+        if (data.api && !data.blockchain) {
+            const BlockchainManager = require('../managers/BlockchainManager.js');
+            this.blockchain = new BlockchainManager({ mockMode: false });
+            this.blockchain.connectDemiurgeWallet();
+        }
     }
 
     async create() {
@@ -759,7 +765,7 @@ export default class GameScene extends Phaser.Scene {
                 this.startSuperMode();
             }
 
-            const result = await this.api.submitWork({ power: finalPower });
+            const result = await this.blockchain.submitWork({ power: finalPower });
             if (result.success) {
                 this.gameState.addCGT(result.yield);
                 this.updateUI();

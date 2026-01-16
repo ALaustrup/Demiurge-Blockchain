@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config.js';
-import APIManager from '../managers/APIManager.js';
+import BlockchainManager from '../managers/BlockchainManager.js';
 import * as Tone from 'tone';
 
 export default class LoginScene extends Phaser.Scene {
     constructor() {
         super('LoginScene');
-        this.api = new APIManager();
+        this.blockchain = new BlockchainManager({
+            mockMode: false, // Set to true for development without HUD
+        });
     }
 
     create() {
@@ -38,13 +40,13 @@ export default class LoginScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Info
-        this.add.text(width / 2, height / 2 - 50, 'DEMO MODE ACTIVE', {
+        this.add.text(width / 2, height / 2 - 50, 'QOR ID AUTHENTICATION', {
             fontFamily: 'Arial',
             fontSize: '20px',
             fill: '#ffffff'
         }).setOrigin(0.5);
         
-        this.add.text(width / 2, height / 2, 'USER: demouser\nPASS: demo123', {
+        this.add.text(width / 2, height / 2, 'Connecting to Demiurge Wallet...', {
             fontFamily: 'Arial',
             fontSize: '16px',
             fill: '#aaaaaa',
@@ -73,13 +75,29 @@ export default class LoginScene extends Phaser.Scene {
             // Start audio on user gesture
             await Tone.start();
             
-            btnText.setText('AUTHENTICATING...');
-            const result = await this.api.login('demouser', 'demo123');
-            if (result.success) {
-                this.cameras.main.fade(500, 0, 0, 0);
-                this.time.delayedCall(500, () => this.scene.start('GameScene', { api: this.api }));
-            } else {
-                btnText.setText('ERROR: RETRY');
+            btnText.setText('CONNECTING...');
+            try {
+                const connected = await this.blockchain.connectDemiurgeWallet();
+                if (connected) {
+                    const qorId = await this.blockchain.getQORID();
+                    btnText.setText(`CONNECTED: ${qorId}`);
+                    
+                    // Start session
+                    await this.blockchain.startSession();
+                    
+                    // Award XP for starting game
+                    this.blockchain.updateAccountXP(10, 'game_start');
+                    
+                    this.cameras.main.fade(500, 0, 0, 0);
+                    this.time.delayedCall(500, () => {
+                        this.scene.start('GameScene', { blockchain: this.blockchain });
+                    });
+                } else {
+                    btnText.setText('ERROR: RETRY');
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                btnText.setText('ERROR: CHECK CONSOLE');
             }
         });
 
