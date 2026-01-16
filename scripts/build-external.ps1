@@ -85,7 +85,7 @@ if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
 }
 
 # Check WASM target
-$wasmInstalled = cargo target list --installed | Select-String "wasm32-unknown-unknown"
+$wasmInstalled = rustup target list --installed | Select-String "wasm32-unknown-unknown"
 if (-not $wasmInstalled) {
     Write-Host "  Adding WASM target..." -ForegroundColor Yellow
     rustup target add wasm32-unknown-unknown
