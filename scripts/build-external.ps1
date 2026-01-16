@@ -121,10 +121,40 @@ if ($Clean) {
 
 # Build
 $BuildStart = Get-Date
+$BuildSuccess = $false
 
 if ($Check) {
     Write-Host "Checking compilation..." -ForegroundColor Yellow
-    cargo check --release
+    try {
+        cargo check --release 2>&1 | Tee-Object -Variable buildOutput
+        if ($LASTEXITCODE -eq 0) {
+            $BuildSuccess = $true
+        } else {
+            $buildOutputString = $buildOutput -join "`n"
+            if ($buildOutputString -match "librocksdb-sys") {
+                Write-Host ""
+                Write-Host "================================================================================" -ForegroundColor Yellow
+                Write-Host "KNOWN DEPENDENCY CONFLICT DETECTED" -ForegroundColor Yellow
+                Write-Host "================================================================================" -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "The librocksdb-sys conflict prevents full workspace builds." -ForegroundColor Yellow
+                Write-Host "This is a known issue with sc-cli v0.56.0 and sc-service v0.56.0." -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "WORKAROUNDS:" -ForegroundColor Cyan
+                Write-Host "  1. Build pallets individually (recommended for Phase 11):" -ForegroundColor White
+                Write-Host "     cd blockchain\pallets\pallet-session-keys" -ForegroundColor Gray
+                Write-Host "     cargo check" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "  2. Use Docker build (avoids dependency conflicts):" -ForegroundColor White
+                Write-Host "     .\scripts\build-external.ps1 -Docker" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "  3. See blockchain\DEPENDENCY_CONFLICT_RESOLUTION.md for details" -ForegroundColor White
+                Write-Host ""
+            }
+        }
+    } catch {
+        Write-Host "Build check failed: $_" -ForegroundColor Red
+    }
 } else {
     $cpuCount = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
     Write-Host "Building release binary..." -ForegroundColor Yellow
@@ -132,14 +162,47 @@ if ($Check) {
     Write-Host "  Using $cpuCount CPU cores" -ForegroundColor Gray
     Write-Host ""
     
-    cargo build --release --bin demiurge-node
+    try {
+        $buildOutput = cargo build --release --bin demiurge-node 2>&1 | Tee-Object -Variable buildOutput
+        if ($LASTEXITCODE -eq 0) {
+            $BuildSuccess = $true
+        } else {
+            $buildOutputString = $buildOutput -join "`n"
+            if ($buildOutputString -match "librocksdb-sys") {
+                Write-Host ""
+                Write-Host "================================================================================" -ForegroundColor Yellow
+                Write-Host "KNOWN DEPENDENCY CONFLICT DETECTED" -ForegroundColor Yellow
+                Write-Host "================================================================================" -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "The librocksdb-sys conflict prevents node binary builds." -ForegroundColor Yellow
+                Write-Host "This is a known issue with sc-cli v0.56.0 and sc-service v0.56.0." -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "WORKAROUNDS:" -ForegroundColor Cyan
+                Write-Host "  1. Use Docker build (recommended):" -ForegroundColor White
+                Write-Host "     .\scripts\build-external.ps1 -Docker" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "  2. Build pallets individually (for Phase 11 development):" -ForegroundColor White
+                Write-Host "     cd blockchain\pallets\pallet-session-keys" -ForegroundColor Gray
+                Write-Host "     cargo check" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "  3. See blockchain\DEPENDENCY_CONFLICT_RESOLUTION.md for details" -ForegroundColor White
+                Write-Host ""
+            }
+        }
+    } catch {
+        Write-Host "Build failed: $_" -ForegroundColor Red
+    }
 }
 
 $BuildEnd = Get-Date
 $BuildDuration = $BuildEnd - $BuildStart
 
 Write-Host ""
-Write-Host "Build complete!" -ForegroundColor Green
+if ($BuildSuccess) {
+    Write-Host "Build complete!" -ForegroundColor Green
+} else {
+    Write-Host "Build encountered issues (see above)" -ForegroundColor Yellow
+}
 Write-Host "  Duration: $($BuildDuration.ToString('mm\:ss'))" -ForegroundColor Cyan
 
 # Verify binary
