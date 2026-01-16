@@ -1,6 +1,8 @@
 # 🔨 Building Demiurge Blockchain Node
 
-This document describes how to build the Demiurge blockchain node **externally** to avoid Cursor crashes during large Rust builds.
+> *"Build externally. Think eternally."*
+
+This guide covers building the Demiurge blockchain node. **Always build in external terminals** to avoid Cursor crashes during large Rust builds.
 
 ## ⚠️ Important: External Builds Only
 
