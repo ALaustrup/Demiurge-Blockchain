@@ -1,12 +1,15 @@
 # Demiurge Production Stack (Monad/Pleroma)
 #
 # Usage:
-#   docker-compose -f docker-compose.production.yml up -d
+#   docker compose -f docker-compose.production.yml up -d
 #
 # Note: For production, use external managed databases where possible.
 # This file is for self-hosted deployments on Monad.
-
-version: '3.9'
+#
+# Prerequisites:
+#   - Docker Engine installed (see scripts/install-docker-monad.sh)
+#   - Docker Compose Plugin installed
+#   - Environment variables configured in .env
 
 services:
   # Qor Auth Service
@@ -103,7 +106,7 @@ services:
       -c max_parallel_workers_per_gather=2
       -c max_parallel_workers=4
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U qor_auth -d qor_auth"]
       interval: 10s
@@ -144,6 +147,23 @@ services:
           cpus: '1'
           memory: 1G
 
+  # Hub App (Next.js)
+  hub:
+    build:
+      context: ..
+      dockerfile: apps/hub/Dockerfile
+    container_name: demiurge-hub
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://demiurge.cloud/api
+      NEXT_PUBLIC_RPC_URL: wss://demiurge.cloud/rpc
+    volumes:
+      - hub_data:/app/.next
+      - ../apps/hub/public/games:/var/www/games:ro
+    networks:
+      - demiurge-network
+
   # Nginx reverse proxy
   nginx:
     image: nginx:alpine
@@ -152,12 +172,15 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
+      - /etc/letsencrypt/live:/etc/letsencrypt/live:ro
+      - ../apps/hub/public/games:/var/www/games:ro
+      - certbot_www:/var/www/certbot:ro
     ports:
       - "80:80"
       - "443:443"
     depends_on:
+      - hub
       - qor-auth
-      - demiurge-node
     networks:
       - demiurge-network
 
@@ -165,6 +188,8 @@ volumes:
   postgres_data:
   redis_data:
   node_data:
+  hub_data:
+  certbot_www:
 
 networks:
   demiurge-network:
