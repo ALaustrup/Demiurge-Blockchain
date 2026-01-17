@@ -54,8 +54,9 @@ sp-keyring = { version = "45.0.0" }
 sp-keystore = { version = "0.45.0" }
 sp-timestamp = { version = "40.0.0" }
 
-sc-cli = { version = "0.55.0" }
-sc-service = { version = "0.55.0" }
+# Try git dependencies - may have librocksdb-sys conflict resolved
+sc-cli = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sc-service = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-executor = { version = "0.47.0" }
 sc-network = { version = "0.55.0" }
 sc-network-gossip = { version = "0.54.0" }
