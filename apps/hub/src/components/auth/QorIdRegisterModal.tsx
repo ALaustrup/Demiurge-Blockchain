@@ -253,7 +253,7 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
               </button>
             </form>
           </>
-        ) : (
+        ) : step === 'password' ? (
           <>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-demiurge-gold">CHOOSE A SAFE WORD</h2>
