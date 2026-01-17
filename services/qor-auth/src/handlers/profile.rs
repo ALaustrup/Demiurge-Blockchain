@@ -10,6 +10,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 use sha2::{Sha256, Digest};
 use hex;
+use base64::engine::general_purpose;
+use base64::Engine;
 
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
@@ -92,7 +94,7 @@ pub async fn upload_avatar(
             }
             "qor_id" => {
                 let text = field.text().await
-                    .map_err(|e| crate::error::AppError::BadRequest(format!("Failed to read qor_id: {}", e)))?;
+                    .map_err(|e| AppError::ValidationError(format!("Failed to read qor_id: {}", e)))?;
                 qor_id = Some(text);
             }
             _ => {}
@@ -108,13 +110,9 @@ pub async fn upload_avatar(
     hasher.update(&avatar_bytes);
     hasher.update(qor_id.as_deref().unwrap_or("").as_bytes());
     let hash = hex::encode(hasher.finalize());
-    let filename = format!("{}.png", &hash[..16]); // Use first 16 chars of hash
+    let _filename = format!("{}.png", &hash[..16]); // Use first 16 chars of hash
 
-    // For now, store as base64 data URL
-    // In production, upload to IPFS or object storage (S3, etc.)
-    let base64_data = general_purpose::STANDARD.encode(&avatar_bytes);
-    
-    // Detect MIME type from magic bytes
+    // Detect MIME type from magic bytes (before encoding)
     let mime_type = if avatar_bytes.len() >= 4 {
         match &avatar_bytes[0..4] {
             b"\x89PNG" => "image/png",
@@ -126,6 +124,9 @@ pub async fn upload_avatar(
         "image/png"
     };
     
+    // For now, store as base64 data URL
+    // In production, upload to IPFS or object storage (S3, etc.)
+    let base64_data = general_purpose::STANDARD.encode(&avatar_bytes);
     let avatar_url = format!("data:{};base64,{}", mime_type, base64_data);
 
     // TODO: Update user record in database

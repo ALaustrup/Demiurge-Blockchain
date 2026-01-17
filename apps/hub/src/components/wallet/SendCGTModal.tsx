@@ -45,8 +45,8 @@ export function SendCGTModal({ isOpen, onClose, fromAddress, currentBalance }: S
       return;
     }
 
-    // Convert amount to smallest units (8 decimals)
-    const CGT_UNIT = 100_000_000;
+    // Convert amount to smallest units (2 decimals, 100 Sparks = 1 CGT)
+    const CGT_UNIT = 100;
     const amountInSmallestUnits = Math.floor(amountNum * CGT_UNIT).toString();
     const balanceUnits = Number.parseFloat(currentBalance);
     if (amountNum * CGT_UNIT > balanceUnits) {
@@ -168,7 +168,7 @@ export function SendCGTModal({ isOpen, onClose, fromAddress, currentBalance }: S
                 className="w-full bg-gray-800/50 border border-gray-700 rounded p-2 text-white placeholder-gray-500 focus:border-demiurge-cyan focus:outline-none"
               />
               <div className="text-xs text-gray-500 mt-1">
-                Available: {parseFloat(currentBalance) / 100_000_000} CGT
+                Available: {parseFloat(currentBalance) / 100} CGT
               </div>
             </div>
 

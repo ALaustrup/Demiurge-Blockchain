@@ -61,13 +61,13 @@ export function WalletDropdown({
     }
   }, [externalBalance, externalAddress]);
 
-  // Format balance for display (8 decimals)
+  // Format balance for display (2 decimals, 100 Sparks = 1 CGT)
   const formatBalance = (rawBalance: string): string => {
-    const CGT_UNIT = 100_000_000;
+    const CGT_UNIT = 100;
     const balanceNum = BigInt(rawBalance);
     const whole = balanceNum / BigInt(CGT_UNIT);
     const fractional = balanceNum % BigInt(CGT_UNIT);
-    const fractionalStr = fractional.toString().padStart(8, '0');
+    const fractionalStr = fractional.toString().padStart(2, '0');
     return `${whole}.${fractionalStr}`;
   };
 

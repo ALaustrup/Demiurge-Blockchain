@@ -1,0 +1,44 @@
+# Next.js Hub - Development Dockerfile
+# Optimized for hot reload and development workflow
+
+FROM node:20-alpine AS base
+
+# Install dependencies for development
+RUN apk add --no-cache \
+    libc6-compat \
+    curl \
+    git
+
+WORKDIR /app
+
+# Copy root package files
+COPY package.json package-lock.json* ./
+COPY turbo.json ./
+
+# Copy workspace package files (preserve workspace structure)
+COPY apps/hub/package.json ./apps/hub/
+COPY packages ./packages/
+
+# Install all dependencies (workspace-aware)
+RUN npm ci
+
+# Copy all source code
+COPY . .
+
+# Build shared packages first (for workspace dependencies)
+# Use || true to allow failures (packages may not have build scripts)
+RUN npm run build --workspace=@demiurge/qor-sdk || true
+RUN npm run build --workspace=@demiurge/ui-shared || true
+
+# Expose port
+EXPOSE 3000
+
+# Set environment
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Start development server with hot reload
+# Use turbo for workspace-aware dev command
+CMD ["npm", "run", "dev", "--workspace=@demiurge/hub"]

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player.js';
 import { Enemy } from '../entities/Enemy.js';
-import { CONFIG, GAME_STATE } from '../config.js';
+import { CONFIG, GAME_STATE, SKINS } from '../config.js';
 import { audioManager } from '../AudioManager.js';
 import { blockchainIntegration } from '../blockchain-integration.js';
 
@@ -10,33 +10,55 @@ export class GameScene extends Phaser.Scene {
         super('GameScene');
     }
 
-    async create() {
-        // Initialize blockchain integration
-        await blockchainIntegration.init();
+    create() {
+        // Initialize blockchain integration (non-blocking)
+        blockchainIntegration.init().catch(err => {
+            console.warn('Blockchain integration init failed:', err);
+        });
         
-        // Load saved game data
-        const savedData = await blockchainIntegration.loadGameData();
-        if (savedData) {
-            // Restore game state
-            GAME_STATE.score = savedData.score || 0;
-            GAME_STATE.cgtBalance = savedData.cgtEarned || 0;
-            GAME_STATE.upgrades = savedData.upgrades || GAME_STATE.upgrades;
-            GAME_STATE.ownedSkins = savedData.ownedSkins || GAME_STATE.ownedSkins;
-            GAME_STATE.equippedSkin = savedData.equippedSkin || GAME_STATE.equippedSkin;
-            GAME_STATE.killCount = savedData.killCount || 0;
-            GAME_STATE.playTime = savedData.playTime || 0;
-        }
+        // Load saved game data (non-blocking)
+        blockchainIntegration.loadGameData().then(savedData => {
+            if (savedData) {
+                // Restore game state
+                GAME_STATE.score = savedData.score || 0;
+                GAME_STATE.cgtBalance = savedData.cgtEarned || 0;
+                GAME_STATE.upgrades = savedData.upgrades || GAME_STATE.upgrades;
+                GAME_STATE.ownedSkins = savedData.ownedSkins || GAME_STATE.ownedSkins;
+                GAME_STATE.equippedSkin = savedData.equippedSkin || GAME_STATE.equippedSkin;
+                GAME_STATE.killCount = savedData.killCount || 0;
+                GAME_STATE.playTime = savedData.playTime || 0;
+            }
+        }).catch(err => {
+            console.warn('Failed to load game data:', err);
+        });
         
-        // Load real CGT balance from blockchain
-        const realBalance = await blockchainIntegration.loadBalance();
-        if (realBalance > 0) {
-            GAME_STATE.cgtBalance = realBalance;
-        }
+        // Load real CGT balance from blockchain (non-blocking)
+        blockchainIntegration.loadBalance().then(realBalance => {
+            if (realBalance > 0) {
+                GAME_STATE.cgtBalance = realBalance;
+            }
+        }).catch(err => {
+            console.warn('Failed to load balance:', err);
+        });
         
+        // Set up game visuals first
         this.add.image(960, 540, 'background').setDisplaySize(1920, 1080);
         
         this.bossFlash = this.add.rectangle(960, 540, 1920, 1080, 0x00ffff, 0).setDepth(-1);
-        this.player = new Player(this, 960, 1000);
+        
+        // Initialize player (with error handling)
+        try {
+            this.player = new Player(this, 960, 1000);
+        } catch (err) {
+            console.error('Failed to create player:', err);
+            // Fallback: create player sprite manually
+            const equippedSkin = SKINS.find(s => s.id === GAME_STATE.equippedSkin) || SKINS[0];
+            this.player = this.physics.add.sprite(960, 1000, equippedSkin.image);
+            this.player.setCollideWorldBounds(true);
+            this.player.setScale(0.15);
+            this.player.bullets = this.physics.add.group();
+        }
+        
         this.enemies = this.physics.add.group({
             classType: Enemy,
             runChildUpdate: true
@@ -47,7 +69,12 @@ export class GameScene extends Phaser.Scene {
         this.activeBoost = null;
         this.boostEndTime = 0;
         
-        audioManager.startMusic();
+        // Start audio (non-blocking, with error handling)
+        try {
+            audioManager.startMusic();
+        } catch (err) {
+            console.warn('Failed to start music:', err);
+        }
         this.cursors = this.input.keyboard.createCursorKeys();
         
         // Collisions

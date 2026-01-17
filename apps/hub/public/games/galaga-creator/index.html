@@ -16,10 +16,24 @@
       }
     </script>
     <style>
-      html, body { margin: 0; padding: 0; background-color: black; }
+      html, body { 
+        margin: 0; 
+        padding: 0; 
+        background-color: black; 
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      #game-container {
+        width: 100%;
+        height: 100%;
+      }
     </style>
   </head>
   <body>
+    <!-- Phaser Game Container -->
+    <div id="game-container"></div>
+    
     <!-- Demiurge HUD Injection - Enables blockchain integration -->
     <script src="/inject-hud.js"></script>
     <script type="module" src="main.js"></script>

@@ -69,7 +69,7 @@ class BlockchainManager {
 
   /**
    * Get current CGT balance
-   * @returns {Promise<string>} Balance in smallest units (8 decimals)
+   * @returns {Promise<string>} Balance in smallest units (2 decimals, 100 Sparks = 1 CGT)
    */
   async getDemiurgeBalance() {
     if (this.mockMode) {
@@ -96,7 +96,7 @@ class BlockchainManager {
   async getBalanceInCGT() {
     const balanceStr = await this.getDemiurgeBalance();
     const balanceBigInt = BigInt(balanceStr);
-    return Number(balanceBigInt) / 100_000_000; // 8 decimals
+    return Number(balanceBigInt) / 100; // 100 Sparks = 1 CGT
   }
 
   /**
@@ -109,7 +109,7 @@ class BlockchainManager {
     if (this.mockMode) {
       // Mock transaction
       const currentBalance = BigInt(this.balance);
-      const amountInSmallestUnits = BigInt(Math.floor(amount * 100_000_000));
+      const amountInSmallestUnits = BigInt(Math.floor(amount * 100)); // 100 Sparks = 1 CGT
       
       if (currentBalance < amountInSmallestUnits) {
         throw new Error('Insufficient balance');
@@ -124,7 +124,7 @@ class BlockchainManager {
     }
 
     try {
-      const amountInSmallestUnits = Math.floor(amount * 100_000_000);
+      const amountInSmallestUnits = Math.floor(amount * 100); // 100 Sparks = 1 CGT
       const txHash = await window.DemiurgeHUD.spendCGT(amountInSmallestUnits, reason);
       
       // Update local balance

@@ -9,7 +9,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct User {
     pub id: Uuid,
-    pub email: String,
+    pub email: Option<String>, // Optional for username-only accounts
     pub username: String,
     pub discriminator: i16,
     pub password_hash: String,
@@ -18,6 +18,9 @@ pub struct User {
     pub role: UserRole,
     pub status: UserStatus,
     pub on_chain_address: Option<String>,
+    pub backup_code: Option<String>, // For username-only password reset
+    pub email_verification_token: Option<String>,
+    pub email_verification_expires_at: Option<DateTime<Utc>>,
     pub login_attempts: i32,
     pub locked_until: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
@@ -62,17 +65,39 @@ pub enum UserStatus {
 /// Registration request DTO
 #[derive(Debug, Deserialize)]
 pub struct RegisterRequest {
-    pub email: String,
+    pub email: Option<String>, // Optional - if provided, will send confirmation email
     pub password: String,
     pub username: String,
 }
 
-/// Login request DTO
+/// Login request DTO - accepts email OR username
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
-    pub email: String,
+    #[serde(alias = "email", alias = "username")]
+    pub identifier: String, // Can be email or username
     pub password: String,
     pub device_id: Option<String>,
+}
+
+/// Password reset request DTO
+#[derive(Debug, Deserialize)]
+pub struct ForgotPasswordRequest {
+    pub identifier: String, // Username or email
+}
+
+/// Password reset with backup code DTO
+#[derive(Debug, Deserialize)]
+pub struct ResetPasswordWithBackupRequest {
+    pub username: String,
+    pub backup_code: String,
+    pub new_password: String,
+}
+
+/// Password reset with token DTO (for email-based reset)
+#[derive(Debug, Deserialize)]
+pub struct ResetPasswordWithTokenRequest {
+    pub token: String,
+    pub new_password: String,
 }
 
 /// Public user profile (safe to expose)

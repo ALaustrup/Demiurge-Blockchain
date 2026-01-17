@@ -170,7 +170,7 @@ export class BlockchainClient {
    * Get CGT balance for an account
    * 
    * CGT uses pallet-balances for storage, so we query the balances pallet.
-   * Balance is stored as u128 with 8 decimals (CGT_UNIT = 100_000_000).
+   * Balance is stored as u128 with 2 decimals (CGT_UNIT = 100, 100 Sparks = 1 CGT).
    */
   async getCGTBalance(address: string): Promise<string> {
     if (!this.api) {
@@ -202,19 +202,19 @@ export class BlockchainClient {
   }
 
   /**
-   * Format CGT balance for display (with 8 decimals)
+   * Format CGT balance for display (with 2 decimals)
    * 
-   * @param balance Raw balance string (in smallest units, e.g., "100000000" = 1 CGT)
-   * @returns Formatted balance string (e.g., "1.00000000")
+   * @param balance Raw balance string (in smallest units, e.g., "100" = 1 CGT, 100 Sparks = 1 CGT)
+   * @returns Formatted balance string (e.g., "1.00")
    */
   formatCGTBalance(balance: string): string {
-    const CGT_UNIT = 100_000_000; // 10^8
+    const CGT_UNIT = 100; // 100 Sparks = 1 CGT
     const balanceNum = BigInt(balance);
     const whole = balanceNum / BigInt(CGT_UNIT);
     const fractional = balanceNum % BigInt(CGT_UNIT);
     
     // Format fractional part with leading zeros
-    const fractionalStr = fractional.toString().padStart(8, '0');
+    const fractionalStr = fractional.toString().padStart(2, '0');
     
     return `${whole}.${fractionalStr}`;
   }

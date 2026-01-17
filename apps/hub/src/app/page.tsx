@@ -261,6 +261,16 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Footer Links */}
+          <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm">
+            <Link
+              href="/affiliates"
+              className="text-gray-400 hover:text-neon-cyan transition-colors font-body"
+            >
+              Affiliates & Sponsors
+            </Link>
+          </div>
         </div>
 
         {/* Bottom Wave */}

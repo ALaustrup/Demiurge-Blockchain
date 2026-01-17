@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert amount to smallest units (8 decimals)
-    const CGT_UNIT = 100_000_000;
+    // Convert amount to smallest units (2 decimals, 100 Sparks = 1 CGT)
+    const CGT_UNIT = 100;
     const amountInSmallestUnits = Math.floor(amountNum * CGT_UNIT).toString();
 
     // Check balance

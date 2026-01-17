@@ -22,8 +22,9 @@
 | **Server Name** | Monad |
 | **Hostname** | Pleroma |
 | **IP Address** | 51.210.209.112 |
-| **OS** | Ubuntu 24.04 LTS (Noble Numbat) |
-| **Kernel** | 6.8.x (HWE) |
+| **OS** | Ubuntu Server 25.10 "Questing Quokka" |
+| **Provider** | OVH (RISE-LE-2) |
+| **Kernel** | 6.x (HWE) |
 | **Architecture** | x86_64 |
 
 ---

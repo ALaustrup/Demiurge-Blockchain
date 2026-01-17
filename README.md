@@ -77,7 +77,7 @@ npm run dev
 | **Blockchain** | Substrate (Rust) | Gaming-optimized L1 with 13 custom pallets |
 | **Web Hub** | Next.js 15 + React 19 | Central platform (Demiurge.Cloud) |
 | **Identity** | QOR ID | Non-dual identity system |
-| **Currency** | CGT | Creator God Token (13B supply, 8 decimals) |
+| **Currency** | CGT | Creator God Token (13B supply, 2 decimals, 100 Sparks = 1 CGT) |
 | **NFT Standard** | DRC-369 | Programmable, evolving assets |
 | **Auth Service** | Rust (Axum) | QOR ID authentication |
 
@@ -107,8 +107,9 @@ Demiurge-Blockchain/
 
 **Tokenomics:**
 - **Total Supply:** 13,000,000,000 CGT (fixed)
-- **Decimals:** 8
-- **Smallest Unit:** 1 Spark (0.00000001 CGT)
+- **Decimals:** 2
+- **Smallest Unit:** 1 Spark (0.01 CGT)
+- **Conversion:** 100 Sparks = 1 CGT (Sparks are like Sats to Bitcoin)
 - **Fee Model:** 80% burned, 20% to treasury
 
 **Distribution:**

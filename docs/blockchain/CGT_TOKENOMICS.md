@@ -26,8 +26,9 @@
 | **Name** | Creator God Token |
 | **Symbol** | CGT |
 | **Total Supply** | 13,000,000,000 (13 Billion) - **FIXED** |
-| **Precision** | 8 decimals |
-| **Smallest Unit** | 1 Spark (0.00000001 CGT) |
+| **Precision** | 2 decimals |
+| **Smallest Unit** | 1 Spark (0.01 CGT) |
+| **Conversion** | 100 Sparks = 1 CGT (Sparks are like Sats to Bitcoin) |
 | **Blockchain** | Demiurge (Polkadot SDK / Substrate) |
 | **Standard** | Native / pallet-cgt |
 | **Consensus** | Nominated Proof of Stake (NPoS) |
@@ -36,10 +37,8 @@
 
 | Name | CGT Value | Smallest Units (Sparks) |
 |------|-----------|-------------------------|
-| **1 CGT** | 1.00000000 | 100,000,000 |
-| **1 mCGT (milli)** | 0.00100000 | 100,000 |
-| **1 μCGT (micro)** | 0.00000100 | 100 |
-| **1 Spark** | 0.00000001 | 1 |
+| **1 CGT** | 1.00 | 100 |
+| **1 Spark** | 0.01 | 1 |
 
 ---
 
@@ -322,11 +321,12 @@ Reputation Multiplier (Qor ID based):
 ```rust
 // pallet-cgt/src/lib.rs
 
-/// CGT precision: 8 decimals
-pub const DECIMALS: u8 = 8;
+/// CGT precision: 2 decimals
+pub const DECIMALS: u8 = 2;
 
 /// One CGT in smallest units (Sparks)
-pub const CGT: u128 = 100_000_000; // 10^8
+/// 100 Sparks = 1 CGT (Sparks are like Sats to Bitcoin)
+pub const CGT: u128 = 100; // 100 Sparks = 1 CGT
 
 /// Total supply: 13 billion CGT (FIXED)
 pub const TOTAL_SUPPLY: u128 = 13_000_000_000 * CGT;

@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Test balance query
     const balanceStr = await blockchainClient.getCGTBalance(address);
     const balanceNum = BigInt(balanceStr);
-    const cgtAmount = Number(balanceNum) / 100_000_000;
+    const cgtAmount = Number(balanceNum) / 100; // 100 Sparks = 1 CGT
 
     // Test asset query
     const assets = await blockchainClient.getUserAssets(address);

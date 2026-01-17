@@ -8,7 +8,7 @@ Write-Host ""
 
 # Configuration
 $SERVER = "51.210.209.112"
-$SSH_USER = "pleroma"
+$SSH_USER = "ubuntu"
 
 Write-Host "📋 Monitoring Components" -ForegroundColor Yellow
 Write-Host ""

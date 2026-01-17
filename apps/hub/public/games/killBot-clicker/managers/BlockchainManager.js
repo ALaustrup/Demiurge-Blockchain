@@ -163,7 +163,7 @@ class BlockchainManager {
     try {
       const balanceStr = await this.getDemiurgeBalance();
       const balanceBigInt = BigInt(balanceStr);
-      const balanceCGT = Number(balanceBigInt) / 100_000_000;
+      const balanceCGT = Number(balanceBigInt) / 100; // 100 Sparks = 1 CGT
 
       // Load game data for stats
       const gameData = await this.loadGameData();

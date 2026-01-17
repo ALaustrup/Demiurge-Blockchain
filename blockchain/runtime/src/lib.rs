@@ -17,6 +17,7 @@
 //! - **pallet-fractional-assets**: Guild-Owned Assets with Scheduling
 //! - **pallet-drc369-ocw**: Off-Chain Workers for Game Data Integration
 //! - **pallet-governance**: Game Studio Governance for Soft-Forks
+//! - **pallet-session-keys**: Session Keys for Temporary Authorization (Phase 11)
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "256"]
@@ -56,7 +57,8 @@ pub type Nonce = u32;
 pub type Hash = sp_core::H256;
 
 /// CGT constants (13B supply)
-pub const CGT_UNIT: Balance = 100_000_000; // 10^8
+/// 100 Sparks = 1 CGT (Sparks are like Sats to Bitcoin)
+pub const CGT_UNIT: Balance = 100; // 100 Sparks = 1 CGT
 pub const CGT_TOTAL_SUPPLY: Balance = 13_000_000_000 * CGT_UNIT;
 
 /// Time constants
@@ -253,6 +255,17 @@ impl pallet_drc369_ocw::Config for Runtime {
     type MaxGameSources = MaxGameSources;
 }
 
+// Configure pallet_session_keys (Phase 11: Revolutionary Features)
+parameter_types! {
+    pub const MaxSessionDuration: BlockNumber = DAYS * 7; // 7 days max session
+}
+
+impl pallet_session_keys::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = pallet_session_keys::weights::SubstrateWeight<Runtime>;
+    type MaxSessionDuration = MaxSessionDuration;
+}
+
 // Construct runtime
 construct_runtime!(
     pub struct Runtime {
@@ -269,6 +282,7 @@ construct_runtime!(
         FractionalAssets: pallet_fractional_assets,
         Drc369Ocw: pallet_drc369_ocw,
         Governance: pallet_governance,
+        SessionKeys: pallet_session_keys,
     }
 );
 

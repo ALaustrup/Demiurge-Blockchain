@@ -8,7 +8,7 @@ Write-Host ""
 
 # Configuration
 $SERVER = "51.210.209.112"
-$SSH_USER = "pleroma" # Update with your SSH user
+$SSH_USER = "ubuntu"
 
 Write-Host "📋 Deployment Checklist" -ForegroundColor Yellow
 Write-Host ""

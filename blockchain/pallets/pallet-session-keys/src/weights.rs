@@ -43,3 +43,6 @@ impl<T: frame_system::Config> crate::WeightInfo for WeightInfo<T> {
             .saturating_add(Weight::from_parts(0, 0))
     }
 }
+
+/// Alias for SubstrateWeight to match runtime expectations
+pub type SubstrateWeight<T> = WeightInfo<T>;

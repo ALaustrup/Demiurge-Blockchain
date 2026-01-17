@@ -6,8 +6,9 @@
 //!
 //! CGT is the native token with the following properties:
 //! - **Total Supply**: 13,000,000,000 (13 Billion) - Fixed
-//! - **Precision**: 8 decimals
-//! - **Smallest Unit**: 1 Spark (0.00000001 CGT)
+//! - **Precision**: 2 decimals
+//! - **Smallest Unit**: 1 Spark (0.01 CGT)
+//! - **Conversion**: 100 Sparks = 1 CGT (Sparks are like Sats to Bitcoin)
 //!
 //! ## Features
 //!
@@ -70,11 +71,12 @@ pub mod pallet {
     
     use crate::weights::WeightInfo;
 
-    /// CGT precision: 8 decimals
-    pub const DECIMALS: u8 = 8;
+    /// CGT precision: 2 decimals
+    pub const DECIMALS: u8 = 2;
 
     /// One CGT in smallest units (Sparks)
-    pub const CGT: u128 = 100_000_000; // 10^8
+    /// 100 Sparks = 1 CGT (Sparks are like Sats to Bitcoin)
+    pub const CGT: u128 = 100; // 100 Sparks = 1 CGT
 
     /// Total supply: 13 billion CGT (Fixed)
     pub const TOTAL_SUPPLY: u128 = 13_000_000_000 * CGT;

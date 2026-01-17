@@ -1,6 +1,69 @@
 import Phaser from 'phaser';
 import { CONFIG, GAME_STATE, SKINS } from '../config.js';
 
+// Bullet class must be defined before Player uses it
+class Bullet extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y) {
+        super(scene, x, y);
+        
+        if (!scene.textures.exists('bullet')) {
+            const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
+            graphics.fillStyle(0xffffff, 1);
+            graphics.fillRect(0, 0, 8, 20);
+            graphics.generateTexture('bullet', 8, 20);
+        }
+        
+        this.setTexture('bullet');
+        this.chromaIndex = 0;
+    }
+    
+    fire(x, y) {
+        this.body.reset(x, y);
+        this.setActive(true);
+        this.setVisible(true);
+        this.setVelocityY(-CONFIG.bulletSpeed);
+        
+        const colors = [0xff0000, 0xff7f00, 0xffff00, 0x00ff00, 0x0000ff, 0x8b00ff];
+        const chosenColor = colors[Math.floor(Math.random() * colors.length)];
+        this.setTint(chosenColor);
+        this.setScale(1.2);
+        
+        const sparkle = this.scene.add.circle(x, y, 8, chosenColor, 0.6);
+        this.scene.tweens.add({
+            targets: sparkle,
+            scale: 0,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => sparkle.destroy()
+        });
+    }
+    
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        
+        if (this.active) {
+            this.setScale(1.2 + Math.sin(time / 100) * 0.3);
+            
+            if (Math.random() < 0.3) {
+                const trail = this.scene.add.circle(this.x, this.y, 3, this.tintTopLeft, 0.6);
+                this.scene.tweens.add({
+                    targets: trail,
+                    y: trail.y + 20,
+                    alpha: 0,
+                    scale: 0,
+                    duration: 300,
+                    onComplete: () => trail.destroy()
+                });
+            }
+            
+            if (this.y < -50) {
+                this.setActive(false);
+                this.setVisible(false);
+            }
+        }
+    }
+}
+
 export class Player extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         const equippedSkin = SKINS.find(s => s.id === GAME_STATE.equippedSkin) || SKINS[0];
@@ -137,65 +200,5 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.isInvulnerable = false;
             this.alpha = 1;
         });
-    }
-}
-
-class Bullet extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y) {
-        super(scene, x, y);
-        
-        if (!scene.textures.exists('bullet')) {
-            const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
-            graphics.fillStyle(0xffffff, 1);
-            graphics.fillRect(0, 0, 8, 20);
-            graphics.generateTexture('bullet', 8, 20);
-        }
-        
-        this.setTexture('bullet');
-        this.chromaIndex = 0;
-    }
-    fire(x, y) {
-        this.body.reset(x, y);
-        this.setActive(true);
-        this.setVisible(true);
-        this.setVelocityY(-CONFIG.bulletSpeed);
-        
-        const colors = [0xff0000, 0xff7f00, 0xffff00, 0x00ff00, 0x0000ff, 0x8b00ff];
-        const chosenColor = colors[Math.floor(Math.random() * colors.length)];
-        this.setTint(chosenColor);
-        this.setScale(1.2);
-        
-        const sparkle = this.scene.add.circle(x, y, 8, chosenColor, 0.6);
-        this.scene.tweens.add({
-            targets: sparkle,
-            scale: 0,
-            alpha: 0,
-            duration: 200,
-            onComplete: () => sparkle.destroy()
-        });
-    }
-    preUpdate(time, delta) {
-        super.preUpdate(time, delta);
-        
-        if (this.active) {
-            this.setScale(1.2 + Math.sin(time / 100) * 0.3);
-            
-            if (Math.random() < 0.3) {
-                const trail = this.scene.add.circle(this.x, this.y, 3, this.tintTopLeft, 0.6);
-                this.scene.tweens.add({
-                    targets: trail,
-                    y: trail.y + 20,
-                    alpha: 0,
-                    scale: 0,
-                    duration: 300,
-                    onComplete: () => trail.destroy()
-                });
-            }
-            
-            if (this.y < -50) {
-                this.setActive(false);
-                this.setVisible(false);
-            }
-        }
     }
 }

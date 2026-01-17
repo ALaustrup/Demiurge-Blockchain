@@ -148,8 +148,8 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
             if (address) {
               // Fetch actual balance from blockchain
               const balanceStr = await getBalance(address);
-              // Balance is in smallest units (8 decimals), convert to CGT
-              const balance = parseFloat(balanceStr) / 100_000_000;
+              // Balance is in smallest units (2 decimals), convert to CGT (100 Sparks = 1 CGT)
+              const balance = parseFloat(balanceStr) / 100;
               
               iframe.contentWindow?.postMessage({
                 type: 'CGT_BALANCE_RESPONSE',

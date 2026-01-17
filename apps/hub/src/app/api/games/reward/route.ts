@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert CGT amount to smallest units (8 decimals)
-    const amountInSmallestUnits = Math.floor(amountNum * 100_000_000).toString();
+    // Convert CGT amount to smallest units (2 decimals, 100 Sparks = 1 CGT)
+    const amountInSmallestUnits = Math.floor(amountNum * 100).toString();
 
     // In production, this would:
     // 1. Transfer CGT from game pool to player's address

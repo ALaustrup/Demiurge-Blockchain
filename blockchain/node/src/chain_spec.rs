@@ -21,8 +21,9 @@ pub type Signature = sp_runtime::MultiSignature;
 /// Specialized `ChainSpec` for Demiurge.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
-/// CGT precision: 8 decimals
-const CGT: Balance = 100_000_000;
+/// CGT precision: 2 decimals
+/// 100 Sparks = 1 CGT (Sparks are like Sats to Bitcoin)
+const CGT: Balance = 100;
 
 /// Total CGT supply: 13 billion (FIXED)
 const TOTAL_SUPPLY: Balance = 13_000_000_000 * CGT;
@@ -242,7 +243,7 @@ mod tests {
     
     #[test]
     fn test_cgt_constants() {
-        assert_eq!(CGT, 100_000_000);
+        assert_eq!(CGT, 100);
         assert_eq!(TOTAL_SUPPLY, 1_000_000_000 * CGT);
     }
     

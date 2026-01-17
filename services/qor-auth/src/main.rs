@@ -142,6 +142,7 @@ fn auth_routes() -> Router<Arc<AppState>> {
         .route("/verify-email", post(handlers::auth::verify_email))
         .route("/forgot-password", post(handlers::auth::forgot_password))
         .route("/reset-password", post(handlers::auth::reset_password))
+        .route("/reset-password-backup", post(handlers::auth::reset_password_with_backup))
         .route("/check-username", post(handlers::auth::check_username))
 }
 

@@ -44,9 +44,9 @@ export class BlockchainIntegration {
         try {
             if (typeof window.DemiurgeHUD !== 'undefined') {
                 const balanceStr = await window.DemiurgeHUD.getCGTBalance();
-                // Balance is returned as string in smallest units (8 decimals), convert to CGT
+                // Balance is returned as string in smallest units (2 decimals), convert to CGT (100 Sparks = 1 CGT)
                 const balanceNum = BigInt(balanceStr);
-                const cgtAmount = Number(balanceNum) / 100_000_000;
+                const cgtAmount = Number(balanceNum) / 100;
                 return cgtAmount;
             }
             return 0;
@@ -63,8 +63,8 @@ export class BlockchainIntegration {
      */
     async awardCGT(amount, reason) {
         try {
-            // Convert CGT to smallest units (8 decimals)
-            const amountInSmallestUnits = Math.floor(amount * 100_000_000);
+            // Convert CGT to smallest units (2 decimals, 100 Sparks = 1 CGT)
+            const amountInSmallestUnits = Math.floor(amount * 100);
             
             if (amountInSmallestUnits <= 0) {
                 return null;

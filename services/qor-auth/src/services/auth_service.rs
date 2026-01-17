@@ -124,6 +124,47 @@ impl AuthService {
 
         Ok(())
     }
+
+    /// Find user by username (any discriminator)
+    pub async fn find_by_username(&self, username: &str) -> AppResult<Option<User>> {
+        // Find user with lowest discriminator (primary account)
+        let user = sqlx::query_as::<_, User>(
+            "SELECT * FROM users WHERE LOWER(username) = LOWER($1) ORDER BY discriminator ASC LIMIT 1"
+        )
+        .bind(username)
+        .fetch_optional(&self.db)
+        .await?;
+
+        Ok(user)
+    }
+
+    /// Check if identifier is an email
+    pub fn is_email(identifier: &str) -> bool {
+        identifier.contains('@') && identifier.contains('.')
+    }
+
+    /// Generate a secure backup code (32 characters)
+    pub fn generate_backup_code() -> String {
+        use rand::Rng;
+        const CHARSET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude confusing chars
+        let mut rng = rand::thread_rng();
+        (0..32)
+            .map(|_| {
+                let idx = rng.gen_range(0..CHARSET.len());
+                CHARSET[idx] as char
+            })
+            .collect()
+    }
+
+    /// Generate email verification token
+    pub fn generate_verification_token() -> String {
+        use sha2::{Sha256, Digest};
+        use hex;
+        let mut hasher = Sha256::new();
+        hasher.update(uuid::Uuid::new_v4().as_bytes());
+        hasher.update(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs().to_be_bytes());
+        hex::encode(hasher.finalize())[..32].to_string()
+    }
 }
 
 #[cfg(test)]

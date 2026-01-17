@@ -10,6 +10,7 @@ interface BlockchainContextType {
   getBalance: (address: string) => Promise<string>;
   transfer: (fromPair: any, toAddress: string, amount: string) => Promise<string>;
   getUserAssets: (address: string) => Promise<any[]>;
+  getTransactions: (address: string) => Promise<any[]>;
   getApi: () => any | null;
 }
 
@@ -79,6 +80,13 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
     return blockchainClient.getUserAssets(address);
   };
 
+  const getTransactions = async (address: string): Promise<any[]> => {
+    if (!isConnected) {
+      await connect();
+    }
+    return blockchainClient.getTransactions(address);
+  };
+
   const getApi = () => {
     return blockchainClient.getApi();
   };
@@ -92,6 +100,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
         getBalance,
         transfer,
         getUserAssets,
+        getTransactions,
         getApi,
       }}
     >

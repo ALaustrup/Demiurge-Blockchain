@@ -1,0 +1,36 @@
+# Docker Compose Override Example
+# 
+# Copy this file to docker-compose.override.yml to customize your local setup.
+# Override files are automatically loaded by docker-compose.
+#
+# Example: cp docker-compose.override.yml.example docker-compose.override.yml
+
+version: '3.9'
+
+services:
+  # Example: Override hub port
+  # hub:
+  #   ports:
+  #     - "3001:3000"  # Use port 3001 instead of 3000
+
+  # Example: Add environment variables
+  # qor-auth:
+  #   environment:
+  #     RUST_LOG: "debug"
+
+  # Example: Mount additional volumes for development
+  # hub:
+  #   volumes:
+  #     - ../packages/qor-sdk:/app/packages/qor-sdk
+
+  # Example: Override command for debugging
+  # demiurge-node:
+  #   command: >
+  #     --dev
+  #     --name Pleroma-Dev
+  #     --rpc-cors all
+  #     --rpc-external
+  #     --ws-external
+  #     --prometheus-external
+  #     --base-path /data
+  #     --log runtime
