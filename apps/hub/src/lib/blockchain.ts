@@ -263,6 +263,97 @@ export class BlockchainClient {
   }
 
   /**
+   * Transfer CGT tokens using WASM wallet signing
+   * 
+   * @param keypairJson WASM keypair JSON string
+   * @param fromAddress Sender's address (for verification)
+   * @param toAddress Destination account address
+   * @param amount Amount in smallest units (e.g., "100" = 1 CGT)
+   * @param signMessage Function to sign message with WASM
+   * @returns Transaction hash
+   */
+  async transferCGTWithWasm(
+    keypairJson: string,
+    fromAddress: string,
+    toAddress: string,
+    amount: string,
+    signMessage: (keypairJson: string, message: Uint8Array) => Promise<string>
+  ): Promise<string> {
+    if (!this.api) {
+      await this.connect();
+    }
+
+    if (!this.api) {
+      throw new Error('Blockchain not connected');
+    }
+
+    try {
+      // Convert amount to Compact<Balance>
+      const amountCompact = this.api.createType('Compact<Balance>', amount);
+      
+      // Convert toAddress to AccountId
+      const toAccountId = this.api.createType('AccountId32', toAddress);
+      
+      // Build transfer extrinsic
+      const transfer = this.api.tx.balances.transferKeepAlive(toAccountId, amountCompact);
+      
+      // Get the signer address from the API
+      const signerAddress = this.api.createType('AccountId32', fromAddress);
+      
+      // Create a custom signer that uses WASM
+      const wasmSigner = {
+        signPayload: async (payload: any) => {
+          // Convert payload to bytes
+          const payloadBytes = payload.toU8a();
+          
+          // Sign with WASM
+          const signatureHex = await signMessage(keypairJson, payloadBytes);
+          
+          // Convert hex signature to Uint8Array
+          const { hexToU8a } = await import('@polkadot/util');
+          const signature = hexToU8a(signatureHex);
+          
+          return {
+            id: payload.id,
+            signature: signature,
+          };
+        },
+        signRaw: async (raw: { data: string }) => {
+          // Convert hex data to bytes
+          const { hexToU8a } = await import('@polkadot/util');
+          const dataBytes = hexToU8a(raw.data);
+          
+          // Sign with WASM
+          const signatureHex = await signMessage(keypairJson, dataBytes);
+          const signature = hexToU8a(signatureHex);
+          
+          return {
+            signature: signature,
+          };
+        }
+      };
+      
+      // Sign and submit transaction using custom signer
+      return new Promise((resolve, reject) => {
+        transfer.signAndSend(
+          signerAddress,
+          { signer: wasmSigner },
+          ({ status, txHash }) => {
+            if (status.isInBlock || status.isFinalized) {
+              resolve(txHash.toString());
+            } else if ((status as any).isError) {
+              reject(new Error('Transaction failed'));
+            }
+          }
+        ).catch(reject);
+      });
+    } catch (error) {
+      console.error('Failed to transfer CGT with WASM:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get user's DRC-369 assets
    * 
    * @param address User's account address

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASM Wallet Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #0ff;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #0ff;
+            border-radius: 5px;
+        }
+        button {
+            background: #0ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #0cc;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 3px;
+            white-space: pre-wrap;
+        }
+        .success { color: #0f0; }
+        .error { color: #f00; }
+    </style>
+</head>
+<body>
+    <h1>🔐 WASM Wallet Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Load WASM Module</h2>
+        <button onclick="testLoadWasm()">Load WASM</button>
+        <div id="load-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Generate Keypair from QOR ID</h2>
+        <input type="text" id="qor-id" placeholder="username#0001" value="testuser#0001" style="padding: 5px; width: 200px; background: #2a2a2a; color: #0ff; border: 1px solid #0ff;">
+        <button onclick="testGenerateKeypair()">Generate Keypair</button>
+        <div id="keypair-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Sign Message</h2>
+        <input type="text" id="message" placeholder="Test message" value="Hello, Demiurge!" style="padding: 5px; width: 200px; background: #2a2a2a; color: #0ff; border: 1px solid #0ff;">
+        <button onclick="testSignMessage()">Sign Message</button>
+        <div id="sign-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Get Public Key</h2>
+        <button onclick="testGetPublicKey()">Get Public Key</button>
+        <div id="pubkey-result" class="result"></div>
+    </div>
+
+    <script type="module">
+        let wasmModule = null;
+        let keypairJson = null;
+
+        window.testLoadWasm = async function() {
+            const resultDiv = document.getElementById('load-result');
+            resultDiv.textContent = 'Loading WASM module...';
+            resultDiv.className = 'result';
+
+            try {
+                // Import WASM module
+                const module = await import('/pkg/wallet_wasm.js');
+                await module.default();
+                wasmModule = module;
+                
+                resultDiv.textContent = '✅ WASM module loaded successfully!\n\nAvailable functions:\n' +
+                    '- generate_keypair_from_seed\n' +
+                    '- sign_message\n' +
+                    '- get_address_from_keypair\n' +
+                    '- verify_signature';
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.textContent = '❌ Failed to load WASM module:\n' + error.message + '\n\n' + error.stack;
+                resultDiv.className = 'result error';
+            }
+        };
+
+        window.testGenerateKeypair = async function() {
+            const resultDiv = document.getElementById('keypair-result');
+            const qorId = document.getElementById('qor-id').value;
+
+            if (!wasmModule) {
+                resultDiv.textContent = '❌ Please load WASM module first!';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            if (!qorId) {
+                resultDiv.textContent = '❌ Please enter a QOR ID!';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            resultDiv.textContent = 'Generating keypair...';
+            resultDiv.className = 'result';
+
+            try {
+                const seed = `QOR_ID:${qorId}`;
+                keypairJson = wasmModule.generate_keypair_from_seed(seed);
+                
+                const keypair = JSON.parse(keypairJson);
+                resultDiv.textContent = '✅ Keypair generated successfully!\n\n' +
+                    `QOR ID: ${qorId}\n` +
+                    `Seed: ${seed}\n` +
+                    `Secret Key Length: ${keypair.secret_key.length} bytes\n` +
+                    `Public Key Length: ${keypair.public_key.length} bytes\n\n` +
+                    `Keypair JSON (truncated):\n${keypairJson.substring(0, 100)}...`;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.textContent = '❌ Failed to generate keypair:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        };
+
+        window.testSignMessage = async function() {
+            const resultDiv = document.getElementById('sign-result');
+            const message = document.getElementById('message').value;
+
+            if (!wasmModule) {
+                resultDiv.textContent = '❌ Please load WASM module first!';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            if (!keypairJson) {
+                resultDiv.textContent = '❌ Please generate keypair first!';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            if (!message) {
+                resultDiv.textContent = '❌ Please enter a message!';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            resultDiv.textContent = 'Signing message...';
+            resultDiv.className = 'result';
+
+            try {
+                const messageBytes = new TextEncoder().encode(message);
+                const signature = wasmModule.sign_message(keypairJson, messageBytes);
+                
+                resultDiv.textContent = '✅ Message signed successfully!\n\n' +
+                    `Message: ${message}\n` +
+                    `Signature (hex): ${signature}\n` +
+                    `Signature Length: ${signature.length / 2} bytes`;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.textContent = '❌ Failed to sign message:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        };
+
+        window.testGetPublicKey = async function() {
+            const resultDiv = document.getElementById('pubkey-result');
+
+            if (!wasmModule) {
+                resultDiv.textContent = '❌ Please load WASM module first!';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            if (!keypairJson) {
+                resultDiv.textContent = '❌ Please generate keypair first!';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            resultDiv.textContent = 'Extracting public key...';
+            resultDiv.className = 'result';
+
+            try {
+                const publicKeyHex = wasmModule.get_address_from_keypair(keypairJson);
+                
+                resultDiv.textContent = '✅ Public key extracted successfully!\n\n' +
+                    `Public Key (hex): ${publicKeyHex}\n` +
+                    `Length: ${publicKeyHex.length / 2} bytes`;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.textContent = '❌ Failed to get public key:\n' + error.message;
+                resultDiv.className = 'result error';
+            }
+        };
+    </script>
+</body>
+</html>

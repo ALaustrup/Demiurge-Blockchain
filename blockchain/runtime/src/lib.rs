@@ -257,13 +257,14 @@ impl pallet_drc369_ocw::Config for Runtime {
 
 // Configure pallet_session_keys (Phase 11: Revolutionary Features)
 parameter_types! {
-    pub const MaxSessionDuration: BlockNumber = DAYS * 7; // 7 days max session
+    pub const MaxSessionDuration: BlockNumber = DAYS * 7; // 7 days max session (100,800 blocks)
 }
 
 impl pallet_session_keys::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_session_keys::weights::SubstrateWeight<Runtime>;
     type MaxSessionDuration = MaxSessionDuration;
+    type QorIdentity = QorIdentity; // Link to QOR Identity pallet for QOR ID lookups
 }
 
 // Construct runtime

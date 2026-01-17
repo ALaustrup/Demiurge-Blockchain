@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useBlockchain } from '@/contexts/BlockchainContext';
-import { Keyring } from '@polkadot/keyring';
-import { cryptoWaitReady } from '@polkadot/util-crypto';
-import { createStoredWallet, hasStoredWallet, loadStoredWalletMnemonic } from '@/lib/wallet';
+import { qorAuth } from '@demiurge/qor-sdk';
+import { 
+  generateKeypairFromQorId, 
+  signTransactionPayload,
+  initWasm 
+} from '@/lib/wasm-wallet';
+import { generateAddressFromQorId } from '@/lib/qor-wallet';
 
 interface SendCGTModalProps {
   isOpen: boolean;
@@ -14,20 +18,24 @@ interface SendCGTModalProps {
 }
 
 export function SendCGTModal({ isOpen, onClose, fromAddress, currentBalance }: SendCGTModalProps) {
-  const { transfer } = useBlockchain();
+  const { transferWithWasm } = useBlockchain();
   const [toAddress, setToAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [password, setPassword] = useState('');
-  const [walletExists, setWalletExists] = useState<boolean | null>(null);
-  const [generatedMnemonic, setGeneratedMnemonic] = useState<string | null>(null);
-  const [acknowledgedBackup, setAcknowledgedBackup] = useState(false);
+  const [wasmInitialized, setWasmInitialized] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
-    setWalletExists(hasStoredWallet());
+    
+    // Initialize WASM wallet on modal open
+    initWasm()
+      .then(() => setWasmInitialized(true))
+      .catch((err) => {
+        console.error('Failed to initialize WASM wallet:', err);
+        setError('Failed to initialize wallet. Please refresh the page.');
+      });
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -35,6 +43,11 @@ export function SendCGTModal({ isOpen, onClose, fromAddress, currentBalance }: S
   const handleSend = async () => {
     if (!toAddress || !amount) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    if (!wasmInitialized) {
+      setError('Wallet is initializing. Please wait...');
       return;
     }
 
@@ -58,25 +71,30 @@ export function SendCGTModal({ isOpen, onClose, fromAddress, currentBalance }: S
     setError(null);
 
     try {
-      if (!password) {
-        throw new Error('Wallet password is required');
+      // Get current user's QOR ID
+      const user = qorAuth.getCurrentUser();
+      if (!user) {
+        throw new Error('Not authenticated. Please log in.');
       }
 
-      if (generatedMnemonic && !acknowledgedBackup) {
-        throw new Error('Please confirm you saved your recovery phrase');
+      // Verify address matches QOR ID
+      const expectedAddress = generateAddressFromQorId(user.qor_id);
+      if (expectedAddress !== fromAddress) {
+        throw new Error('Wallet address does not match your QOR ID');
       }
 
-      const mnemonic = await loadStoredWalletMnemonic(password);
+      // Generate keypair from QOR ID (deterministic)
+      const keypairJson = await generateKeypairFromQorId(user.qor_id);
 
-      await cryptoWaitReady();
-      const keyring = new Keyring({ type: 'sr25519' });
-      const pair = keyring.addFromUri(mnemonic);
-
-      if (pair.address !== fromAddress) {
-        throw new Error('Wallet address does not match your profile address');
-      }
-
-      const hash = await transfer(pair, toAddress, amountInSmallestUnits);
+      // Sign and submit transaction using WASM
+      const hash = await transferWithWasm(
+        keypairJson,
+        fromAddress,
+        toAddress,
+        amountInSmallestUnits,
+        signTransactionPayload
+      );
+      
       setTxHash(hash);
     } catch (err: any) {
       setError(err.message || 'Failed to send transaction');
@@ -85,25 +103,6 @@ export function SendCGTModal({ isOpen, onClose, fromAddress, currentBalance }: S
     }
   };
 
-  const handleCreateWallet = async () => {
-    if (password.length < 8) {
-      setError('Use a password with at least 8 characters');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      const mnemonic = await createStoredWallet(password);
-      setGeneratedMnemonic(mnemonic);
-      setAcknowledgedBackup(false);
-      setWalletExists(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to create wallet');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -172,48 +171,10 @@ export function SendCGTModal({ isOpen, onClose, fromAddress, currentBalance }: S
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Wallet Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter wallet password"
-                className="w-full bg-gray-800/50 border border-gray-700 rounded p-2 text-white placeholder-gray-500 focus:border-demiurge-cyan focus:outline-none"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                Used to unlock your local encrypted wallet.
-              </div>
-            </div>
-
-            {walletExists === false && (
-              <div className="bg-gray-800/40 border border-gray-700 rounded p-3 text-sm text-gray-300 space-y-3">
-                <div className="text-demiurge-cyan font-semibold">Wallet not found</div>
-                <p>
-                  Create a wallet to send CGT. Your recovery phrase will be shown once.
-                </p>
-                <button
-                  onClick={handleCreateWallet}
-                  className="w-full bg-demiurge-cyan text-black font-bold py-2 rounded hover:bg-demiurge-cyan/80 transition-colors"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Creating...' : 'Create Wallet'}
-                </button>
-              </div>
-            )}
-
-            {generatedMnemonic && (
-              <div className="bg-gray-900/60 border border-demiurge-cyan/30 rounded p-3 text-sm text-gray-200 space-y-2">
-                <div className="text-demiurge-cyan font-semibold">Recovery Phrase</div>
-                <div className="font-mono text-xs break-all">{generatedMnemonic}</div>
-                <label className="flex items-center gap-2 text-xs text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={acknowledgedBackup}
-                    onChange={(e) => setAcknowledgedBackup(e.target.checked)}
-                  />
-                  I have saved this recovery phrase securely
-                </label>
+            {!wasmInitialized && (
+              <div className="bg-gray-800/40 border border-gray-700 rounded p-3 text-sm text-gray-300">
+                <div className="text-demiurge-cyan font-semibold">Initializing Wallet...</div>
+                <p className="mt-1">Loading secure wallet module...</p>
               </div>
             )}
 
@@ -233,7 +194,7 @@ export function SendCGTModal({ isOpen, onClose, fromAddress, currentBalance }: S
               </button>
               <button
                 onClick={handleSend}
-                disabled={isLoading || !toAddress || !amount || !password}
+                disabled={isLoading || !toAddress || !amount || !wasmInitialized}
                 className="flex-1 bg-demiurge-cyan text-black font-bold py-2 rounded hover:bg-demiurge-cyan/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Sending...' : 'Send'}

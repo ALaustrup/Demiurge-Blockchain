@@ -16,6 +16,9 @@ frame-system = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
+# Local dependencies
+pallet-qor-identity = { workspace = true }
+
 [features]
 default = ["std"]
 std = [

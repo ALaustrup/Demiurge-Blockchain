@@ -26,6 +26,9 @@ pub mod pallet {
         
         #[pallet::constant]
         type MaxSessionDuration: Get<BlockNumberFor<Self>>;
+        
+        /// QOR Identity pallet for QOR ID lookups
+        type QorIdentity: pallet_qor_identity::Config<AccountId = Self::AccountId>;
     }
 
     /// Stores the session keys for a given primary account.
@@ -43,16 +46,18 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// A session key has been authorized. [primary_account, session_key, expiry_block]
+        /// A session key has been authorized. [primary_account, session_key, expiry_block, qor_id]
         SessionKeyAuthorized {
             primary_account: T::AccountId,
             session_key: T::AccountId,
             expiry_block: BlockNumberFor<T>,
+            qor_id: Option<BoundedVec<u8, ConstU32<20>>>, // Username if QOR ID exists
         },
-        /// A session key has been revoked. [primary_account, session_key]
+        /// A session key has been revoked. [primary_account, session_key, qor_id]
         SessionKeyRevoked {
             primary_account: T::AccountId,
             session_key: T::AccountId,
+            qor_id: Option<BoundedVec<u8, ConstU32<20>>>, // Username if QOR ID exists
         },
     }
 
@@ -71,6 +76,9 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Authorize a new session key for the sender.
+        /// 
+        /// This creates a temporary authorization key tied to the user's QOR ID account.
+        /// The session key will automatically expire after the specified duration.
         #[pallet::call_index(0)]
         #[pallet::weight(T::DbWeight::get().writes(1).saturating_add(10_000))]
         pub fn authorize_session_key(
@@ -88,16 +96,22 @@ pub mod pallet {
 
             SessionKeys::<T>::insert(&primary_account, &session_key, expiry_block);
 
+            // Lookup QOR ID username for event
+            let qor_id_username = Self::get_qor_id_username(&primary_account);
+
             Self::deposit_event(Event::SessionKeyAuthorized {
-                primary_account,
+                primary_account: primary_account.clone(),
                 session_key,
                 expiry_block,
+                qor_id: qor_id_username,
             });
 
             Ok(())
         }
 
         /// Revoke an existing session key.
+        /// 
+        /// Immediately invalidates a session key before its expiry.
         #[pallet::call_index(1)]
         #[pallet::weight(T::DbWeight::get().writes(1).saturating_add(10_000))]
         pub fn revoke_session_key(
@@ -110,9 +124,13 @@ pub mod pallet {
 
             SessionKeys::<T>::remove(&primary_account, &session_key);
 
+            // Lookup QOR ID username for event
+            let qor_id_username = Self::get_qor_id_username(&primary_account);
+
             Self::deposit_event(Event::SessionKeyRevoked {
-                primary_account,
+                primary_account: primary_account.clone(),
                 session_key,
+                qor_id: qor_id_username,
             });
 
             Ok(())
@@ -127,6 +145,57 @@ pub mod pallet {
                 return current_block < expiry_block;
             }
             false
+        }
+
+        /// Get QOR ID username for an account (if registered)
+        /// 
+        /// Note: This requires runtime-level access to QOR Identity pallet.
+        /// In the runtime, this can query pallet_qor_identity::AccountToIdentity directly.
+        fn get_qor_id_username(account: &T::AccountId) -> Option<BoundedVec<u8, ConstU32<20>>> {
+            // TODO: Query QOR Identity pallet via runtime
+            // For now, return None - this will be implemented at runtime level
+            // where we can access pallet_qor_identity::AccountToIdentity::<Runtime>::get(account)
+            // and then query Identities::<Runtime>::get(qor_id_hash) to get the username
+            None
+        }
+
+        /// Get all active session keys for a QOR ID account
+        /// 
+        /// Returns a list of (session_key, expiry_block) tuples
+        pub fn get_active_session_keys(primary_account: &T::AccountId) -> Vec<(T::AccountId, BlockNumberFor<T>)> {
+            let mut keys = Vec::new();
+            let current_block = <frame_system::Pallet<T>>::block_number();
+
+            // Iterate through all session keys for this account
+            SessionKeys::<T>::iter_prefix(primary_account)
+                .filter(|(_, expiry_block)| *expiry_block > current_block)
+                .map(|(session_key, expiry_block)| (session_key, expiry_block))
+                .collect::<Vec<_>>()
+        }
+
+        /// Check if account has any active session keys
+        pub fn has_active_session_keys(primary_account: &T::AccountId) -> bool {
+            !Self::get_active_session_keys(primary_account).is_empty()
+        }
+
+        /// Revoke all expired session keys for an account (cleanup helper)
+        pub fn cleanup_expired_keys(primary_account: &T::AccountId) -> u32 {
+            let current_block = <frame_system::Pallet<T>>::block_number();
+            let mut removed_count = 0u32;
+
+            // Collect expired keys
+            let expired_keys: Vec<T::AccountId> = SessionKeys::<T>::iter_prefix(primary_account)
+                .filter(|(_, expiry_block)| *expiry_block <= current_block)
+                .map(|(session_key, _)| session_key)
+                .collect();
+
+            // Remove expired keys
+            for session_key in expired_keys {
+                SessionKeys::<T>::remove(primary_account, &session_key);
+                removed_count += 1;
+            }
+
+            removed_count
         }
     }
 }
