@@ -96,3 +96,6 @@ ue5_*.log
 
 # Server-specific backups
 /tmp/*-backup-*
+
+# Tools - Other folder (user-added helpful resources, not tracked)
+tools/Other/
