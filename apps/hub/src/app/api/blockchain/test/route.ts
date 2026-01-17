@@ -51,6 +51,14 @@ export async function POST(request: NextRequest) {
     // Test asset query
     const assets = await blockchainClient.getUserAssets(address);
 
+    // Get blockchain info
+    const [chain, header] = await Promise.all([
+      api.rpc.system.chain(),
+      api.rpc.chain.getHeader().catch(() => null),
+    ]);
+
+    const blockNumber = header && 'number' in header ? header.number.toNumber() : 0;
+
     return NextResponse.json({
       success: true,
       qorId,
@@ -65,15 +73,8 @@ export async function POST(request: NextRequest) {
       },
       blockchain: {
         connected: true,
-        chain: (await api.rpc.system.chain()).toString(),
-        blockNumber: (await (async () => {
-          try {
-            const header = await api.rpc.chain.getHeader();
-            return header && 'number' in header ? header.number.toNumber() : 0;
-          } catch {
-            return 0;
-          }
-        })()),
+        chain: chain.toString(),
+        blockNumber,
       },
       timestamp: new Date().toISOString(),
     });
