@@ -54,8 +54,8 @@ sp-keyring = { version = "45.0.0" }
 sp-keystore = { version = "0.45.0" }
 sp-timestamp = { version = "40.0.0" }
 
-sc-cli = { version = "0.56.0" }
-sc-service = { version = "0.56.0" }
+sc-cli = { version = "0.55.0" }
+sc-service = { version = "0.55.0" }
 sc-executor = { version = "0.47.0" }
 sc-network = { version = "0.55.0" }
 sc-network-gossip = { version = "0.54.0" }
@@ -76,7 +76,7 @@ sc-offchain = { version = "44.0.0" }
 sc-sysinfo = { version = "45.0.0" }
 sc-chain-spec = { version = "48.0.0" }
 sc-block-builder = { version = "0.48.0" }
-substrate-frame-rpc-system = { version = "40.0.0" }
+substrate-frame-rpc-system = { version = "49.0.0" }
 
 # Encoding
 codec = { package = "parity-scale-codec", version = "3.6.5", default-features = false, features = ["derive"] }
@@ -94,3 +94,8 @@ pallet-fractional-assets = { path = "pallets/pallet-fractional-assets", default-
 pallet-drc369-ocw = { path = "pallets/pallet-drc369-ocw", default-features = false }
 pallet-governance = { path = "pallets/pallet-governance", default-features = false }
 pallet-session-keys = { path = "pallets/pallet-session-keys", default-features = false }
+
+# Dependency override to resolve librocksdb-sys conflict
+# Force single librocksdb-sys version (use newer 0.17.3)
+[patch.crates-io]
+librocksdb-sys = "0.17.3"
