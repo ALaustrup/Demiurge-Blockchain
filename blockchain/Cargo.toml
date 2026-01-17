@@ -94,8 +94,3 @@ pallet-fractional-assets = { path = "pallets/pallet-fractional-assets", default-
 pallet-drc369-ocw = { path = "pallets/pallet-drc369-ocw", default-features = false }
 pallet-governance = { path = "pallets/pallet-governance", default-features = false }
 pallet-session-keys = { path = "pallets/pallet-session-keys", default-features = false }
-
-# Dependency override to resolve librocksdb-sys conflict
-# Force single librocksdb-sys version (use newer 0.17.3)
-[patch.crates-io]
-librocksdb-sys = "0.17.3"
