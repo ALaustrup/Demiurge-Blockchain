@@ -24,20 +24,63 @@ license = "MIT"
 repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
 
 [workspace.dependencies]
-# Substrate dependencies - Updated to sp-core 38.0.0 for compatibility with latest sc-* crates
-frame-support = { version = "38.0.0", default-features = false }
-frame-system = { version = "38.0.0", default-features = false }
-frame-benchmarking = { version = "38.0.0", default-features = false }
-sp-core = { version = "38.0.0", default-features = false }
-sp-io = { version = "38.0.0", default-features = false }
-sp-runtime = { version = "38.0.0", default-features = false }
-sp-std = { version = "14.0.0", default-features = false }
+# Substrate Dependencies (crates.io)
+frame-benchmarking = { version = "45.0.0", default-features = false }
+frame-benchmarking-cli = { version = "45.0.0" }
+frame-executive = { version = "45.0.0", default-features = false }
+frame-support = { version = "45.0.0", default-features = false }
+frame-system = { version = "45.0.0", default-features = false }
+frame-system-rpc-runtime-api = { version = "40.0.0", default-features = false }
+frame-try-runtime = { version = "0.49.0", default-features = false }
 pallet-balances = { version = "38.0.0", default-features = false }
-pallet-timestamp = { version = "38.0.0", default-features = false }
+pallet-timestamp = { version = "44.0.0", default-features = false }
+sp-api = { version = "40.0.0", default-features = false }
+sp-block-builder = { version = "40.0.0", default-features = false }
+sp-core = { version = "39.0.0", default-features = false }
+sp-genesis-builder = { version = "0.21.0", default-features = false }
+sp-inherents = { version = "40.0.0", default-features = false }
+sp-io = { version = "44.0.0", default-features = false }
+sp-offchain = { version = "40.0.0", default-features = false }
+sp-runtime = { version = "45.0.0", default-features = false }
+sp-session = { version = "42.0.0", default-features = false }
+sp-std = { version = "14.0.0", default-features = false }
+sp-transaction-pool = { version = "40.0.0", default-features = false }
+sp-version = { version = "43.0.0", default-features = false }
+sp-blockchain = { version = "43.0.0" }
+sp-consensus = { version = "0.46.0" }
+sp-consensus-aura = { version = "0.44.0" }
+sp-consensus-grandpa = { version = "27.0.0" }
+sp-keyring = { version = "45.0.0" }
+sp-keystore = { version = "0.45.0" }
+sp-timestamp = { version = "40.0.0" }
+
+sc-cli = { version = "0.56.0" }
+sc-service = { version = "0.56.0" }
+sc-executor = { version = "0.47.0" }
+sc-network = { version = "0.55.0" }
+sc-network-gossip = { version = "0.54.0" }
+sc-network-sync = { version = "0.54.0" }
+sc-network-common = { version = "0.52.0" }
+sc-consensus = { version = "0.54.0" }
+sc-consensus-aura = { version = "0.55.0" }
+sc-consensus-grandpa = { version = "0.40.0" }
+sc-client-api = { version = "44.0.0" }
+sc-rpc = { version = "49.0.0" }
+sc-rpc-api = { version = "0.54.0" }
+sc-transaction-pool = { version = "43.0.0" }
+sc-transaction-pool-api = { version = "43.0.0" }
+sc-telemetry = { version = "30.0.0" }
+sc-keystore = { version = "38.0.0" }
+sc-basic-authorship = { version = "0.53.0" }
+sc-offchain = { version = "44.0.0" }
+sc-sysinfo = { version = "45.0.0" }
+sc-chain-spec = { version = "48.0.0" }
+sc-block-builder = { version = "0.48.0" }
+substrate-frame-rpc-system = { version = "40.0.0" }
 
 # Encoding
-codec = { package = "parity-scale-codec", version = "3.7", default-features = false, features = ["derive"] }
-scale-info = { version = "2.11", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.6.5", default-features = false, features = ["derive"] }
+scale-info = { version = "2.11.1", default-features = false, features = ["derive"] }
 
 # Local pallets
 pallet-cgt = { path = "pallets/pallet-cgt", default-features = false }
@@ -51,23 +94,3 @@ pallet-fractional-assets = { path = "pallets/pallet-fractional-assets", default-
 pallet-drc369-ocw = { path = "pallets/pallet-drc369-ocw", default-features = false }
 pallet-governance = { path = "pallets/pallet-governance", default-features = false }
 pallet-session-keys = { path = "pallets/pallet-session-keys", default-features = false }
-
-# Force unified schnorrkel version at workspace level
-[workspace.dependencies.schnorrkel]
-version = "0.9.1"
-
-# Dependency resolution: Force schnorrkel version via workspace dependency
-# The workspace.dependencies.schnorrkel above should handle this, but we need
-# to ensure all crates use it. The issue is that sp-core-18.0.0 is being pulled
-# in transitively. We need to check which dependency is requesting it.
-
-# Dependency Resolution Strategy:
-# All dependencies are specified with exact compatible versions in node/Cargo.toml and runtime/Cargo.toml
-# This ensures no old sp-core@18.0.0 is pulled in transitively.
-# If conflicts persist, they indicate incompatible sc-* crate versions that need updating.
-
-# Note: librocksdb-sys version conflicts between sc-cli v0.56.0 and sc-service v0.56.0
-# This is a known Substrate dependency resolution issue. 
-# Workaround: Build individual pallets separately, or use external build system.
-# The node binary build will need compatible sc-* versions aligned.
-# See: blockchain/BUILD.md for external build instructions
