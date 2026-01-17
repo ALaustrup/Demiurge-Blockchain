@@ -150,7 +150,7 @@ export class MetadataResolver {
     if (asset.metadata?.ipfsHash) {
       try {
         const response = await fetch(`${this.ipfsGateway}${asset.metadata.ipfsHash}`);
-        const metadata = await response.json();
+        const metadata = await response.json() as AssetMetadata;
         return metadata;
       } catch (error) {
         console.error('Failed to fetch from IPFS:', error);
@@ -161,7 +161,7 @@ export class MetadataResolver {
     if (asset.metadata.arweaveId) {
       try {
         const response = await fetch(`${this.arweaveGateway}${asset.metadata.arweaveId}`);
-        const metadata = await response.json();
+        const metadata = await response.json() as AssetMetadata;
         return metadata;
       } catch (error) {
         console.error('Failed to fetch from Arweave:', error);
