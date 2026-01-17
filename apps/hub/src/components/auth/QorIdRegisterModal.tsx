@@ -11,10 +11,12 @@ interface QorIdRegisterModalProps {
 }
 
 export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackToLogin }: QorIdRegisterModalProps) {
-  const [step, setStep] = useState<'username' | 'password'>('username');
+  const [step, setStep] = useState<'username' | 'password' | 'backup-code' | 'email-verification'>('username');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [backupCode, setBackupCode] = useState<string | null>(null);
+  const [emailVerificationToken, setEmailVerificationToken] = useState<string | null>(null);
   const [usernameStatus, setUsernameStatus] = useState<'checking' | 'available' | 'taken' | 'invalid' | null>(null);
   const [passwordStatus, setPasswordStatus] = useState<'valid' | 'invalid' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,8 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
       setUsername('');
       setEmail('');
       setPassword('');
+      setBackupCode(null);
+      setEmailVerificationToken(null);
       setUsernameStatus(null);
       setPasswordStatus(null);
       setError(null);
@@ -109,8 +113,8 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
 
     try {
       // Register with QOR Auth
-      // Email is optional - if not provided, use username@demiurge.cloud
-      const registerEmail = email.trim() || `${username}@demiurge.cloud`;
+      // Email is optional - if not provided, account is username-only
+      const registerEmail = email.trim() || undefined;
       
       const response = await qorAuth.register({
         email: registerEmail,
@@ -118,13 +122,20 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
         username,
       });
 
-      // Auto-login after registration
-      if (response.token) {
-        qorAuth.setToken(response.token);
+      // Handle response based on whether email was provided
+      if (response.backup_code) {
+        // Username-only account: show backup code
+        setBackupCode(response.backup_code);
+        setStep('backup-code');
+      } else if (response.email_verification_token) {
+        // Email account: show verification message
+        setEmailVerificationToken(response.email_verification_token);
+        setStep('email-verification');
+      } else {
+        // Should not happen, but handle gracefully
+        onRegisterSuccess();
+        onClose();
       }
-
-      onRegisterSuccess();
-      onClose();
     } catch (err: any) {
       // Provide more helpful error messages
       let errorMessage = 'Registration failed. Please try again.';
@@ -164,7 +175,10 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
 
             <form onSubmit={handleUsernameSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Email (Optional)</label>
+                <label className="block text-sm text-gray-400 mb-2">
+                  Email (Optional)
+                  <span className="text-xs text-gray-500 ml-2">- For password recovery</span>
+                </label>
                 <input
                   type="email"
                   value={email}
@@ -172,6 +186,11 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
                   placeholder="your@email.com (optional)"
                   className="w-full bg-gray-800/50 border border-gray-700 rounded p-3 text-white placeholder-gray-500 focus:border-demiurge-violet focus:outline-none"
                 />
+                {!email && (
+                  <div className="text-xs text-yellow-400 mt-1">
+                    ⚠️ Without email, you'll receive a backup code for password recovery
+                  </div>
+                )}
               </div>
 
               <div>
@@ -290,6 +309,83 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
                 {isLoading ? 'Creating Account...' : 'ENGAGE'}
               </button>
             </form>
+          </>
+        ) : step === 'backup-code' ? (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-demiurge-gold">SAVE YOUR BACKUP CODE</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-yellow-900/30 border-2 border-yellow-500/50 rounded p-4">
+                <div className="text-yellow-300 font-semibold mb-2">⚠️ IMPORTANT</div>
+                <div className="text-yellow-200 text-sm mb-4">
+                  You did not provide an email address. This backup code is your only way to reset your password if you forget it.
+                  <strong className="block mt-2">Save this code in a safe place!</strong>
+                </div>
+                <div className="bg-black/50 p-4 rounded border border-yellow-500/30">
+                  <div className="text-xs text-gray-400 mb-1">BACKUP CODE</div>
+                  <div className="text-2xl font-mono font-bold text-yellow-300 tracking-wider text-center py-2">
+                    {backupCode}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(backupCode || '');
+                  }}
+                  className="w-full mt-3 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 py-2 rounded transition-colors text-sm"
+                >
+                  Copy to Clipboard
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  onRegisterSuccess();
+                  onClose();
+                }}
+                className="w-full bg-gradient-to-r from-demiurge-gold to-demiurge-violet text-white font-bold py-3 rounded-lg hover:chroma-glow transition-all"
+              >
+                I'VE SAVED MY CODE
+              </button>
+            </div>
+          </>
+        ) : step === 'email-verification' ? (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-demiurge-cyan">CHECK YOUR EMAIL</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-blue-900/30 border-2 border-blue-500/50 rounded p-4">
+                <div className="text-blue-300 font-semibold mb-2">📧 Email Verification Required</div>
+                <div className="text-blue-200 text-sm mb-4">
+                  We've sent a verification email to <strong>{email}</strong>.
+                  Please check your inbox and click the verification link to activate your account.
+                </div>
+                {emailVerificationToken && (
+                  <div className="bg-black/50 p-3 rounded border border-blue-500/30 mt-3">
+                    <div className="text-xs text-gray-400 mb-1">DEV MODE: Verification Token</div>
+                    <div className="text-xs font-mono text-blue-300 break-all">
+                      {emailVerificationToken}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      In production, this token would be sent via email only.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => {
+                  onRegisterSuccess();
+                  onClose();
+                }}
+                className="w-full bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-white font-bold py-3 rounded-lg hover:chroma-glow transition-all"
+              >
+                GOT IT
+              </button>
+            </div>
           </>
         )}
       </div>
