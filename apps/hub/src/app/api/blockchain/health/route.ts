@@ -21,15 +21,14 @@ export async function GET() {
     }
 
     // Get chain info
-    const [chain, nodeName, nodeVersion, blockNumber] = await Promise.all([
+    const [chain, nodeName, nodeVersion, header] = await Promise.all([
       api.rpc.system.chain(),
       api.rpc.system.name(),
       api.rpc.system.version(),
-      api.rpc.chain.getBlockNumber(),
+      api.rpc.chain.getHeader().catch(() => null),
     ]).catch(() => [null, null, null, null]);
-
-    // Get peer count
-    const peerCount = await api.rpc.system.peerCount().catch(() => null);
+    
+    const blockNumber = header && 'number' in header ? header.number : null;
 
     return NextResponse.json({
       status: 'connected',
@@ -38,7 +37,6 @@ export async function GET() {
       nodeName: nodeName?.toString() || 'Unknown',
       nodeVersion: nodeVersion?.toString() || 'Unknown',
       blockNumber: blockNumber?.toNumber() || 0,
-      peerCount: peerCount?.toNumber() || 0,
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
