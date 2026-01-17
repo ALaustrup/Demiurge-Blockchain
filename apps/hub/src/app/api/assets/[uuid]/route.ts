@@ -48,38 +48,38 @@ export async function GET(
       }
 
       // Convert to human-readable format
-      const asset = assetData.toHuman();
+      const assetRaw = assetData.toHuman() as Record<string, any>;
       
       // Format the response
       const formattedAsset = {
         uuid: uuid,
-        name: asset?.name || 'Unknown',
-        creatorQorId: asset?.creator_qor_id || '',
-        creatorAccount: asset?.creator_account || '',
-        owner: asset?.owner || '',
+        name: (typeof assetRaw?.name === 'string' ? assetRaw.name : 'Unknown') || 'Unknown',
+        creatorQorId: (typeof assetRaw?.creator_qor_id === 'string' ? assetRaw.creator_qor_id : '') || '',
+        creatorAccount: (typeof assetRaw?.creator_account === 'string' ? assetRaw.creator_account : '') || '',
+        owner: (typeof assetRaw?.owner === 'string' ? assetRaw.owner : '') || '',
         assetType: 'virtual', // Default, can be determined from metadata
-        xpLevel: asset?.level || 0,
-        experiencePoints: asset?.experience_points || 0,
-        durability: asset?.durability || 100,
-        killCount: asset?.kill_count || 0,
-        classId: asset?.class_id || 0,
-        isSoulbound: asset?.is_soulbound || false,
-        royaltyFeePercent: asset?.royalty_fee_percent || 0,
-        mintedAt: asset?.minted_at || 0,
+        xpLevel: (assetRaw?.level as number) || 0,
+        experiencePoints: (assetRaw?.experience_points as number) || 0,
+        durability: (assetRaw?.durability as number) || 100,
+        killCount: (assetRaw?.kill_count as number) || 0,
+        classId: (assetRaw?.class_id as number) || 0,
+        isSoulbound: (assetRaw?.is_soulbound as boolean) || false,
+        royaltyFeePercent: (assetRaw?.royalty_fee_percent as number) || 0,
+        mintedAt: (assetRaw?.minted_at as number) || 0,
         metadata: {
-          description: asset?.description || '',
-          image: asset?.image || '',
-          attributes: asset?.attributes || {},
+          description: (assetRaw?.description as string) || '',
+          image: (assetRaw?.image as string) || '',
+          attributes: (assetRaw?.attributes as Record<string, any>) || {},
           // Multi-Resource (Module 1)
-          resources: asset?.resources || [],
+          resources: (assetRaw?.resources as any[]) || [],
           // Nesting (Module 2)
-          parentUuid: asset?.parent_uuid || null,
-          childrenUuids: asset?.children_uuids || [],
-          equipmentSlots: asset?.equipment_slots || [],
+          parentUuid: (assetRaw?.parent_uuid as string) || null,
+          childrenUuids: (assetRaw?.children_uuids as string[]) || [],
+          equipmentSlots: (assetRaw?.equipment_slots as any[]) || [],
           // Delegation (Module 3)
-          delegation: asset?.delegation || null,
+          delegation: (assetRaw?.delegation as any) || null,
           // Custom state (Module 4)
-          customState: asset?.custom_state || {}
+          customState: (assetRaw?.custom_state as Record<string, any>) || {}
         }
       };
 
