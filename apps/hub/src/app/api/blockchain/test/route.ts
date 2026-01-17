@@ -66,14 +66,14 @@ export async function POST(request: NextRequest) {
       blockchain: {
         connected: true,
         chain: (await api.rpc.system.chain()).toString(),
-        blockNumber: (() => {
+        blockNumber: (await (async () => {
           try {
             const header = await api.rpc.chain.getHeader();
             return header && 'number' in header ? header.number.toNumber() : 0;
           } catch {
             return 0;
           }
-        })(),
+        })()),
       },
       timestamp: new Date().toISOString(),
     });
