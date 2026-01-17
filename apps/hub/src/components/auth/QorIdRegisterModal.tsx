@@ -387,7 +387,7 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
               </button>
             </div>
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );
