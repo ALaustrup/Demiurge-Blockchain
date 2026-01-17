@@ -108,15 +108,15 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess }: QorIdAuthFlowProps
 
     try {
       const response = await qorAuth.register({
-        email: email.trim() || `${username}@demiurge.cloud`,
+        email: email.trim() || undefined,
         password,
         username,
       });
 
-      if (response.token) {
-        qorAuth.setToken(response.token);
-      }
-
+      // Registration doesn't auto-login - user needs to login after email verification
+      // For username-only accounts, they can login immediately
+      // For email accounts, they need to verify email first
+      
       onSuccess();
       onClose();
     } catch (err: any) {
