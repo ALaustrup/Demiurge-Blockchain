@@ -8,10 +8,10 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 COPY apps/hub/package.json ./apps/hub/
-COPY packages/*/package.json ./packages/*/
+COPY packages ./packages
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (use npm install if package-lock.json missing)
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -22,6 +22,13 @@ COPY . .
 # Build packages first
 RUN npm run build --workspace=@demiurge/qor-sdk
 RUN npm run build --workspace=@demiurge/ui-shared
+
+# Build wallet-wasm (Rust/WASM package)
+RUN cd packages/wallet-wasm && \
+    if [ -f Cargo.toml ]; then \
+      curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh && \
+      wasm-pack build --target web --out-dir pkg || echo "wallet-wasm build skipped (optional)"; \
+    fi
 
 # Build Next.js app
 ENV NEXT_TELEMETRY_DISABLED 1
@@ -40,6 +47,8 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/apps/hub/public ./public
 COPY --from=builder /app/apps/hub/.next/standalone ./
 COPY --from=builder /app/apps/hub/.next/static ./.next/static
+# Copy node_modules for standalone mode
+COPY --from=builder /app/node_modules ./node_modules
 
 USER nextjs
 
