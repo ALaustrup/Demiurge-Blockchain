@@ -422,7 +422,7 @@ Distribution per Block:
 | Metric | Value |
 |--------|-------|
 | **Total Supply** | 13,000,000,000 CGT (FIXED) |
-| **Precision** | 8 decimals |
+| **Precision** | 2 decimals |
 | **Initial Circulating** | ~1,300,000,000 CGT (Genesis Offering) |
 | **Year 1 Emission** | ~606M CGT (Mining + Staking) |
 | **Burn Rate** | 80% of tx fees |
