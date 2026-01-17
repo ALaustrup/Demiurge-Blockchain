@@ -69,7 +69,8 @@ function getDefaultWsUrl(): string {
     return process.env.NEXT_PUBLIC_BLOCKCHAIN_WS_URL;
   }
   if (typeof window !== 'undefined' && window.location && window.location.hostname === 'demiurge.cloud') {
-    return 'ws://51.210.209.112:9944';
+    // Use secure WebSocket through Nginx proxy
+    return 'wss://demiurge.cloud/rpc';
   }
   return 'ws://localhost:9944';
 }
@@ -110,35 +111,58 @@ export class BlockchainClient {
     try {
       const provider = new WsProvider(this.wsUrl);
       
-      // Set up error handlers to suppress expected errors
+      // Set up error handlers
       provider.on('error', (error: Error) => {
-        // Suppress expected connection errors
-        if (error.message?.includes('1006') || error.message?.includes('Abnormal Closure')) {
-          return;
-        }
+        // Log connection errors for debugging
+        console.warn('[Blockchain] WebSocket error:', error.message);
       });
 
       provider.on('disconnected', () => {
-        // Silently handle disconnections
+        console.warn('[Blockchain] WebSocket disconnected');
         this.api = null;
       });
 
+      provider.on('connected', () => {
+        console.log('[Blockchain] WebSocket connected');
+      });
+
+      // Create API instance
       this.api = await ApiPromise.create({ provider });
+      
+      // Wait for API to be ready with timeout
+      await Promise.race([
+        this.api.isReady,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), 10000)
+        )
+      ]);
+      
+      // Verify connection is actually established
+      if (!this.api.isConnected) {
+        throw new Error('API created but not connected');
+      }
       
       // Reset reconnect attempts on successful connection
       this.reconnectAttempts = 0;
       this.reconnectDelay = 1000;
       
-      console.log('Connected to Demiurge blockchain');
+      console.log('[Blockchain] Successfully connected to Demiurge blockchain at', this.wsUrl);
     } catch (error: any) {
-      // Suppress WebSocket connection errors - they're expected if the node isn't running
-      // Only log if it's not a connection error
-      if (!error.message?.includes('disconnected') && !error.message?.includes('1006')) {
-        console.warn('Blockchain connection warning:', error.message);
+      // Log connection failures for debugging
+      console.warn('[Blockchain] Failed to connect:', error.message || error);
+      
+      // Clean up failed connection
+      if (this.api) {
+        try {
+          await this.api.disconnect();
+        } catch {
+          // Ignore cleanup errors
+        }
+        this.api = null;
       }
       
       // Don't throw - allow the app to work without blockchain connection
-      this.api = null;
+      // The UI will show the disconnected banner
     }
   }
 
@@ -219,10 +243,8 @@ export class BlockchainClient {
       // Convert toAddress to AccountId
       const toAccountId = this.api!.createType('AccountId32', toAddress);
       
-      // Build transfer extrinsic using pallet-cgt
-      // Note: pallet-cgt uses pallet-balances internally, but we call cgt.transfer
-      // to ensure fees are properly handled (80% burn, 20% treasury)
-      const transfer = this.api!.tx.cgt.transfer(toAccountId, amountCompact);
+      // Build transfer extrinsic using pallet-balances
+      const transfer = this.api!.tx.balances.transferKeepAlive(toAccountId, amountCompact);
       
       // Sign and submit transaction
       return new Promise((resolve, reject) => {
@@ -320,34 +342,34 @@ export class BlockchainClient {
       }
 
       // Convert to human-readable format
-      const asset = assetData.toHuman();
+      const assetRaw = assetData.toHuman() as any;
       
       // Format the response
       return {
         uuid: uuid,
-        name: asset?.name || 'Unknown',
-        creatorQorId: asset?.creator_qor_id || '',
-        creatorAccount: asset?.creator_account || '',
-        owner: asset?.owner || '',
+        name: (assetRaw?.name as string) || 'Unknown',
+        creatorQorId: (assetRaw?.creator_qor_id as string) || '',
+        creatorAccount: (assetRaw?.creator_account as string) || '',
+        owner: (assetRaw?.owner as string) || '',
         assetType: 'virtual', // Can be determined from metadata
-        xpLevel: asset?.level || 0,
-        experiencePoints: asset?.experience_points || 0,
-        durability: asset?.durability || 100,
-        killCount: asset?.kill_count || 0,
-        classId: asset?.class_id || 0,
-        isSoulbound: asset?.is_soulbound || false,
-        royaltyFeePercent: asset?.royalty_fee_percent || 0,
-        mintedAt: asset?.minted_at || 0,
+        xpLevel: (assetRaw?.level as number) || 0,
+        experiencePoints: (assetRaw?.experience_points as number) || 0,
+        durability: (assetRaw?.durability as number) || 100,
+        killCount: (assetRaw?.kill_count as number) || 0,
+        classId: (assetRaw?.class_id as number) || 0,
+        isSoulbound: (assetRaw?.is_soulbound as boolean) || false,
+        royaltyFeePercent: (assetRaw?.royalty_fee_percent as number) || 0,
+        mintedAt: (assetRaw?.minted_at as number) || 0,
         metadata: {
-          description: asset?.description || '',
-          image: asset?.image || '',
-          attributes: asset?.attributes || {},
-          resources: asset?.resources || [],
-          parentUuid: asset?.parent_uuid || null,
-          childrenUuids: asset?.children_uuids || [],
-          equipmentSlots: asset?.equipment_slots || [],
-          delegation: asset?.delegation || null,
-          customState: asset?.custom_state || {}
+          description: (assetRaw?.description as string) || '',
+          image: (assetRaw?.image as string) || '',
+          attributes: (assetRaw?.attributes as Record<string, any>) || {},
+          resources: (assetRaw?.resources as any[]) || [],
+          parentUuid: (assetRaw?.parent_uuid as string) || null,
+          childrenUuids: (assetRaw?.children_uuids as string[]) || [],
+          equipmentSlots: (assetRaw?.equipment_slots as any[]) || [],
+          delegation: (assetRaw?.delegation as any) || null,
+          customState: (assetRaw?.custom_state as Record<string, any>) || {}
         }
       };
     } catch (error) {
@@ -421,6 +443,54 @@ export class BlockchainClient {
     } catch (error) {
       console.error('Failed to mint avatar asset:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get transaction history for an account
+   * 
+   * Scans the last 100 blocks for transfer events related to the address.
+   * @param address User's account address
+   * @returns Array of formatted transaction objects
+   */
+  async getTransactions(address: string): Promise<any[]> {
+    if (!this.api) {
+      await this.connect();
+      if (!this.api) return [];
+    }
+
+    try {
+      const latestHeader = await this.api.rpc.chain.getHeader();
+      const latestBlock = latestHeader.number.toNumber();
+      const startBlock = Math.max(0, latestBlock - 100); // Scan last 100 blocks
+
+      const allTransactions: any[] = [];
+
+      for (let i = latestBlock; i > startBlock; i--) {
+        const blockHash = await this.api.rpc.chain.getBlockHash(i);
+        const blockEvents = await this.api.query.system.events.at(blockHash);
+
+        (blockEvents as any).forEach((record: any) => {
+          const { event } = record;
+          if (this.api!.events.balances.Transfer.is(event)) {
+            const [from, to, amount] = event.data;
+            if (from.toString() === address || to.toString() === address) {
+              allTransactions.push({
+                hash: event.hash.toString(),
+                from: from.toString(),
+                to: to.toString(),
+                amount: (amount as any).toString(),
+                blockNumber: i,
+              });
+            }
+          }
+        });
+      }
+
+      return allTransactions;
+    } catch (error) {
+      console.error('Failed to fetch transaction history:', error);
+      return [];
     }
   }
 
