@@ -5,5 +5,5 @@
 pub mod session;
 pub mod error;
 
-pub use session::{SessionKeysModule, SessionCall};
+pub use session::{SessionKeysModule, SessionCall, constants};
 pub use error::{SessionKeysError, Result};

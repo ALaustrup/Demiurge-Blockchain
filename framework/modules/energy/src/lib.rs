@@ -6,5 +6,5 @@
 pub mod energy;
 pub mod error;
 
-pub use energy::{EnergyModule, EnergyCall};
+pub use energy::{EnergyModule, EnergyCall, constants};
 pub use error::{EnergyError, Result};

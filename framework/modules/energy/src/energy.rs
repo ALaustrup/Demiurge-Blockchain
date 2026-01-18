@@ -134,6 +134,7 @@ impl EnergyModule {
     }
 
     /// Get current energy for an account (with lazy regeneration)
+    /// This is public for testing purposes
     pub fn get_energy(storage: &dyn Storage, account: [u8; 32]) -> Result<u64> {
         let key = Self::energy_key(account);
         match storage.get(&key) {
