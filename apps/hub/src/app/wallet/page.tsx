@@ -9,7 +9,7 @@ import { getBalance as getBalanceWithMock } from '@/lib/mock-blockchain';
 import { SendCGTModal } from '@/components/wallet/SendCGTModal';
 import { ReceiveCGTModal } from '@/components/wallet/ReceiveCGTModal';
 import { TransactionHistory } from '@/components/wallet/TransactionHistory';
-import { SessionKeyManager } from '@/components/wallet/SessionKeyManager';
+import { EnhancedSessionKeyManager } from '@/components/wallet/EnhancedSessionKeyManager';
 import { WalletSelector } from '@/components/wallet/WalletSelector';
 import { EnergyDisplay } from '@/components/energy/EnergyDisplay';
 
@@ -219,7 +219,7 @@ export default function WalletPage() {
 
         {address && qorId && (
           <div className="mt-6">
-            <SessionKeyManager qorId={qorId} primaryAddress={address} />
+            <EnhancedSessionKeyManager qorId={qorId} primaryAddress={address} />
           </div>
         )}
       </div>

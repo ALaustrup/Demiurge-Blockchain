@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import enhanced theme */
+@import '../styles/theme.css';
+
 @layer base {
   html {
     overflow-x: hidden;

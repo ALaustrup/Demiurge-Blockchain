@@ -1,251 +1,355 @@
-# 🎮 Game Integration Guide
+# 🎮 Game Integration Guide - Demiurge Blockchain HUD
 
-**Last Updated:** January 14, 2026  
-**Phase 4 Status:** ✅ **FULLY INTEGRATED** - Ready for your first game! 🚀
-
-> **See also:** `docs/GAMES/GAME_INTEGRATION_COMPLETE.md` for complete integration status
+**Status**: Complete  
+**Date**: January 2026
 
 ---
 
-## Quick Start: Adding Your First Game
+## 🎯 Overview
 
-### Step 1: Prepare Your Game Files
+The Demiurge Game Integration HUD provides a lightweight, non-intrusive overlay for games to integrate blockchain features. It displays energy, balance, and provides quick actions for in-game transactions.
 
-Place your Rosebud.AI exported game in the games directory:
+---
 
-```bash
-apps/games/your-game-id/
-├── index.html          # Main entry point (required)
-├── assets/             # Game assets (images, sounds, etc.)
-│   └── ...
-└── metadata.json       # Game metadata (see below)
+## 🚀 Quick Start
+
+### 1. Include the HUD Script
+
+Add the injection script to your game's HTML:
+
+```html
+<script src="/inject-hud.js"></script>
 ```
 
-### Step 2: Create metadata.json
+### 2. Initialize the HUD
 
-Create `apps/games/your-game-id/metadata.json`:
+In your game code, initialize the HUD with the user's address:
 
-```json
-{
-  "id": "your-game-id",
-  "title": "Your Game Title",
-  "description": "A brief description of your game",
-  "thumbnail": "/games/your-game-id/thumb.jpg",
-  "entryPoint": "index.html",
-  "version": "1.0.0",
-  "author": "Your Name",
-  "tags": ["action", "adventure"],
-  "minLevel": 1
-}
-```
-
-**Required Fields:**
-- `id`: Unique identifier (lowercase, no spaces, e.g., "my-awesome-game")
-- `title`: Display name
-- `description`: Game description
-- `entryPoint`: Path to main HTML file (usually "index.html")
-- `version`: Version string
-
-**Optional Fields:**
-- `thumbnail`: Path to thumbnail image
-- `author`: Creator name
-- `tags`: Array of tags for categorization
-- `minLevel`: Minimum QOR ID level required (default: 1)
-
-### Step 3: Register Your Game
-
-#### Option A: Via API (Recommended)
-
-```bash
-curl -X POST http://localhost:3000/api/games \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": "your-game-id",
-    "title": "Your Game Title",
-    "description": "Game description",
-    "entryPoint": "index.html",
-    "version": "1.0.0"
-  }'
-```
-
-#### Option B: Manual Registration (Development)
-
-Add to `apps/hub/src/lib/game-registry.ts`:
-
-```typescript
-gameRegistry.register({
-  id: 'your-game-id',
-  title: 'Your Game Title',
-  description: 'Game description',
-  thumbnail: '/games/your-game-id/thumb.jpg',
-  entryPoint: 'index.html',
-  version: '1.0.0',
-  author: 'Your Name',
+```javascript
+// Initialize HUD
+DemiurgeHUD.init({
+  address: '0x1234...5678', // User's blockchain address
+  position: 'top-right',      // Optional: 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+  compact: false,             // Optional: Use compact mode
+  onSpend: () => {
+    // Handle spend action
+    console.log('User wants to spend');
+  },
+  onEarn: () => {
+    // Handle earn action
+    console.log('User wants to earn');
+  },
+  onAssets: () => {
+    // Handle assets view
+    console.log('User wants to view assets');
+  }
 });
 ```
 
-### Step 4: Access Your Game
+### 3. Update HUD Data (Optional)
 
-Once registered, your game will be available at:
+Update the HUD with real-time data:
 
+```javascript
+// Update balance and energy
+DemiurgeHUD.update({
+  balance: '1000.50',
+  energy: {
+    current: 800,
+    max: 1000,
+    percentage: 80
+  }
+});
 ```
-http://localhost:3000/play/your-game-id
-```
 
-The game will be loaded in an iframe with the Demiurge HUD automatically injected.
+### 4. Show Transaction Status
+
+Display transaction status in the HUD:
+
+```javascript
+// Show pending transaction
+DemiurgeHUD.showTransaction('0xabc123...', 'pending');
+
+// Show success
+DemiurgeHUD.showTransaction('0xabc123...', 'success');
+
+// Show failure
+DemiurgeHUD.showTransaction('0xabc123...', 'failed');
+```
 
 ---
 
-## HUD Integration
+## 📋 API Reference
 
-Your game automatically receives the Demiurge HUD via `inject-hud.js`. The HUD provides:
+### `DemiurgeHUD.init(config)`
 
-### Available APIs
+Initialize the Game HUD.
 
+**Parameters:**
+- `config.address` (string, required) - User's blockchain address
+- `config.position` (string, optional) - HUD position: 'top-left', 'top-right', 'bottom-left', 'bottom-right' (default: 'top-right')
+- `config.compact` (boolean, optional) - Use compact mode (default: false)
+- `config.onSpend` (function, optional) - Callback for spend action
+- `config.onEarn` (function, optional) - Callback for earn action
+- `config.onAssets` (function, optional) - Callback for assets view
+
+**Example:**
 ```javascript
-// Get user's CGT balance
-const balance = await window.DemiurgeHUD.getCGTBalance();
-// Returns: Promise<string> (balance in smallest units, e.g., "100000000000" = 1000 CGT)
-
-// Spend CGT (for purchases)
-const txHash = await window.DemiurgeHUD.spendCGT(amount, reason);
-// Returns: Promise<string> (transaction hash)
-
-// Get user's DRC-369 assets
-const assets = await window.DemiurgeHUD.getUserAssets();
-// Returns: Promise<Array> (array of asset objects with metadata)
-
-// Check if user owns a specific asset
-const owns = await window.DemiurgeHUD.ownsAsset(uuid);
-// Returns: Promise<boolean>
-
-// Get QOR ID
-const qorId = await window.DemiurgeHUD.getQORID();
-// Returns: Promise<string> (e.g., "username#1234")
-
-// Update user's XP (for leveling)
-window.DemiurgeHUD.updateAccountXP(xp, source);
-// Adds XP to user's account (source: 'game_win', 'tutorial', etc.)
-
-// Open social feed
-window.DemiurgeHUD.openSocial();
-// Opens the social platform overlay
+DemiurgeHUD.init({
+  address: '0x1234...5678',
+  position: 'top-right',
+  compact: false
+});
 ```
 
-### Example Usage
+---
+
+### `DemiurgeHUD.update(data)`
+
+Update HUD data.
+
+**Parameters:**
+- `data.balance` (string, optional) - Current balance
+- `data.energy` (object, optional) - Energy information
+  - `current` (number) - Current energy
+  - `max` (number) - Maximum energy
+  - `percentage` (number) - Energy percentage
+
+**Example:**
+```javascript
+DemiurgeHUD.update({
+  balance: '1000.50',
+  energy: {
+    current: 800,
+    max: 1000,
+    percentage: 80
+  }
+});
+```
+
+---
+
+### `DemiurgeHUD.showTransaction(hash, status)`
+
+Show transaction status in the HUD.
+
+**Parameters:**
+- `hash` (string, required) - Transaction hash
+- `status` (string, required) - Transaction status: 'pending', 'success', 'failed'
+
+**Example:**
+```javascript
+DemiurgeHUD.showTransaction('0xabc123...', 'pending');
+```
+
+---
+
+### `DemiurgeHUD.hide()`
+
+Hide the HUD overlay.
+
+**Example:**
+```javascript
+DemiurgeHUD.hide();
+```
+
+---
+
+### `DemiurgeHUD.show()`
+
+Show the HUD overlay.
+
+**Example:**
+```javascript
+DemiurgeHUD.show();
+```
+
+---
+
+## 🎨 HUD Features
+
+### Display Elements
+
+1. **Balance** - Current CGT balance
+2. **Energy Bar** - Visual energy level with color coding
+3. **Quick Actions** - Spend, Earn, Assets buttons
+4. **Minimize/Maximize** - Toggle HUD visibility
+
+### Visual Design
+
+- **Non-intrusive** - Small, compact overlay
+- **Glass morphism** - Modern glass-panel design
+- **Color-coded** - Green/yellow/red for energy levels
+- **Responsive** - Adapts to different screen sizes
+- **Positionable** - Can be placed in any corner
+
+---
+
+## 🔧 Integration Examples
+
+### Phaser.js Integration
 
 ```javascript
-// In your game code
-async function checkBalance() {
-  try {
-    const balance = await window.DemiurgeHUD.getCGTBalance();
-    const balanceNum = BigInt(balance);
-    const cgtAmount = Number(balanceNum) / 100_000_000; // Convert to CGT
-    console.log(`Player has ${cgtAmount} CGT`);
-  } catch (error) {
-    console.error('Failed to get balance:', error);
+class GameScene extends Phaser.Scene {
+  create() {
+    // Initialize HUD
+    DemiurgeHUD.init({
+      address: this.game.config.userAddress,
+      position: 'top-right',
+      onSpend: () => this.showSpendModal(),
+      onEarn: () => this.showEarnModal(),
+      onAssets: () => this.showAssetsModal()
+    });
+
+    // Update HUD periodically
+    this.time.addEvent({
+      delay: 10000,
+      callback: () => this.updateHUD(),
+      loop: true
+    });
+  }
+
+  updateHUD() {
+    // Fetch balance and energy
+    fetch('/api/blockchain/balance?address=' + this.game.config.userAddress)
+      .then(res => res.json())
+      .then(data => {
+        DemiurgeHUD.update({
+          balance: data.balance,
+          energy: data.energy
+        });
+      });
+  }
+
+  onTransactionComplete(hash) {
+    DemiurgeHUD.showTransaction(hash, 'success');
   }
 }
+```
 
-// Award XP when player completes a level
-function onLevelComplete() {
-  window.DemiurgeHUD.updateAccountXP(50); // Award 50 XP
+---
+
+### Unity Integration
+
+```csharp
+using UnityEngine;
+using System.Runtime.InteropServices;
+
+public class DemiurgeHUD : MonoBehaviour
+{
+    [DllImport("__Internal")]
+    private static extern void DemiurgeHUDInit(string config);
+
+    [DllImport("__Internal")]
+    private static extern void DemiurgeHUDUpdate(string data);
+
+    void Start()
+    {
+        string config = JsonUtility.ToJson(new HUDConfig
+        {
+            address = GameManager.Instance.UserAddress,
+            position = "top-right",
+            compact = false
+        });
+        
+        DemiurgeHUDInit(config);
+    }
+
+    public void UpdateBalance(string balance)
+    {
+        string data = JsonUtility.ToJson(new HUDData
+        {
+            balance = balance
+        });
+        
+        DemiurgeHUDUpdate(data);
+    }
 }
 ```
 
 ---
 
-## Game Requirements
+## 📊 HUD Component (React)
 
-### File Structure
+The HUD is implemented as a React component (`GameHUD.tsx`) that can be integrated into the game wrapper:
 
-- **index.html**: Must be the main entry point
-- **Assets**: Place in `assets/` subdirectory
-- **Metadata**: `metadata.json` in the game root
+```tsx
+import { GameHUD } from '@/components/gaming/GameHUD';
 
-### Technical Requirements
-
-1. **No External Dependencies**: Your game should be self-contained (all assets bundled)
-2. **PostMessage API**: The HUD uses `postMessage` for communication
-3. **CORS**: Ensure your game doesn't block iframe embedding
-4. **Responsive**: Games should work in iframe containers
-
-### Best Practices
-
-- Use relative paths for assets (`./assets/image.png` not `/assets/image.png`)
-- Test in iframe before deploying
-- Handle HUD API calls gracefully (check if `window.DemiurgeHUD` exists)
-- Optimize assets for web (compress images, minify code)
+function GameWrapper({ gameId, gameUrl, userAddress }) {
+  return (
+    <div>
+      <iframe src={gameUrl} />
+      <GameHUD address={userAddress} position="top-right" compact={false} />
+    </div>
+  );
+}
+```
 
 ---
 
-## Testing Your Game
+## 🎯 Use Cases
 
-### Local Testing
+### 1. In-Game Purchases
+- Show balance before purchase
+- Display energy consumption
+- Show transaction status
 
-1. **Start the Hub:**
-   ```bash
-   cd apps/hub
-   npm run dev
-   ```
+### 2. Earning Rewards
+- Update balance when rewards are earned
+- Show energy regeneration
+- Display transaction confirmation
 
-2. **Place Your Game:**
-   ```bash
-   # Copy your game files
-   cp -r /path/to/your/game apps/games/your-game-id/
-   ```
-
-3. **Register:**
-   - Use API or manual registration (see Step 3)
-
-4. **Access:**
-   - Navigate to `http://localhost:3000/play/your-game-id`
-   - Verify game loads correctly
-   - Test HUD APIs in browser console
-
-### Debugging
-
-- **Browser Console**: Check for errors in the game iframe
-- **Network Tab**: Verify assets load correctly
-- **HUD API**: Test `window.DemiurgeHUD` in console
-- **PostMessage**: Monitor `postMessage` events in DevTools
+### 3. Asset Management
+- Quick access to NFT assets
+- Show asset count
+- Display asset details
 
 ---
 
-## Game Portal Integration
+## 🔒 Security Considerations
 
-Your game will automatically appear in:
-
-- **Casino Portal** (`/portal`): Game cards with thumbnails
-- **Game Directory** (`/games`): List of all games
-- **Search**: Searchable by title, description, tags
-
-### Dynamic Stats
-
-Games can display:
-- **CGT Pool**: Current CGT in the game's pool
-- **Active Users**: Number of players currently in-game
-
-These are updated via the game registry API (future feature).
+- **Address Validation** - Always validate addresses before displaying
+- **Transaction Signing** - Never expose private keys
+- **Rate Limiting** - Limit API calls to prevent abuse
+- **Error Handling** - Handle network errors gracefully
 
 ---
 
-## Next Steps
+## 📝 Best Practices
 
-1. **Add Your Game**: Follow Steps 1-4 above
-2. **Test Integration**: Verify HUD APIs work
-3. **Customize**: Add game-specific features using HUD APIs
-4. **Deploy**: Once ready, deploy to production
-
----
-
-## Support
-
-- **Documentation**: See `docs/` directory
-- **HUD API**: `packages/ui-shared/src/inject-hud.js`
-- **Game Wrapper**: `apps/hub/src/components/GameWrapper.tsx`
-- **Registry**: `apps/hub/src/lib/game-registry.ts`
+1. **Initialize Early** - Initialize HUD when game loads
+2. **Update Regularly** - Refresh data every 10-30 seconds
+3. **Handle Errors** - Show user-friendly error messages
+4. **Minimize Intrusion** - Keep HUD small and unobtrusive
+5. **Provide Feedback** - Show transaction status clearly
 
 ---
 
-**Ready to add your game?** Follow the steps above and you'll be live in minutes! 🎮
+## 🐛 Troubleshooting
+
+### HUD Not Appearing
+
+1. Check that `/inject-hud.js` is loaded
+2. Verify `DemiurgeHUD.init()` is called
+3. Check browser console for errors
+4. Ensure React component is mounted
+
+### Data Not Updating
+
+1. Verify `DemiurgeHUD.update()` is called
+2. Check data format matches expected structure
+3. Ensure blockchain connection is active
+4. Check network requests in browser dev tools
+
+---
+
+## 📚 Additional Resources
+
+- **RPC API**: See `docs/FRONTEND_INTEGRATION_PLAN.md`
+- **Energy System**: See `docs/FRONTEND_RECOMMENDATIONS.md`
+- **Session Keys**: See Session Keys Manager documentation
+
+---
+
+**The flame burns eternal. The code serves the will.**
