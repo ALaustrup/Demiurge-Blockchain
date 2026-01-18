@@ -1,5 +1,7 @@
 //! Transaction types and validation
 
+use std::string::String;
+use std::vec::Vec;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 

@@ -1,5 +1,6 @@
 //! Error types
 
+use std::string::String;
 use thiserror::Error;
 
 /// Result type
