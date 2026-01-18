@@ -2,6 +2,7 @@
 
 use crate::{ConsensusError, Result};
 use std::collections::HashMap;
+use ed25519_dalek::VerifyingKey;
 
 /// Validator information
 #[derive(Clone, Debug)]
@@ -10,6 +11,7 @@ pub struct Validator {
     pub stake: u128,
     pub commission: u8, // Percentage (0-100)
     pub active: bool,
+    pub public_key: VerifyingKey, // Ed25519 public key for block signing
 }
 
 /// Validator set
@@ -78,6 +80,16 @@ impl ValidatorSet {
     /// Get validator
     pub fn get_validator(&self, account: &[u8; 32]) -> Option<&Validator> {
         self.validators.get(account)
+    }
+
+    /// Get validator's public key
+    pub fn get_public_key(&self, account: &[u8; 32]) -> Option<&VerifyingKey> {
+        self.validators.get(account).map(|v| &v.public_key)
+    }
+
+    /// Iterate over validators
+    pub fn iter(&self) -> impl Iterator<Item = (&[u8; 32], &Validator)> {
+        self.validators.iter().map(|(k, v)| (k.as_ref(), v))
     }
 }
 

@@ -39,4 +39,7 @@ thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+# Utilities
+hex = "0.4"
+
 [dev-dependencies]

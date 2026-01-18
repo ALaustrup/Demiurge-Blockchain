@@ -25,7 +25,7 @@ pub struct Stake {
 pub struct StakingPool {
     validator: [u8; 32],
     total_stake: u128,
-    stakes: HashMap<[u8; 32], Stake>, // staker -> stake
+    pub stakes: HashMap<[u8; 32], Stake>, // staker -> stake
     commission: u8, // Percentage (0-100)
 }
 
@@ -97,5 +97,15 @@ impl StakingPool {
     /// Get commission
     pub fn commission(&self) -> u8 {
         self.commission
+    }
+
+    /// Get all stakes in the pool
+    pub fn stakes(&self) -> &HashMap<[u8; 32], Stake> {
+        &self.stakes
+    }
+
+    /// Get stake for a specific nominator
+    pub fn get_stake(&self, staker: &[u8; 32]) -> Option<&Stake> {
+        self.stakes.get(staker)
     }
 }

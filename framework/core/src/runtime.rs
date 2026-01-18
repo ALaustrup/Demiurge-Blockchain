@@ -141,7 +141,8 @@ impl<S: Storage> Runtime<S> {
     }
 
     /// Execute a block
-    pub fn execute_block(&mut self, block: Block) -> Result<()> {
+    /// Returns the calculated state root
+    pub fn execute_block(&mut self, block: Block) -> Result<[u8; 32]> {
         // Validate block
         block.validate()?;
 
@@ -171,6 +172,9 @@ impl<S: Storage> Runtime<S> {
                 .map_err(|e| crate::Error::ModuleError(format!("SessionKeys on_initialize error: {}", e)))?;
         }
 
+        // Calculate state root after execution
+        let state_root = self.calculate_state_root()?;
+        
         // Finalize block
         self.block_number += 1;
         
@@ -181,13 +185,44 @@ impl<S: Storage> Runtime<S> {
             
             let block_key = b"System:BlockNumber";
             storage_ref.put(block_key, &self.block_number.encode());
+            
+            // Store state root
+            let state_root_key = b"System:StateRoot";
+            storage_ref.put(state_root_key, &state_root);
         }
 
         // TODO: Storage commit needs mutable access - will need interior mutability or redesign
         // For now, skip commit
         // self.storage.commit()?;
 
-        Ok(())
+        Ok(state_root)
+    }
+
+    /// Calculate state root from current storage state
+    fn calculate_state_root(&self) -> Result<[u8; 32]> {
+        use demiurge_storage::MerkleTree;
+        use blake2::{Blake2b512, Digest};
+        
+        // Simplified state root calculation
+        // In production, this would iterate through all storage keys and create a Merkle tree
+        // For now, we'll calculate a hash of key storage values
+        
+        let mut hasher = Blake2b512::new();
+        
+        // Hash important system values
+        if let Some(block_number) = self.storage.get(b"System:BlockNumber") {
+            hasher.update(b"block_number");
+            hasher.update(&block_number);
+        }
+        
+        // Hash balances (simplified - in production, hash all balances)
+        // For now, just hash a placeholder
+        hasher.update(b"state");
+        
+        let hash = hasher.finalize();
+        let mut result = [0u8; 32];
+        result.copy_from_slice(&hash[..32]);
+        Ok(result)
     }
 
     /// Get current block number
