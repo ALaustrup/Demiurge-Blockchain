@@ -72,21 +72,22 @@ fn test_transfer_existential_deposit() {
     let bob = [2u8; 32];
     
     // Mint more than existential deposit to Alice
-    let amount = constants::EXISTENTIAL_DEPOSIT * 2;
-    BalancesModule::mint(&mut storage, alice, amount).unwrap();
+    // Use a larger amount to ensure we can test properly
+    let mint_amount = 10000u128; // 100 CGT
+    BalancesModule::mint(&mut storage, alice, mint_amount).unwrap();
     
-    // Try to transfer all (would leave balance below existential deposit)
-    let result = BalancesModule::transfer(&mut storage, alice, bob, amount);
-    assert!(result.is_err());
-    
-    // But can transfer leaving exactly existential deposit
-    let transfer_amount = constants::EXISTENTIAL_DEPOSIT;
+    // Try to transfer all but existential deposit (should succeed)
+    let transfer_amount = mint_amount - constants::EXISTENTIAL_DEPOSIT;
     let result = BalancesModule::transfer(&mut storage, alice, bob, transfer_amount);
     assert!(result.is_ok());
     
     // Alice should have exactly existential deposit left
     let alice_balance = BalancesModule::get_balance(&storage, alice).unwrap();
     assert_eq!(alice_balance, constants::EXISTENTIAL_DEPOSIT);
+    
+    // Try to transfer the remaining existential deposit (should fail)
+    let result = BalancesModule::transfer(&mut storage, alice, bob, constants::EXISTENTIAL_DEPOSIT);
+    assert!(result.is_err());
 }
 
 #[test]
