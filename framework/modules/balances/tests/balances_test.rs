@@ -1,8 +1,7 @@
 //! Unit tests for balances module
 
-use demiurge_module_balances::{BalancesModule, BalanceCall, constants};
-use demiurge_storage::backend::{StorageBackend, Storage};
-use codec::Encode;
+use demiurge_module_balances::{BalancesModule, constants};
+use demiurge_storage::backend::StorageBackend;
 
 #[test]
 fn test_transfer_success() {
@@ -183,12 +182,16 @@ fn test_multiple_transfers() {
 
 /// Create a test storage backend
 fn create_test_storage() -> StorageBackend {
-    use tempfile::TempDir;
     use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{SystemTime, UNIX_EPOCH};
     
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let counter = COUNTER.fetch_add(1, Ordering::Relaxed);
-    let test_dir = format!("/tmp/demiurge_test_balances_{}", counter);
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let test_dir = format!("/tmp/demiurge_test_balances_{}_{}", timestamp, counter);
     
     StorageBackend::new(&test_dir).unwrap()
 }
