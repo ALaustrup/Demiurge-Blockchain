@@ -1,0 +1,42 @@
+[package]
+name = "demiurge-node"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Full node implementation for Demiurge blockchain"
+
+[[bin]]
+name = "demiurge-node"
+path = "src/main.rs"
+
+[dependencies]
+# Core framework
+demiurge-core = { path = "../core" }
+demiurge-storage = { path = "../storage" }
+demiurge-consensus = { path = "../consensus" }
+demiurge-network = { path = "../network" }
+demiurge-modules = { path = "../modules" }
+demiurge-rpc = { path = "../rpc" }
+
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
+# Async
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]

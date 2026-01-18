@@ -10,6 +10,7 @@ import { SendCGTModal } from '@/components/wallet/SendCGTModal';
 import { ReceiveCGTModal } from '@/components/wallet/ReceiveCGTModal';
 import { TransactionHistory } from '@/components/wallet/TransactionHistory';
 import { SessionKeyManager } from '@/components/wallet/SessionKeyManager';
+import { WalletSelector } from '@/components/wallet/WalletSelector';
 
 export default function WalletPage() {
   const { getBalance, isConnected } = useBlockchain();

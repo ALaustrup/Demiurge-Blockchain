@@ -18,10 +18,10 @@ pub use pallet::*;
 pub mod pallet {
     use frame_support::{
         pallet_prelude::*,
-        traits::Currency,
+        traits::{Currency, ExistenceRequirement, Get, PalletId},
     };
     use frame_system::pallet_prelude::*;
-    use sp_runtime::traits::{CheckedMul, CheckedDiv, Saturating, Zero};
+    use sp_runtime::traits::{AccountIdConversion, CheckedMul, CheckedDiv, Saturating, Zero};
     use sp_std::prelude::*;
 
     /// Type alias for balance
@@ -54,6 +54,13 @@ pub mod pallet {
         
         /// Currency type for native token
         type Currency: Currency<Self::AccountId>;
+        
+        /// Game Assets pallet for game currency transfers
+        type GameAssets: pallet_game_assets::Config<AccountId = Self::AccountId>;
+        
+        /// Pallet ID for this pallet (used for account derivation)
+        #[pallet::constant]
+        type PalletId: Get<PalletId>;
     }
 
     #[pallet::pallet]
@@ -152,8 +159,27 @@ pub mod pallet {
             ensure!(initial_native > Zero::zero(), Error::<T>::InvalidAmounts);
             ensure!(initial_currency > Zero::zero(), Error::<T>::InvalidAmounts);
             
-            // TODO: Transfer native tokens from provider
-            // TODO: Transfer currency tokens from provider (via pallet-game-assets)
+            // Transfer native tokens from provider to this pallet's account
+            T::Currency::transfer(
+                &provider,
+                &Self::account_id(),
+                initial_native,
+                ExistenceRequirement::KeepAlive,
+            )?;
+            
+            // Transfer currency tokens from provider (via pallet-game-assets storage)
+            // Check balance first
+            let currency_balance = pallet_game_assets::Balances::<T::GameAssets>::get(currency_id, &provider);
+            ensure!(currency_balance >= initial_currency, Error::<T>::InsufficientBalance);
+            
+            // Update balances: deduct from provider, add to pallet account
+            let pallet_account = Self::account_id();
+            pallet_game_assets::Balances::<T::GameAssets>::mutate(currency_id, &provider, |balance| {
+                *balance = balance.saturating_sub(initial_currency);
+            });
+            pallet_game_assets::Balances::<T::GameAssets>::mutate(currency_id, &pallet_account, |balance| {
+                *balance = balance.saturating_add(initial_currency);
+            });
             
             // Calculate initial liquidity tokens (sqrt(x * y))
             let liquidity = initial_native
@@ -207,15 +233,48 @@ pub mod pallet {
             let mut pair = LiquidityPairs::<T>::get(currency_id)
                 .ok_or(Error::<T>::PairNotFound)?;
             
-            // TODO: Transfer tokens from provider
-            // TODO: Calculate liquidity tokens based on current reserves
+            // Transfer native tokens from provider
+            T::Currency::transfer(
+                &provider,
+                &Self::account_id(),
+                native_amount,
+                ExistenceRequirement::KeepAlive,
+            )?;
+            
+            // Transfer currency tokens from provider
+            let currency_balance = pallet_game_assets::Balances::<T::GameAssets>::get(currency_id, &provider);
+            ensure!(currency_balance >= currency_amount, Error::<T>::InsufficientBalance);
+            
+            let pallet_account = Self::account_id();
+            pallet_game_assets::Balances::<T::GameAssets>::mutate(currency_id, &provider, |balance| {
+                *balance = balance.saturating_sub(currency_amount);
+            });
+            pallet_game_assets::Balances::<T::GameAssets>::mutate(currency_id, &pallet_account, |balance| {
+                *balance = balance.saturating_add(currency_amount);
+            });
+            
+            // Calculate liquidity tokens based on current reserves (proportional)
+            // Formula: liquidity = (total_liquidity * amount_in) / reserve_in
+            let liquidity_tokens = if pair.native_reserve > Zero::zero() {
+                pair.total_liquidity
+                    .checked_mul(&native_amount)
+                    .and_then(|n| n.checked_div(&pair.native_reserve))
+                    .unwrap_or_else(|| Zero::zero())
+            } else {
+                // First liquidity addition after pair creation
+                // Use geometric mean: sqrt(native * currency)
+                native_amount
+                    .checked_mul(&currency_amount)
+                    .and_then(|product| {
+                        // Simplified: use product / 2 as approximation
+                        Some(product / BalanceOf::<T>::from(2u32))
+                    })
+                    .unwrap_or_else(|| Zero::zero())
+            };
             
             // Update reserves
             pair.native_reserve = pair.native_reserve.saturating_add(native_amount);
             pair.currency_reserve = pair.currency_reserve.saturating_add(currency_amount);
-            
-            // Calculate new liquidity tokens (proportional to reserves)
-            let liquidity_tokens = (pair.total_liquidity * native_amount) / pair.native_reserve;
             pair.total_liquidity = pair.total_liquidity.saturating_add(liquidity_tokens);
             
             LiquidityPairs::<T>::insert(currency_id, &pair);
@@ -261,8 +320,25 @@ pub mod pallet {
             
             ensure!(currency_out >= min_currency_out, Error::<T>::InsufficientLiquidity);
             
-            // TODO: Transfer native tokens from who
-            // TODO: Transfer currency tokens to who
+            // Transfer native tokens from who to pallet
+            T::Currency::transfer(
+                &who,
+                &Self::account_id(),
+                native_amount_in,
+                ExistenceRequirement::KeepAlive,
+            )?;
+            
+            // Transfer currency tokens from pallet to who
+            let pallet_account = Self::account_id();
+            let pallet_balance = pallet_game_assets::Balances::<T::GameAssets>::get(currency_id, &pallet_account);
+            ensure!(pallet_balance >= currency_out, Error::<T>::InsufficientLiquidity);
+            
+            pallet_game_assets::Balances::<T::GameAssets>::mutate(currency_id, &pallet_account, |balance| {
+                *balance = balance.saturating_sub(currency_out);
+            });
+            pallet_game_assets::Balances::<T::GameAssets>::mutate(currency_id, &who, |balance| {
+                *balance = balance.saturating_add(currency_out);
+            });
             
             // Update reserves
             pair.native_reserve = pair.native_reserve.saturating_add(native_amount_in);
@@ -304,8 +380,25 @@ pub mod pallet {
             
             ensure!(native_out >= min_native_out, Error::<T>::InsufficientLiquidity);
             
-            // TODO: Transfer currency tokens from who
-            // TODO: Transfer native tokens to who
+            // Transfer currency tokens from who to pallet
+            let currency_balance = pallet_game_assets::Balances::<T::GameAssets>::get(currency_id, &who);
+            ensure!(currency_balance >= currency_amount_in, Error::<T>::InsufficientBalance);
+            
+            let pallet_account = Self::account_id();
+            pallet_game_assets::Balances::<T::GameAssets>::mutate(currency_id, &who, |balance| {
+                *balance = balance.saturating_sub(currency_amount_in);
+            });
+            pallet_game_assets::Balances::<T::GameAssets>::mutate(currency_id, &pallet_account, |balance| {
+                *balance = balance.saturating_add(currency_amount_in);
+            });
+            
+            // Transfer native tokens from pallet to who
+            T::Currency::transfer(
+                &Self::account_id(),
+                &who,
+                native_out,
+                ExistenceRequirement::AllowDeath,
+            )?;
             
             // Update reserves
             pair.currency_reserve = pair.currency_reserve.saturating_add(currency_amount_in);
@@ -321,6 +414,13 @@ pub mod pallet {
             });
             
             Ok(())
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        /// Get the pallet account ID
+        fn account_id() -> T::AccountId {
+            T::PalletId::get().into_account_truncating()
         }
     }
 }

@@ -49,7 +49,8 @@ pallet-dex = { workspace = true }
 pallet-fractional-assets = { workspace = true }
 pallet-drc369-ocw = { workspace = true }
 pallet-governance = { workspace = true }
-pallet-session-keys = { workspace = true }
+pallet-session-keys = { workspace = true, features = ["runtime"] }
+pallet-yield-nfts = { workspace = true }
 
 # Optional
 frame-benchmarking = { workspace = true, optional = true }
@@ -90,6 +91,8 @@ std = [
     "pallet-fractional-assets/std",
     "pallet-drc369-ocw/std",
     "pallet-governance/std",
+    "pallet-session-keys/std",
+    "pallet-yield-nfts/std",
     "substrate-wasm-builder",
 ]
 runtime-benchmarks = [

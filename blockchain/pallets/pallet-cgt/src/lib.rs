@@ -333,21 +333,14 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Get the treasury account ID
         /// Converts PalletId to AccountId using Substrate's standard account derivation
+        /// 
+        /// # Safety
+        /// This function uses a fallback mechanism if AccountId decoding fails.
+        /// In normal operation with AccountId32, this should never happen.
         pub fn treasury_account() -> T::AccountId {
-            // Standard Substrate account derivation: "modl" + pallet_id_bytes -> blake2_256 -> AccountId32
-            let pallet_id_bytes = PALLET_ID.0;
-            let mut input = [0u8; 12];
-            input[0..4].copy_from_slice(b"modl");
-            input[4..12].copy_from_slice(&pallet_id_bytes);
-            
-            // Use sp_core::hashing for blake2_256 (available in no_std)
-            let hash = sp_core::hashing::blake2_256(&input);
-            
-            // Convert [u8; 32] to AccountId using Decode trait
-            // AccountId32 can be decoded from raw bytes
-            use codec::Decode;
-            T::AccountId::decode(&mut &hash[..])
-                .expect("Failed to decode treasury account ID - AccountId must be AccountId32")
+            // Use AccountIdConversion trait to convert PalletId to AccountId
+            use sp_runtime::traits::AccountIdConversion;
+            <PalletId as AccountIdConversion<T::AccountId>>::into_account_truncating(&PALLET_ID)
         }
 
         /// Calculate transfer fee (0.1% minimum 0.001 CGT)

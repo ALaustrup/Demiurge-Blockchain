@@ -82,6 +82,9 @@ pub mod pallet {
         
         /// Maximum number of game data sources
         type MaxGameSources: Get<u32>;
+        
+        /// DRC-369 pallet for NFT ownership verification
+        type Drc369: pallet_drc369::Config<AccountId = Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -241,14 +244,23 @@ pub mod pallet {
             origin: OriginFor<T>,
             nft_uuid: [u8; 32],
         ) -> DispatchResult {
-            let _who = ensure_signed(origin)?;
+            let who = ensure_signed(origin)?;
             
             // Get pending update
             let _update = PendingUpdates::<T>::get(&nft_uuid)
                 .ok_or(Error::<T>::GameDataSourceNotFound)?;
             
-            // TODO: Verify who has permission to apply this update
-            // In production, would check NFT ownership or game server signature
+            // Verify who has permission to apply this update
+            // Only the NFT owner can apply updates (in production, could also allow game server signatures)
+            let nft_owner = pallet_drc369::ItemOwners::<T::Drc369>::get(&nft_uuid)
+                .ok_or(Error::<T>::GameDataSourceNotFound)?;
+            ensure!(nft_owner == who, Error::<T>::GameDataSourceNotFound);
+            
+            // Verify the NFT exists
+            ensure!(
+                pallet_drc369::Items::<T::Drc369>::contains_key(&nft_uuid),
+                Error::<T>::GameDataSourceNotFound
+            );
             
             // Apply update to DRC-369 pallet
             // This would call into pallet-drc369 to update XP, kill count, etc.

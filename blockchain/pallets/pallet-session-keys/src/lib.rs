@@ -11,14 +11,43 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+// Runtime API for session keys queries
+#[cfg(feature = "runtime")]
+pub mod runtime_api {
+    use sp_api::decl_runtime_apis;
+    use sp_runtime::traits::Block as BlockT;
+
+    decl_runtime_apis! {
+        /// Runtime API for querying session keys
+        pub trait SessionKeysApi<Block: BlockT> {
+            /// Get all active session keys for a primary account
+            /// Returns a vector of (session_key, expiry_block) tuples
+            fn get_active_session_keys(primary_account: <Block as BlockT>::AccountId) -> Vec<(<Block as BlockT>::AccountId, <Block as BlockT>::BlockNumber)>;
+            
+            /// Check if a session key is currently valid for a primary account
+            fn is_session_key_valid(primary_account: <Block as BlockT>::AccountId, session_key: <Block as BlockT>::AccountId) -> bool;
+            
+            /// Get the expiry block number for a session key
+            fn get_session_key_expiry(primary_account: <Block as BlockT>::AccountId, session_key: <Block as BlockT>::AccountId) -> Option<<Block as BlockT>::BlockNumber>;
+        }
+    }
+}
+
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
+    use sp_runtime::traits::{Saturating, Zero};
     use sp_std::prelude::*;
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
+
+    /// Trait for querying QOR Identity information
+    pub trait QorIdentityQuery<T: Config> {
+        /// Get QOR ID username for an account (if registered)
+        fn get_qor_id_username(account: &T::AccountId) -> Option<BoundedVec<u8, ConstU32<20>>>;
+    }
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -29,6 +58,9 @@ pub mod pallet {
         
         /// QOR Identity pallet for QOR ID lookups
         type QorIdentity: pallet_qor_identity::Config<AccountId = Self::AccountId>;
+        
+        /// Trait for querying QOR Identity (implemented at runtime level)
+        type QorIdentityQuery: QorIdentityQuery<Self>;
     }
 
     /// Stores the session keys for a given primary account.
@@ -80,7 +112,7 @@ pub mod pallet {
         /// This creates a temporary authorization key tied to the user's QOR ID account.
         /// The session key will automatically expire after the specified duration.
         #[pallet::call_index(0)]
-        #[pallet::weight(T::DbWeight::get().writes(1).saturating_add(10_000))]
+        #[pallet::weight(T::DbWeight::get().writes(1).saturating_add(Weight::from_parts(10_000, 0)))]
         pub fn authorize_session_key(
             origin: OriginFor<T>,
             session_key: T::AccountId,
@@ -113,7 +145,7 @@ pub mod pallet {
         /// 
         /// Immediately invalidates a session key before its expiry.
         #[pallet::call_index(1)]
-        #[pallet::weight(T::DbWeight::get().writes(1).saturating_add(10_000))]
+        #[pallet::weight(T::DbWeight::get().writes(1).saturating_add(Weight::from_parts(10_000, 0)))]
         pub fn revoke_session_key(
             origin: OriginFor<T>,
             session_key: T::AccountId,
@@ -149,21 +181,15 @@ pub mod pallet {
 
         /// Get QOR ID username for an account (if registered)
         /// 
-        /// Note: This requires runtime-level access to QOR Identity pallet.
-        /// In the runtime, this can query pallet_qor_identity::AccountToIdentity directly.
+        /// Uses the QorIdentityQuery trait to query the QOR Identity pallet.
         fn get_qor_id_username(account: &T::AccountId) -> Option<BoundedVec<u8, ConstU32<20>>> {
-            // TODO: Query QOR Identity pallet via runtime
-            // For now, return None - this will be implemented at runtime level
-            // where we can access pallet_qor_identity::AccountToIdentity::<Runtime>::get(account)
-            // and then query Identities::<Runtime>::get(qor_id_hash) to get the username
-            None
+            T::QorIdentityQuery::get_qor_id_username(account)
         }
 
         /// Get all active session keys for a QOR ID account
         /// 
         /// Returns a list of (session_key, expiry_block) tuples
         pub fn get_active_session_keys(primary_account: &T::AccountId) -> Vec<(T::AccountId, BlockNumberFor<T>)> {
-            let mut keys = Vec::new();
             let current_block = <frame_system::Pallet<T>>::block_number();
 
             // Iterate through all session keys for this account
@@ -187,7 +213,7 @@ pub mod pallet {
             let expired_keys: Vec<T::AccountId> = SessionKeys::<T>::iter_prefix(primary_account)
                 .filter(|(_, expiry_block)| *expiry_block <= current_block)
                 .map(|(session_key, _)| session_key)
-                .collect();
+                .collect::<Vec<_>>();
 
             // Remove expired keys
             for session_key in expired_keys {

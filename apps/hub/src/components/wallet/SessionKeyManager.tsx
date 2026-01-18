@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { qorAuth } from '@demiurge/qor-sdk';
 import { getKeypairForQorId, generateAddressFromQorId } from '@/lib/qor-wallet';
+import { blockchainClient } from '@/lib/blockchain';
+import { useBlockchain } from '@/contexts/BlockchainContext';
 
 interface SessionKey {
   id: string;
@@ -23,18 +25,54 @@ export function SessionKeyManager({ qorId, primaryAddress }: SessionKeyManagerPr
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [duration, setDuration] = useState(1000); // blocks
   const [error, setError] = useState<string | null>(null);
+  const { isConnected } = useBlockchain();
 
   useEffect(() => {
-    loadSessionKeys();
-  }, [primaryAddress]);
+    if (isConnected && primaryAddress) {
+      loadSessionKeys();
+    }
+  }, [primaryAddress, isConnected]);
 
   const loadSessionKeys = async () => {
-    // TODO: Query blockchain for active session keys
-    // For now, use mock data
-    setSessionKeys([]);
+    if (!isConnected) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const keys = await blockchainClient.getActiveSessionKeys(primaryAddress);
+      
+      // Get current block number for expiry calculation
+      const api = blockchainClient.getApi();
+      let currentBlock = 0;
+      if (api) {
+        const header = await api.rpc.chain.getHeader();
+        currentBlock = header.number.toNumber();
+      }
+
+      const formattedKeys: SessionKey[] = keys.map((key, index) => ({
+        id: `${key.sessionKey}-${index}`,
+        sessionKeyAddress: key.sessionKey,
+        expiryBlock: key.expiryBlock - currentBlock, // Remaining blocks
+        createdAt: Date.now() - (currentBlock - (key.expiryBlock - duration)) * 6000, // Approximate
+        isActive: true,
+      }));
+
+      setSessionKeys(formattedKeys);
+    } catch (err: any) {
+      console.error('Failed to load session keys:', err);
+      setError(err.message || 'Failed to load session keys');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const createSessionKey = async () => {
+    if (!isConnected) {
+      setError('Blockchain not connected');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -43,14 +81,35 @@ export function SessionKeyManager({ qorId, primaryAddress }: SessionKeyManagerPr
       const sessionKeySeed = `${qorId}:session:${Date.now()}`;
       const sessionKeyAddress = generateAddressFromQorId(sessionKeySeed);
 
-      // TODO: Call blockchain to authorize session key
-      // await blockchainClient.authorizeSessionKey(primaryAddress, sessionKeyAddress, duration);
+      // Get keypair for signing
+      const keypair = getKeypairForQorId(qorId);
+      if (!keypair) {
+        throw new Error('Failed to get keypair for QOR ID');
+      }
 
-      // Add to local state (temporary)
-      const newKey: SessionKey = {
-        id: Date.now().toString(),
+      // Get current block number
+      const api = blockchainClient.getApi();
+      if (!api) {
+        throw new Error('Blockchain API not available');
+      }
+      const header = await api.rpc.chain.getHeader();
+      const currentBlock = header.number.toNumber();
+
+      // Authorize session key on blockchain
+      const txHash = await blockchainClient.authorizeSessionKey(
+        keypair,
         sessionKeyAddress,
-        expiryBlock: 0, // TODO: Calculate from current block + duration
+        duration
+      );
+
+      // Calculate expiry block
+      const expiryBlock = currentBlock + duration;
+
+      // Add to local state
+      const newKey: SessionKey = {
+        id: txHash,
+        sessionKeyAddress,
+        expiryBlock: duration, // Remaining blocks
         createdAt: Date.now(),
         isActive: true,
       };
@@ -58,6 +117,9 @@ export function SessionKeyManager({ qorId, primaryAddress }: SessionKeyManagerPr
       setSessionKeys([...sessionKeys, newKey]);
       setShowCreateModal(false);
       setDuration(1000);
+      
+      // Reload session keys to get accurate data
+      await loadSessionKeys();
     } catch (err: any) {
       setError(err.message || 'Failed to create session key');
     } finally {
@@ -66,12 +128,35 @@ export function SessionKeyManager({ qorId, primaryAddress }: SessionKeyManagerPr
   };
 
   const revokeSessionKey = async (keyId: string) => {
-    setLoading(true);
-    try {
-      // TODO: Call blockchain to revoke session key
-      // await blockchainClient.revokeSessionKey(primaryAddress, sessionKeyAddress);
+    if (!isConnected) {
+      setError('Blockchain not connected');
+      return;
+    }
 
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Find the session key to revoke
+      const keyToRevoke = sessionKeys.find(k => k.id === keyId);
+      if (!keyToRevoke) {
+        throw new Error('Session key not found');
+      }
+
+      // Get keypair for signing
+      const keypair = getKeypairForQorId(qorId);
+      if (!keypair) {
+        throw new Error('Failed to get keypair for QOR ID');
+      }
+
+      // Revoke session key on blockchain
+      await blockchainClient.revokeSessionKey(keypair, keyToRevoke.sessionKeyAddress);
+
+      // Remove from local state
       setSessionKeys(sessionKeys.filter(k => k.id !== keyId));
+      
+      // Reload session keys to get accurate data
+      await loadSessionKeys();
     } catch (err: any) {
       setError(err.message || 'Failed to revoke session key');
     } finally {
