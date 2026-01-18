@@ -19,4 +19,7 @@ pub enum SessionKeysError {
 
     #[error("Authorization failed")]
     AuthorizationFailed,
+
+    #[error("Storage corruption")]
+    StorageCorruption,
 }
