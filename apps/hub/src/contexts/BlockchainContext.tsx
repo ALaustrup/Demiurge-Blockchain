@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { blockchainClient } from '@/lib/blockchain';
+import { demiurgeRpc } from '@/lib/demiurge-rpc';
+import type { EnergyInfo, ConsensusStatus, ValidatorInfo, StakingPoolInfo, EraInfo } from '@/lib/demiurge-rpc';
 
 interface BlockchainContextType {
   isConnected: boolean;
@@ -19,6 +20,14 @@ interface BlockchainContextType {
   getUserAssets: (address: string) => Promise<any[]>;
   getTransactions: (address: string) => Promise<any[]>;
   getApi: () => any | null;
+  // New Demiurge RPC methods
+  getEnergy: (address: string) => Promise<EnergyInfo>;
+  getConsensusStatus: () => Promise<ConsensusStatus>;
+  getCurrentEra: () => Promise<EraInfo>;
+  getValidators: () => Promise<ValidatorInfo[]>;
+  getValidator: (account: string) => Promise<ValidatorInfo | null>;
+  getStakingPool: (validator: string) => Promise<StakingPoolInfo | null>;
+  getBlockNumber: () => Promise<number>;
 }
 
 const BlockchainContext = createContext<BlockchainContextType | null>(null);
@@ -28,26 +37,17 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
 
   const connect = useCallback(async () => {
     try {
-      await blockchainClient.connect();
-      // Check actual connection status after connect attempt
-      const connected = blockchainClient.isConnected();
-      setIsConnected(connected);
+      // Check connection by calling health endpoint
+      const health = await demiurgeRpc.getHealth();
+      setIsConnected(health.connected);
     } catch (error: any) {
-      // Suppress WebSocket connection errors - they're expected if the node isn't running
-      if (!error.message?.includes('disconnected') && !error.message?.includes('1006')) {
-        console.warn('Blockchain connection warning:', error.message);
-      }
+      console.warn('Blockchain connection warning:', error.message);
       setIsConnected(false);
     }
   }, []);
 
   const disconnect = useCallback(async () => {
-    try {
-      await blockchainClient.disconnect();
-      setIsConnected(false);
-    } catch (error) {
-      console.error('Failed to disconnect from blockchain:', error);
-    }
+    setIsConnected(false);
   }, []);
 
   useEffect(() => {
@@ -56,8 +56,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
     
     // Poll connection status periodically
     const statusInterval = setInterval(() => {
-      const connected = blockchainClient.isConnected();
-      setIsConnected(connected);
+      connect();
     }, 5000); // Check every 5 seconds
     
     return () => {
@@ -123,6 +122,14 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
         getUserAssets,
         getTransactions,
         getApi,
+        // New Demiurge RPC methods
+        getEnergy,
+        getConsensusStatus,
+        getCurrentEra,
+        getValidators,
+        getValidator,
+        getStakingPool,
+        getBlockNumber,
       }}
     >
       {children}

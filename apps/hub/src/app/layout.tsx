@@ -5,6 +5,7 @@ import { BlockchainProvider } from '@/contexts/BlockchainContext'
 import { WalletDropdownWrapper } from '@/components/WalletDropdownWrapper'
 import { QorIdHeaderWrapper } from '@/components/QorIdHeaderWrapper'
 import { BlockchainStatusBanner } from '@/components/BlockchainStatusBanner'
+import { ConsensusStatus } from '@/components/consensus/ConsensusStatus'
 import { VYBChat } from '@/components/VYBChat'
 import './globals.css'
 
@@ -56,6 +57,7 @@ export default function RootLayout({
           <PersistentHUD 
             walletComponent={<WalletDropdownWrapper />}
             qorIdComponent={<QorIdHeaderWrapper />}
+            consensusComponent={<ConsensusStatus />}
           />
           <div className="relative z-10">
             {children}

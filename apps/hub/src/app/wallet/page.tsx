@@ -11,6 +11,7 @@ import { ReceiveCGTModal } from '@/components/wallet/ReceiveCGTModal';
 import { TransactionHistory } from '@/components/wallet/TransactionHistory';
 import { SessionKeyManager } from '@/components/wallet/SessionKeyManager';
 import { WalletSelector } from '@/components/wallet/WalletSelector';
+import { EnergyDisplay } from '@/components/energy/EnergyDisplay';
 
 export default function WalletPage() {
   const { getBalance, isConnected } = useBlockchain();
@@ -143,12 +144,17 @@ export default function WalletPage() {
 
         <div className="glass-panel rounded-lg p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div>
+            <div className="flex-1">
               <div className="text-sm text-gray-400">Balance</div>
               <div className="text-3xl font-bold text-demiurge-cyan">
                 {loading ? '...' : `${formatBalance(balance)} CGT`}
               </div>
             </div>
+            {address && (
+              <div className="flex-shrink-0 min-w-[300px]">
+                <EnergyDisplay address={address} />
+              </div>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={() => setShowSendModal(true)}

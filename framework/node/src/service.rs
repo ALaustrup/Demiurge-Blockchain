@@ -4,6 +4,7 @@ use crate::NodeConfig;
 use demiurge_core::{Runtime, Block, Transaction};
 use demiurge_storage::StorageBackend;
 use demiurge_consensus::{ConsensusEngine, ValidatorSet, Validator, BlockProof, BlockSignature};
+use demiurge_rpc::{RpcServer, RpcMethods};
 use anyhow::Result;
 use tracing::{info, warn, error};
 use std::sync::Arc;
@@ -15,8 +16,9 @@ use hex;
 /// Node service
 pub struct NodeService {
     config: NodeConfig,
-    runtime: Runtime<StorageBackend>,
+    runtime: Arc<Mutex<Runtime<StorageBackend>>>,
     consensus: Option<Arc<Mutex<ConsensusEngine<StorageBackend>>>>,
+    rpc_server: Option<RpcServer<StorageBackend>>,
     is_validator: bool,
     validator_account: Option<[u8; 32]>,
     validator_key: Option<SigningKey>,
@@ -32,13 +34,14 @@ impl NodeService {
             config.data_dir.to_str().unwrap_or("./data")
         )?;
         
-        // Initialize runtime
-        let runtime = Runtime::new(storage);
+        // Initialize runtime (wrapped in Arc<Mutex> for sharing)
+        let runtime = Arc::new(Mutex::new(Runtime::new(storage)));
         
         Ok(Self {
             config,
             runtime,
             consensus: None,
+            rpc_server: None,
             is_validator: false,
             validator_account: None,
             validator_key: None,
@@ -126,6 +129,7 @@ impl NodeService {
     /// Block production loop
     async fn block_production_loop(
         consensus: Arc<Mutex<ConsensusEngine<StorageBackend>>>,
+        runtime: Arc<Mutex<Runtime<StorageBackend>>>,
         block_time: Duration,
     ) {
         loop {
@@ -172,7 +176,7 @@ impl NodeService {
             
             // Execute block in runtime and get state root
             let state_root = {
-                let mut runtime = self.runtime_mut();
+                let mut runtime = self.runtime.lock().await;
                 runtime.execute_block(block.clone())?
             };
             

@@ -30,23 +30,16 @@ export function ConsensusStatus() {
     }
   };
 
-  if (loading) {
+  if (loading || !status) {
     return (
-      <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-        <div className="animate-pulse flex space-x-4">
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-700 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-700 rounded w-1/2"></div>
-          </div>
+      <div className="flex items-center gap-3 text-xs">
+        <div className="animate-pulse flex items-center gap-3">
+          <div className="h-4 w-12 bg-gray-700 rounded"></div>
+          <div className="h-4 w-px bg-gray-600"></div>
+          <div className="h-4 w-16 bg-gray-700 rounded"></div>
+          <div className="h-4 w-px bg-gray-600"></div>
+          <div className="h-4 w-12 bg-gray-700 rounded"></div>
         </div>
-      </div>
-    );
-  }
-
-  if (!status) {
-    return (
-      <div className="bg-red-900/50 rounded-lg p-4 border border-red-500">
-        <p className="text-red-200">Unable to load consensus status</p>
       </div>
     );
   }
@@ -58,33 +51,24 @@ export function ConsensusStatus() {
   };
 
   return (
-    <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 rounded-lg p-4 border border-purple-500/30">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-400">Consensus Status</p>
-          <div className="flex items-center gap-4 mt-2">
-            <div>
-              <p className="text-xs text-gray-400">Era</p>
-              <p className="text-lg font-bold text-white">{status.currentEra}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400">Block</p>
-              <p className="text-lg font-bold text-white">{status.blockNumber.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400">Validators</p>
-              <p className="text-lg font-bold text-green-400">{status.validators}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400">Total Stake</p>
-              <p className="text-lg font-bold text-yellow-400">{formatBalance(status.totalStake)} CGT</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-sm text-green-400 font-medium">Live</span>
-        </div>
+    <div className="flex items-center gap-3 text-xs">
+      <div className="flex items-center gap-1">
+        <span className="text-gray-400">Era</span>
+        <span className="font-bold text-white">{status.currentEra}</span>
+      </div>
+      <div className="h-4 w-px bg-gray-600"></div>
+      <div className="flex items-center gap-1">
+        <span className="text-gray-400">Block</span>
+        <span className="font-bold text-white font-mono">{status.blockNumber.toLocaleString()}</span>
+      </div>
+      <div className="h-4 w-px bg-gray-600"></div>
+      <div className="flex items-center gap-1">
+        <span className="text-gray-400">Validators</span>
+        <span className="font-bold text-green-400">{status.validators}</span>
+      </div>
+      <div className="flex items-center gap-1.5 ml-1">
+        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+        <span className="text-green-400 font-medium">Live</span>
       </div>
     </div>
   );

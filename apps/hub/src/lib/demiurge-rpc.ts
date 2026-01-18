@@ -76,6 +76,14 @@ export interface EnergyInfo {
   lastUpdate: number;
 }
 
+export interface ConsensusStatus {
+  currentEra: number;
+  blockNumber: number;
+  validators: number;
+  totalStake: string;
+  transactionFees: string;
+}
+
 export class DemiurgeRpcClient {
   private rpcUrl: string;
   private requestId = 0;
@@ -276,13 +284,7 @@ export class DemiurgeRpcClient {
   /**
    * Get consensus status
    */
-  async getConsensusStatus(): Promise<{
-    currentEra: number;
-    blockNumber: number;
-    validators: number;
-    totalStake: string;
-    transactionFees: string;
-  }> {
+  async getConsensusStatus(): Promise<ConsensusStatus> {
     return this.request('consensus_getStatus');
   }
 }
