@@ -104,14 +104,12 @@ Write-Host "📋 Recent logs:" -ForegroundColor Cyan
 ssh "${SERVER_USER}@${SERVER}" "sudo journalctl -u ${SERVICE_NAME} -n 20 --no-pager"
 
 Write-Host ""
-Write-Host "🎉 Deployment complete!" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Gray
-Write-Host "RPC Endpoint: ws://${SERVER}:9944" -ForegroundColor Yellow
-Write-Host "P2P Address: /ip4/${SERVER}/tcp/30333" -ForegroundColor Yellow
-Write-Host "Data Directory: ${DATA_DIR}" -ForegroundColor Yellow
+Write-Host "Deployment complete!" -ForegroundColor Cyan
+Write-Host "RPC Endpoint: ws://$SERVER:9944" -ForegroundColor Yellow
+Write-Host "P2P Address: /ip4/$SERVER/tcp/30333" -ForegroundColor Yellow
+Write-Host "Data Directory: $DATA_DIR" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Useful commands:" -ForegroundColor Gray
-Write-Host "  Check status: ssh ${SERVER_USER}@${SERVER} 'sudo systemctl status ${SERVICE_NAME}'" -ForegroundColor Gray
-Write-Host "  View logs: ssh ${SERVER_USER}@${SERVER} 'sudo journalctl -u ${SERVICE_NAME} -f'" -ForegroundColor Gray
-Write-Host "  Restart: ssh ${SERVER_USER}@${SERVER} 'sudo systemctl restart ${SERVICE_NAME}'" -ForegroundColor Gray
-Write-Host "========================================" -ForegroundColor Gray
+Write-Host "  Check status: ssh root@$SERVER 'sudo systemctl status demiurge-node'" -ForegroundColor Gray
+Write-Host "  View logs: ssh root@$SERVER 'sudo journalctl -u demiurge-node -f'" -ForegroundColor Gray
+Write-Host "  Restart: ssh root@$SERVER 'sudo systemctl restart demiurge-node'" -ForegroundColor Gray
