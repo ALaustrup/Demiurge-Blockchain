@@ -30,17 +30,17 @@ impl Module for EnergyModule {
         match call_data {
             EnergyCall::Consume { account, amount } => {
                 Self::consume_energy(storage, account, amount)
-                    .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionError(e.to_string()))?;
+                    .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
                 Ok(())
             }
             EnergyCall::Regenerate { account } => {
                 Self::regenerate_energy(storage, account)
-                    .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionError(e.to_string()))?;
+                    .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
                 Ok(())
             }
             EnergyCall::Sponsor { developer, user } => {
                 Self::sponsor_transaction(storage, developer, user)
-                    .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionError(e.to_string()))?;
+                    .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
                 Ok(())
             }
         }
@@ -80,7 +80,7 @@ impl EnergyModule {
 
         let new_energy = current_energy - amount;
         Self::set_energy(storage, account, new_energy)?;
-        Self::set_last_update(storage, account, Self::get_current_block(storage))?;
+        Self::set_last_update(storage, account, Self::get_current_block(storage));
 
         Ok(())
     }
