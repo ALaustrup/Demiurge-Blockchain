@@ -19,6 +19,8 @@ blake2 = { workspace = true }
 demiurge-storage = { path = "../storage" }
 demiurge-modules = { path = "../modules" }
 demiurge-module-balances = { path = "../modules/balances" }
+demiurge-module-energy = { path = "../modules/energy" }
+demiurge-module-session-keys = { path = "../modules/session-keys" }
 
 [dev-dependencies]
 tokio = { workspace = true }
