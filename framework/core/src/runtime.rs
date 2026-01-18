@@ -145,12 +145,14 @@ impl<S: Storage> Runtime<S> {
         block.validate()?;
 
         // Update block number storage for modules that need it
-        let storage_ref = Arc::get_mut(&mut self.storage)
-            .ok_or_else(|| crate::Error::InvalidTransaction("Storage is shared, cannot get mutable reference".to_string()))?;
-        
-        // Store current block number for modules
-        let block_key = b"System:BlockNumber";
-        storage_ref.put(block_key, &self.block_number.encode());
+        {
+            let storage_ref = Arc::get_mut(&mut self.storage)
+                .ok_or_else(|| crate::Error::InvalidTransaction("Storage is shared, cannot get mutable reference".to_string()))?;
+            
+            // Store current block number for modules
+            let block_key = b"System:BlockNumber";
+            storage_ref.put(block_key, &self.block_number.encode());
+        }
 
         // Execute all transactions
         for tx in block.transactions {
@@ -159,15 +161,26 @@ impl<S: Storage> Runtime<S> {
 
         // Call on_initialize for modules (cleanup expired session keys, etc.)
         // Note: This is a simplified approach - in production we'd iterate through registered modules
-        let mut session_keys_module = SessionKeysModule;
-        session_keys_module.on_initialize(self.block_number, storage_ref)
-            .map_err(|e| crate::Error::ModuleError(format!("SessionKeys on_initialize error: {}", e)))?;
+        {
+            let storage_ref = Arc::get_mut(&mut self.storage)
+                .ok_or_else(|| crate::Error::InvalidTransaction("Storage is shared, cannot get mutable reference".to_string()))?;
+            
+            let mut session_keys_module = SessionKeysModule;
+            session_keys_module.on_initialize(self.block_number, storage_ref)
+                .map_err(|e| crate::Error::ModuleError(format!("SessionKeys on_initialize error: {}", e)))?;
+        }
 
         // Finalize block
         self.block_number += 1;
         
         // Update block number storage
-        storage_ref.put(block_key, &self.block_number.encode());
+        {
+            let storage_ref = Arc::get_mut(&mut self.storage)
+                .ok_or_else(|| crate::Error::InvalidTransaction("Storage is shared, cannot get mutable reference".to_string()))?;
+            
+            let block_key = b"System:BlockNumber";
+            storage_ref.put(block_key, &self.block_number.encode());
+        }
 
         // TODO: Storage commit needs mutable access - will need interior mutability or redesign
         // For now, skip commit
