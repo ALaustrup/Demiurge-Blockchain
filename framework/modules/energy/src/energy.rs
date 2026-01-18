@@ -114,7 +114,7 @@ impl EnergyModule {
     pub fn sponsor_transaction(
         storage: &mut dyn Storage,
         developer: [u8; 32],
-        user: [u8; 32],
+        _user: [u8; 32],
     ) -> Result<()> {
         // Consume energy from developer instead of user
         // This is a simple implementation - in production, we'd track sponsored transactions

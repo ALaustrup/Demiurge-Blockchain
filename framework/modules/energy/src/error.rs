@@ -16,4 +16,10 @@ pub enum EnergyError {
 
     #[error("Energy regeneration failed")]
     RegenerationFailed,
+
+    #[error("Invalid amount")]
+    InvalidAmount,
+
+    #[error("Storage corruption")]
+    StorageCorruption,
 }
