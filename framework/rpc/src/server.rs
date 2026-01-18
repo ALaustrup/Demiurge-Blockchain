@@ -5,7 +5,6 @@ use demiurge_storage::Storage;
 use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
     RpcModule,
-    core::Params,
 };
 use std::net::SocketAddr;
 use std::sync::Arc;
