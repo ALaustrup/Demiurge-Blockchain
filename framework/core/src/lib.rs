@@ -2,8 +2,6 @@
 //!
 //! The heart of our blockchain. No Substrate bullshit. Just clean, fast execution.
 
-#![cfg_attr(not(feature = "std"), no_std)]
-
 pub mod runtime;
 pub mod transaction;
 pub mod block;
