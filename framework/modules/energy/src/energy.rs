@@ -79,8 +79,9 @@ impl EnergyModule {
         }
 
         let new_energy = current_energy - amount;
+        let current_block = Self::get_current_block(storage);
         Self::set_energy(storage, account, new_energy)?;
-        Self::set_last_update(storage, account, Self::get_current_block(storage));
+        Self::set_last_update(storage, account, current_block);
 
         Ok(())
     }
@@ -105,7 +106,7 @@ impl EnergyModule {
         let new_energy = (current_energy + energy_to_add).min(constants::MAX_ENERGY);
         
         Self::set_energy(storage, account, new_energy)?;
-        Self::set_last_update(storage, account, current_block)?;
+        Self::set_last_update(storage, account, current_block);
 
         Ok(())
     }
