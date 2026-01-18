@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 /// Network service managing P2P connections
 pub struct NetworkService {
-    swarm: Swarm<NetworkBehaviour>,
+    swarm: Swarm<dyn NetworkBehaviour>,
     peers: HashMap<PeerId, PeerInfo>,
     connected_peers: usize,
 }

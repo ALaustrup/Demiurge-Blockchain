@@ -1,6 +1,6 @@
 //! RPC server implementation
 
-use crate::{RpcError, Result};
+use crate::{RpcError, Result, RpcMethods};
 use demiurge_storage::Storage;
 use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
@@ -55,7 +55,7 @@ impl RpcServer {
     /// Stop the RPC server
     pub async fn stop(&mut self) -> Result<()> {
         if let Some(handle) = self.handle.take() {
-            handle.stop().await.map_err(|e| RpcError::ServerError(e.to_string()))?;
+            handle.stop().map_err(|e| RpcError::ServerError(e.to_string()))?;
         }
         Ok(())
     }
