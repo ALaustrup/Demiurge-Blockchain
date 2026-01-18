@@ -20,7 +20,6 @@ anyhow = { workspace = true }
 # RPC dependencies
 jsonrpsee = { version = "0.20", features = ["server", "macros"] }
 hex = "0.4"
-serde_json = { workspace = true }
 
 # Internal dependencies
 demiurge-core = { path = "../core" }
