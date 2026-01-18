@@ -18,7 +18,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 # RPC dependencies
-jsonrpsee = { version = "0.20", features = ["server", "macros", "async-client", "ws-server"] }
+jsonrpsee = { version = "0.20", features = ["server", "macros", "async-client", "ws"] }
 
 # Internal dependencies
 demiurge-core = { path = "../core" }
