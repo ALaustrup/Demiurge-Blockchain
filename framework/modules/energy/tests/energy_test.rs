@@ -29,7 +29,7 @@ fn test_consume_energy_success() {
     set_block_number(&mut storage, 100);
     
     let account = [1u8; 32];
-    let amount = 50u64;
+    let amount = 5u64; // Less than REGENERATION_RATE
     
     // Regenerate energy first to get some
     EnergyModule::regenerate_energy(&mut storage, account).unwrap();
@@ -118,7 +118,10 @@ fn test_sponsor_transaction() {
     let developer = [1u8; 32];
     let user = [2u8; 32];
     
-    // Regenerate energy for developer
+    // Advance many blocks to get enough energy
+    set_block_number(&mut storage, 200);
+    
+    // Regenerate energy for developer (should get 200 * REGENERATION_RATE = 2000, capped at MAX_ENERGY = 1000)
     EnergyModule::regenerate_energy(&mut storage, developer).unwrap();
     
     // Sponsor user's transaction
@@ -126,12 +129,8 @@ fn test_sponsor_transaction() {
     assert!(result.is_ok());
     
     // Check developer's energy was consumed
-    // Developer had REGENERATION_RATE (10), consumed BASE_TX_COST (100)
-    // Since 10 < 100, this should have failed - let's check it actually failed
     let developer_energy = EnergyModule::get_energy(&storage, developer).unwrap();
-    // The sponsor should have failed, so energy should still be 10
-    // But actually, the function consumes energy first, so it would fail
-    // Let's fix the test to regenerate more energy first
+    assert_eq!(developer_energy, constants::MAX_ENERGY - constants::BASE_TX_COST);
 }
 
 #[test]
