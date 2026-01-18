@@ -51,7 +51,7 @@ impl<S: Storage> RpcMethods<S> {
         match self.storage.get(&key) {
             Some(value) => {
                 <u128 as Decode>::decode(&mut &value[..])
-                    .map_err(|e| RpcError::StorageError(format!("Failed to decode balance: {}", e)))
+                    .map_err(|e| RpcError::StorageError(format!("Failed to decode balance: {:?}", e)))
             }
             None => Ok(0), // Account doesn't exist, balance is 0
         }
