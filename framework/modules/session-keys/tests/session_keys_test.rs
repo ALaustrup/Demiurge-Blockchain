@@ -1,7 +1,7 @@
 //! Unit tests for session keys module
 
 use demiurge_module_session_keys::{SessionKeysModule, SessionCall, constants};
-use demiurge_storage::backend::StorageBackend;
+use demiurge_storage::{backend::StorageBackend, Storage};
 use codec::Encode;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
