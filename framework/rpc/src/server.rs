@@ -5,30 +5,32 @@ use demiurge_storage::Storage;
 use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
     RpcModule,
+    core::RpcResult,
 };
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 /// RPC server
-pub struct RpcServer {
+pub struct RpcServer<S: Storage> {
     handle: Option<ServerHandle>,
     address: SocketAddr,
+    _methods: Option<Arc<RpcMethods<S>>>,
 }
 
-impl<S: Storage> RpcServer<S> {
+impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     /// Create a new RPC server
     pub fn new(address: SocketAddr) -> Self {
         Self {
             handle: None,
             address,
-            methods: None,
+            _methods: None,
         }
     }
 
     /// Start the RPC server
     pub async fn start(&mut self, methods: Arc<RpcMethods<S>>) -> Result<()> {
         let methods_clone = methods.clone();
-        self.methods = Some(methods);
+        self._methods = Some(methods);
         
         let server = ServerBuilder::default()
             .build(self.address)
@@ -49,23 +51,42 @@ impl<S: Storage> RpcServer<S> {
     /// Register RPC methods
     fn register_methods(&self, module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // Register get_balance method
-        module.register_method("get_balance", |params, ctx| async move {
-            // Parse account parameter (32 bytes as hex string or array)
-            let account_bytes: Vec<u8> = params.parse()?;
-            if account_bytes.len() != 32 {
-                return Err(jsonrpsee::core::Error::invalid_params("Account must be 32 bytes"));
+        module.register_async_method("get_balance", |params, ctx, _exts| {
+            let ctx = ctx.clone();
+            async move {
+                // Parse account parameter - expect hex string or array of bytes
+                let account_str: String = params.one()
+                    .map_err(|e| jsonrpsee::core::Error::invalid_params(format!("Invalid account format: {}", e)))?;
+                
+                // Try to parse as hex string first
+                let account_bytes = if account_str.starts_with("0x") {
+                    hex::decode(&account_str[2..])
+                        .map_err(|e| jsonrpsee::core::Error::invalid_params(format!("Invalid hex: {}", e)))?
+                } else {
+                    // Try parsing as array of bytes
+                    serde_json::from_str::<Vec<u8>>(&account_str)
+                        .map_err(|e| jsonrpsee::core::Error::invalid_params(format!("Invalid account format: {}", e)))?
+                };
+                
+                if account_bytes.len() != 32 {
+                    return Err(jsonrpsee::core::Error::invalid_params("Account must be 32 bytes"));
+                }
+                
+                let mut account = [0u8; 32];
+                account.copy_from_slice(&account_bytes);
+                
+                ctx.get_balance(account).await
+                    .map_err(|e| jsonrpsee::core::Error::internal_error(format!("RPC error: {}", e)))
             }
-            let mut account = [0u8; 32];
-            account.copy_from_slice(&account_bytes);
-            
-            ctx.get_balance(account).await
-                .map_err(|e| jsonrpsee::core::Error::from(jsonrpsee::types::error::INTERNAL_ERROR))
         })?;
         
         // Register get_chain_info method
-        module.register_method("get_chain_info", |_params, ctx| async move {
-            ctx.get_chain_info().await
-                .map_err(|e| jsonrpsee::core::Error::from(jsonrpsee::types::error::INTERNAL_ERROR))
+        module.register_async_method("get_chain_info", |_params, ctx, _exts| {
+            let ctx = ctx.clone();
+            async move {
+                ctx.get_chain_info().await
+                    .map_err(|e| jsonrpsee::core::Error::internal_error(format!("RPC error: {}", e)))
+            }
         })?;
         
         Ok(())
@@ -76,10 +97,6 @@ impl<S: Storage> RpcServer<S> {
         if let Some(handle) = self.handle.take() {
             handle.stop().map_err(|e| RpcError::ServerError(e.to_string()))?;
         }
-        Ok(())
-    }
-}
-    }
         Ok(())
     }
 }

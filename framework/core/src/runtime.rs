@@ -48,26 +48,23 @@ impl<S: Storage> Runtime<S> {
                         let balance_call: BalanceCall = codec::Decode::decode(&mut &call[..])
                             .map_err(|e| crate::Error::InvalidTransaction(format!("Failed to decode balance call: {}", e)))?;
                         
-                        // Get mutable storage reference
-                        // Note: We need to handle Arc<Storage> - for now use unsafe or redesign
-                        // This is a temporary solution - we'll need interior mutability or redesign
-                        unsafe {
-                            let storage_ptr = Arc::as_ptr(&self.storage) as *mut dyn Storage;
-                            let storage_ref = &mut *storage_ptr;
-                            
-                            match balance_call {
-                                BalanceCall::Transfer { from, to, amount } => {
-                                    BalancesModule::transfer(storage_ref, from, to, amount)
-                                        .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                                }
-                                BalanceCall::Mint { to, amount } => {
-                                    BalancesModule::mint(storage_ref, to, amount)
-                                        .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                                }
-                                BalanceCall::Burn { from, amount } => {
-                                    BalancesModule::burn(storage_ref, from, amount)
-                                        .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                                }
+                        // Get mutable storage reference using Arc::get_mut
+                        // This requires unique access - runtime should have exclusive access during execution
+                        let storage_ref = Arc::get_mut(&mut self.storage)
+                            .ok_or_else(|| crate::Error::InvalidTransaction("Storage is shared, cannot get mutable reference".to_string()))?;
+                        
+                        match balance_call {
+                            BalanceCall::Transfer { from, to, amount } => {
+                                BalancesModule::transfer(storage_ref, from, to, amount)
+                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                            }
+                            BalanceCall::Mint { to, amount } => {
+                                BalancesModule::mint(storage_ref, to, amount)
+                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                            }
+                            BalanceCall::Burn { from, amount } => {
+                                BalancesModule::burn(storage_ref, from, amount)
+                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
                             }
                         }
                     }
@@ -80,13 +77,11 @@ impl<S: Storage> Runtime<S> {
             }
             TransactionData::Transfer { to, amount } => {
                 // Direct transfer - use balances module
-                unsafe {
-                    let storage_ptr = Arc::as_ptr(&self.storage) as *mut dyn Storage;
-                    let storage_ref = &mut *storage_ptr;
-                    
-                    BalancesModule::transfer(storage_ref, tx.from, to, amount)
-                        .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                }
+                let storage_ref = Arc::get_mut(&mut self.storage)
+                    .ok_or_else(|| crate::Error::InvalidTransaction("Storage is shared, cannot get mutable reference".to_string()))?;
+                
+                BalancesModule::transfer(storage_ref, tx.from, to, amount)
+                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
             }
         }
 
