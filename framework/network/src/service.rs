@@ -2,15 +2,13 @@
 
 use crate::{NetworkError, Result};
 use demiurge_core::Block;
-use libp2p::{
-    swarm::{NetworkBehaviour, Swarm, SwarmEvent},
-    PeerId,
-};
+use libp2p::PeerId;
 use std::collections::HashMap;
 
 /// Network service managing P2P connections
 pub struct NetworkService {
-    swarm: Swarm<dyn NetworkBehaviour>,
+    // TODO: Implement with concrete LibP2P behaviour type
+    // swarm: Swarm<...>,
     peers: HashMap<PeerId, PeerInfo>,
     connected_peers: usize,
 }
@@ -29,7 +27,6 @@ impl NetworkService {
     pub fn new() -> Result<Self> {
         // TODO: Initialize LibP2P swarm
         Ok(Self {
-            swarm: todo!(), // Will be implemented with LibP2P
             peers: HashMap::new(),
             connected_peers: 0,
         })

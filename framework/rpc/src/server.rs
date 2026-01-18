@@ -24,7 +24,7 @@ impl RpcServer {
     }
 
     /// Start the RPC server
-    pub async fn start(&mut self, methods: RpcMethods) -> Result<()> {
+    pub async fn start<S: Storage>(&mut self, methods: RpcMethods<S>) -> Result<()> {
         let server = ServerBuilder::default()
             .build(self.address)
             .await
@@ -45,7 +45,7 @@ impl RpcServer {
     fn register_methods<S: Storage>(
         &self,
         module: &mut RpcModule<()>,
-        methods: crate::RpcMethods<S>,
+        methods: RpcMethods<S>,
     ) -> Result<()> {
         // TODO: Register methods using jsonrpsee macros
         // For now, placeholder

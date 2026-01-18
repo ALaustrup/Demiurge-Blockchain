@@ -102,9 +102,8 @@ impl<S: Storage> ConsensusEngine<S> {
 
         for sig in signatures {
             if self.validators.is_validator(&sig.validator) {
-                if self.verify_signature(block, &sig.proof)? {
-                    signed_validators += 1;
-                }
+                self.verify_signature(block, &sig.proof)?;
+                signed_validators += 1;
             }
         }
 
@@ -140,7 +139,8 @@ impl<S: Storage> ConsensusEngine<S> {
         use blake2::{Blake2b512, Digest};
         let mut hasher = Blake2b512::new();
         for tx in transactions {
-            hasher.update(&tx.encode());
+            let encoded = tx.encode();
+            hasher.update(&encoded);
         }
         let hash = hasher.finalize();
         let mut result = [0u8; 32];
