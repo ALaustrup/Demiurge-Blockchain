@@ -10,11 +10,11 @@ use scale_info::TypeInfo;
 pub struct YieldNftsModule;
 
 impl Module for YieldNftsModule {
-    fn name() -> &'static str {
+    fn name(&self) -> &'static str {
         "YieldNfts"
     }
 
-    fn version() -> u32 {
+    fn version(&self) -> u32 {
         1
     }
 

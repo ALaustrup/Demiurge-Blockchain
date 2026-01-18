@@ -10,11 +10,11 @@ use scale_info::TypeInfo;
 pub struct Drc369Module;
 
 impl Module for Drc369Module {
-    fn name() -> &'static str {
+    fn name(&self) -> &'static str {
         "DRC369"
     }
 
-    fn version() -> u32 {
+    fn version(&self) -> u32 {
         1
     }
 

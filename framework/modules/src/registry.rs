@@ -17,7 +17,8 @@ impl ModuleRegistry {
     }
 
     pub fn register<M: Module + 'static>(&mut self, module: M) {
-        self.modules.insert(M::name().to_string(), Box::new(module));
+        let name = module.name().to_string();
+        self.modules.insert(name, Box::new(module));
     }
 
     pub fn execute(

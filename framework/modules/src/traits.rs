@@ -6,10 +6,10 @@ use thiserror::Error;
 /// Base trait for all modules
 pub trait Module: Send + Sync {
     /// Module name
-    fn name() -> &'static str;
+    fn name(&self) -> &'static str;
 
     /// Module version
-    fn version() -> u32;
+    fn version(&self) -> u32;
 
     /// Execute a call
     fn execute(

@@ -9,11 +9,11 @@ use codec::{Decode, Encode};
 pub struct BalancesModule;
 
 impl Module for BalancesModule {
-    fn name() -> &'static str {
+    fn name(&self) -> &'static str {
         "Balances"
     }
 
-    fn version() -> u32 {
+    fn version(&self) -> u32 {
         1
     }
 

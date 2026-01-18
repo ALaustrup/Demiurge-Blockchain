@@ -10,11 +10,11 @@ use scale_info::TypeInfo;
 pub struct EnergyModule;
 
 impl Module for EnergyModule {
-    fn name() -> &'static str {
+    fn name(&self) -> &'static str {
         "Energy"
     }
 
-    fn version() -> u32 {
+    fn version(&self) -> u32 {
         1
     }
 

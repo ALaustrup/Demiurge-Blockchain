@@ -10,11 +10,11 @@ use scale_info::TypeInfo;
 pub struct SessionKeysModule;
 
 impl Module for SessionKeysModule {
-    fn name() -> &'static str {
+    fn name(&self) -> &'static str {
         "SessionKeys"
     }
 
-    fn version() -> u32 {
+    fn version(&self) -> u32 {
         1
     }
 
