@@ -3,6 +3,7 @@
 use crate::RpcError;
 use demiurge_core::{Block, Transaction};
 use demiurge_storage::Storage;
+use codec::Decode;
 use std::sync::Arc;
 use std::result::Result;
 
@@ -44,8 +45,23 @@ impl<S: Storage> RpcMethods<S> {
 
     /// Get account balance
     pub async fn get_balance(&self, account: [u8; 32]) -> Result<u128, RpcError> {
-        // TODO: Get balance from storage
-        Err(RpcError::NotImplemented)
+        // Read directly from storage using the same key format as balances module
+        let key = Self::balance_key(account);
+        
+        match self.storage.get(&key) {
+            Some(value) => {
+                <u128 as Decode>::decode(&mut &value[..])
+                    .map_err(|e| RpcError::StorageError(format!("Failed to decode balance: {}", e)))
+            }
+            None => Ok(0), // Account doesn't exist, balance is 0
+        }
+    }
+
+    /// Generate storage key for account balance (matches balances module)
+    fn balance_key(account: [u8; 32]) -> Vec<u8> {
+        let mut key = b"Balances:Account:".to_vec();
+        key.extend_from_slice(&account);
+        key
     }
 
     /// Get transaction by hash

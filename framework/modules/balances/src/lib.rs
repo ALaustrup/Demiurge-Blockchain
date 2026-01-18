@@ -9,3 +9,9 @@ pub mod error;
 
 pub use balances::{BalancesModule, BalanceCall, constants};
 pub use error::{BalancesError, Result};
+
+// Re-export for tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+}

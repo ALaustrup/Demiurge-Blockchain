@@ -11,18 +11,15 @@ pub enum BalancesError {
     #[error("Insufficient balance")]
     InsufficientBalance,
 
-    #[error("Account not found")]
-    AccountNotFound,
-
     #[error("Invalid amount")]
     InvalidAmount,
 
-    #[error("Transfer failed: {0}")]
-    TransferFailed(String),
+    #[error("Existential deposit violation")]
+    ExistentialDepositViolation,
 
-    #[error("Mint failed: {0}")]
-    MintFailed(String),
+    #[error("Total supply exceeded")]
+    TotalSupplyExceeded,
 
-    #[error("Burn failed: {0}")]
-    BurnFailed(String),
+    #[error("Storage corruption")]
+    StorageCorruption,
 }

@@ -4,6 +4,7 @@ use crate::{BalancesError, Result};
 use demiurge_modules::traits::Module;
 use demiurge_storage::Storage;
 use codec::{Decode, Encode};
+use constants::EXISTENTIAL_DEPOSIT;
 
 /// Balances module
 pub struct BalancesModule;
@@ -27,20 +28,176 @@ impl Module for BalancesModule {
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
 
         match call_data {
-            BalanceCall::Transfer { to, amount } => {
-                // TODO: Implement transfer logic
-                // For now, placeholder
-                Ok(())
+            BalanceCall::Transfer { from, to, amount } => {
+                Self::transfer(storage, from, to, amount)
+                    .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))
             }
             BalanceCall::Mint { to, amount } => {
-                // TODO: Implement mint logic (governance only)
-                Ok(())
+                Self::mint(storage, to, amount)
+                    .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))
             }
             BalanceCall::Burn { from, amount } => {
-                // TODO: Implement burn logic
-                Ok(())
+                Self::burn(storage, from, amount)
+                    .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))
             }
         }
+    }
+}
+
+impl BalancesModule {
+    /// Transfer balance from one account to another
+    pub fn transfer(
+        storage: &mut dyn Storage,
+        from: [u8; 32],
+        to: [u8; 32],
+        amount: u128,
+    ) -> Result<()> {
+        // Validate amount
+        if amount == 0 {
+            return Err(BalancesError::InvalidAmount);
+        }
+
+        // Get current balances
+        let from_balance = Self::get_balance(storage, from)?;
+        let to_balance = Self::get_balance(storage, to)?;
+
+        // Check sufficient balance
+        if from_balance < amount {
+            return Err(BalancesError::InsufficientBalance);
+        }
+
+        // Calculate new balances
+        let new_from_balance = from_balance - amount;
+        let new_to_balance = to_balance + amount;
+
+        // Check existential deposit for sender (if balance becomes non-zero, must maintain minimum)
+        if new_from_balance > 0 && new_from_balance < EXISTENTIAL_DEPOSIT {
+            return Err(BalancesError::ExistentialDepositViolation);
+        }
+
+        // Update balances
+        Self::set_balance(storage, from, new_from_balance)?;
+        Self::set_balance(storage, to, new_to_balance)?;
+
+        Ok(())
+    }
+
+    /// Mint new tokens (governance only - TODO: add governance check)
+    pub fn mint(
+        storage: &mut dyn Storage,
+        to: [u8; 32],
+        amount: u128,
+    ) -> Result<()> {
+        // Validate amount
+        if amount == 0 {
+            return Err(BalancesError::InvalidAmount);
+        }
+
+        // Get current total supply and balance
+        let total_supply = Self::get_total_supply(storage)?;
+        let to_balance = Self::get_balance(storage, to)?;
+
+        // Check total supply limit
+        if total_supply.saturating_add(amount) > constants::TOTAL_SUPPLY {
+            return Err(BalancesError::TotalSupplyExceeded);
+        }
+
+        // Update balances
+        let new_to_balance = to_balance + amount;
+        Self::set_balance(storage, to, new_to_balance)?;
+        Self::set_total_supply(storage, total_supply + amount)?;
+
+        Ok(())
+    }
+
+    /// Burn tokens
+    pub fn burn(
+        storage: &mut dyn Storage,
+        from: [u8; 32],
+        amount: u128,
+    ) -> Result<()> {
+        // Validate amount
+        if amount == 0 {
+            return Err(BalancesError::InvalidAmount);
+        }
+
+        // Get current balance
+        let from_balance = Self::get_balance(storage, from)?;
+
+        // Check sufficient balance
+        if from_balance < amount {
+            return Err(BalancesError::InsufficientBalance);
+        }
+
+        // Calculate new balance
+        let new_from_balance = from_balance - amount;
+
+        // Check existential deposit
+        if new_from_balance > 0 && new_from_balance < EXISTENTIAL_DEPOSIT {
+            return Err(BalancesError::ExistentialDepositViolation);
+        }
+
+        // Get total supply
+        let total_supply = Self::get_total_supply(storage)?;
+
+        // Update balances
+        Self::set_balance(storage, from, new_from_balance)?;
+        Self::set_total_supply(storage, total_supply.saturating_sub(amount))?;
+
+        Ok(())
+    }
+
+    /// Get balance for an account
+    pub fn get_balance(storage: &dyn Storage, account: [u8; 32]) -> Result<u128> {
+        let key = Self::balance_key(account);
+        match storage.get(&key) {
+            Some(value) => {
+                u128::decode(&mut &value[..])
+                    .map_err(|_| BalancesError::StorageCorruption)
+            }
+            None => Ok(0), // Account doesn't exist, balance is 0
+        }
+    }
+
+    /// Set balance for an account
+    fn set_balance(storage: &mut dyn Storage, account: [u8; 32], balance: u128) -> Result<()> {
+        let key = Self::balance_key(account);
+        let value = balance.encode();
+        storage.put(&key, &value);
+        Ok(())
+    }
+
+    /// Get total supply
+    fn get_total_supply(storage: &dyn Storage) -> Result<u128> {
+        use codec::Decode;
+        let key = Self::total_supply_key();
+        match storage.get(&key) {
+            Some(value) => {
+                <u128 as Decode>::decode(&mut &value[..])
+                    .map_err(|_| BalancesError::StorageCorruption)
+            }
+            None => Ok(0), // No supply minted yet
+        }
+    }
+
+    /// Set total supply
+    fn set_total_supply(storage: &mut dyn Storage, supply: u128) -> Result<()> {
+        let key = Self::total_supply_key();
+        let value = supply.encode();
+        storage.put(&key, &value);
+        Ok(())
+    }
+
+    /// Generate storage key for account balance
+    fn balance_key(account: [u8; 32]) -> Vec<u8> {
+        let mut key = b"Balances:Account:".to_vec();
+        key.extend_from_slice(&account);
+        key
+    }
+
+    /// Generate storage key for total supply
+    fn total_supply_key() -> Vec<u8> {
+        b"Balances:TotalSupply".to_vec()
     }
 }
 
@@ -49,8 +206,9 @@ impl Module for BalancesModule {
 pub enum BalanceCall {
     /// Transfer CGT
     Transfer {
-        to: [u8; 32],
-        amount: u128, // Amount in Sparks (100 Sparks = 1 CGT)
+        from: [u8; 32], // Sender account
+        to: [u8; 32],   // Recipient account
+        amount: u128,   // Amount in Sparks (100 Sparks = 1 CGT)
     },
     /// Mint new CGT (governance only)
     Mint {
