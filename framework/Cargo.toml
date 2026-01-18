@@ -1,0 +1,56 @@
+[workspace]
+resolver = "2"
+members = [
+    "core",
+    "storage",
+    "consensus",
+    "modules",
+    "modules/balances",
+    "modules/drc369",
+    "modules/game-assets",
+    "modules/energy",
+    "modules/session-keys",
+    "modules/yield-nfts",
+    "modules/zk",
+    "network",
+    "rpc",
+    "node",
+]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Alaustrup <alaustrup@demiurge.io>"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
+
+[workspace.dependencies]
+# Core dependencies - minimal, only what we need
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+codec = { package = "parity-scale-codec", version = "3.6", default-features = false, features = ["derive"] }
+scale-info = { version = "2.11", default-features = false, features = ["derive"] }
+
+# Crypto
+blake2 = "0.10"
+sha2 = "0.10"
+ed25519-dalek = "2.0"
+secp256k1 = "0.28"
+
+# Async runtime
+tokio = { version = "1.43", features = ["full"] }
+futures = "0.3"
+
+# Networking
+libp2p = { version = "0.53", default-features = false, features = ["tcp", "dns", "noise", "yamux"] }
+
+# Storage
+rocksdb = "0.21"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"

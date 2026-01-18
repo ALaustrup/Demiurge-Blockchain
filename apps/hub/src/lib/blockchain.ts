@@ -263,6 +263,97 @@ export class BlockchainClient {
   }
 
   /**
+   * Transfer CGT tokens using WASM wallet signing
+   * 
+   * @param keypairJson WASM keypair JSON string
+   * @param fromAddress Sender's address (for verification)
+   * @param toAddress Destination account address
+   * @param amount Amount in smallest units (e.g., "100" = 1 CGT)
+   * @param signMessage Function to sign message with WASM
+   * @returns Transaction hash
+   */
+  async transferCGTWithWasm(
+    keypairJson: string,
+    fromAddress: string,
+    toAddress: string,
+    amount: string,
+    signMessage: (keypairJson: string, message: Uint8Array) => Promise<string>
+  ): Promise<string> {
+    if (!this.api) {
+      await this.connect();
+    }
+
+    if (!this.api) {
+      throw new Error('Blockchain not connected');
+    }
+
+    try {
+      // Convert amount to Compact<Balance>
+      const amountCompact = this.api.createType('Compact<Balance>', amount);
+      
+      // Convert toAddress to AccountId
+      const toAccountId = this.api.createType('AccountId32', toAddress);
+      
+      // Build transfer extrinsic
+      const transfer = this.api.tx.balances.transferKeepAlive(toAccountId, amountCompact);
+      
+      // Get the signer address from the API
+      const signerAddress = this.api.createType('AccountId32', fromAddress);
+      
+      // Create a custom signer that uses WASM
+      const wasmSigner = {
+        signPayload: async (payload: any) => {
+          // Convert payload to bytes
+          const payloadBytes = payload.toU8a();
+          
+          // Sign with WASM
+          const signatureHex = await signMessage(keypairJson, payloadBytes);
+          
+          // Convert hex signature to Uint8Array
+          const { hexToU8a } = await import('@polkadot/util');
+          const signature = hexToU8a(signatureHex);
+          
+          return {
+            id: payload.id,
+            signature: signature,
+          };
+        },
+        signRaw: async (raw: { data: string }) => {
+          // Convert hex data to bytes
+          const { hexToU8a } = await import('@polkadot/util');
+          const dataBytes = hexToU8a(raw.data);
+          
+          // Sign with WASM
+          const signatureHex = await signMessage(keypairJson, dataBytes);
+          const signature = hexToU8a(signatureHex);
+          
+          return {
+            signature: signature,
+          };
+        }
+      };
+      
+      // Sign and submit transaction using custom signer
+      return new Promise((resolve, reject) => {
+        transfer.signAndSend(
+          signerAddress,
+          { signer: wasmSigner },
+          ({ status, txHash }) => {
+            if (status.isInBlock || status.isFinalized) {
+              resolve(txHash.toString());
+            } else if ((status as any).isError) {
+              reject(new Error('Transaction failed'));
+            }
+          }
+        ).catch(reject);
+      });
+    } catch (error) {
+      console.error('Failed to transfer CGT with WASM:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get user's DRC-369 assets
    * 
    * @param address User's account address
@@ -506,6 +597,189 @@ export class BlockchainClient {
    */
   getApi(): ApiPromise | null {
     return this.api;
+  }
+
+  /**
+   * Authorize a session key for temporary authorization
+   * 
+   * @param fromPair Keyring pair of the primary account
+   * @param sessionKeyAddress Address of the session key to authorize
+   * @param duration Duration in blocks (max 7 days = 100,800 blocks)
+   * @returns Transaction hash
+   */
+  async authorizeSessionKey(
+    fromPair: KeyringPair,
+    sessionKeyAddress: string,
+    duration: number
+  ): Promise<string> {
+    if (!this.api) {
+      await this.connect();
+    }
+
+    if (!this.api) {
+      throw new Error('Blockchain not connected');
+    }
+
+    try {
+      // Convert sessionKeyAddress to AccountId
+      const sessionKeyAccountId = this.api.createType('AccountId32', sessionKeyAddress);
+      
+      // Convert duration to BlockNumber
+      const durationBlockNumber = this.api.createType('u32', duration);
+      
+      // Build authorize_session_key extrinsic
+      const authorizeExtrinsic = this.api.tx.sessionKeys.authorizeSessionKey(
+        sessionKeyAccountId,
+        durationBlockNumber
+      );
+
+      // Sign and submit transaction
+      return new Promise((resolve, reject) => {
+        authorizeExtrinsic.signAndSend(fromPair, ({ status, txHash }) => {
+          if (status.isInBlock || status.isFinalized) {
+            resolve(txHash.toString());
+          } else if ((status as any).isError) {
+            reject(new Error('Transaction failed'));
+          }
+        }).catch(reject);
+      });
+    } catch (error) {
+      console.error('Failed to authorize session key:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Revoke a session key
+   * 
+   * @param fromPair Keyring pair of the primary account
+   * @param sessionKeyAddress Address of the session key to revoke
+   * @returns Transaction hash
+   */
+  async revokeSessionKey(
+    fromPair: KeyringPair,
+    sessionKeyAddress: string
+  ): Promise<string> {
+    if (!this.api) {
+      await this.connect();
+    }
+
+    if (!this.api) {
+      throw new Error('Blockchain not connected');
+    }
+
+    try {
+      // Convert sessionKeyAddress to AccountId
+      const sessionKeyAccountId = this.api.createType('AccountId32', sessionKeyAddress);
+      
+      // Build revoke_session_key extrinsic
+      const revokeExtrinsic = this.api.tx.sessionKeys.revokeSessionKey(sessionKeyAccountId);
+
+      // Sign and submit transaction
+      return new Promise((resolve, reject) => {
+        revokeExtrinsic.signAndSend(fromPair, ({ status, txHash }) => {
+          if (status.isInBlock || status.isFinalized) {
+            resolve(txHash.toString());
+          } else if ((status as any).isError) {
+            reject(new Error('Transaction failed'));
+          }
+        }).catch(reject);
+      });
+    } catch (error) {
+      console.error('Failed to revoke session key:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get active session keys for an account
+   * 
+   * Uses runtime API if available, otherwise falls back to storage queries.
+   * 
+   * @param primaryAddress Primary account address
+   * @returns Array of { sessionKey, expiryBlock } objects
+   */
+  async getActiveSessionKeys(primaryAddress: string): Promise<Array<{ sessionKey: string; expiryBlock: number }>> {
+    if (!this.api) {
+      await this.connect();
+    }
+
+    if (!this.api) {
+      return [];
+    }
+
+    try {
+      // Convert address to AccountId
+      const accountId = this.api.createType('AccountId32', primaryAddress);
+      
+      // Try to use runtime API first (more efficient)
+      try {
+        const runtimeApi = this.api.call.runtimeApi;
+        if (runtimeApi && (runtimeApi as any).sessionKeysApi) {
+          const keys = await (runtimeApi as any).sessionKeysApi.get_active_session_keys(accountId);
+          const currentHeader = await this.api.rpc.chain.getHeader();
+          const currentBlock = currentHeader.number.toNumber();
+          
+          return keys.map(([sessionKey, expiryBlock]: [any, any]) => ({
+            sessionKey: sessionKey.toString(),
+            expiryBlock: expiryBlock.toNumber(),
+          })).filter((key: { sessionKey: string; expiryBlock: number }) => key.expiryBlock > currentBlock);
+        }
+      } catch (apiError) {
+        // Runtime API not available, fall back to storage queries
+        console.warn('Runtime API not available, using storage queries:', apiError);
+      }
+      
+      // Fallback: Use storage iteration (more efficient than event scanning)
+      // Query all session keys for this account using storage prefix
+      const sessionKeys: Array<{ sessionKey: string; expiryBlock: number }> = [];
+      
+      // Get storage key prefix for SessionKeys double map with primary account
+      const storageKey = this.api.query.sessionKeys.sessionKeys.key(accountId);
+      const prefix = storageKey.slice(0, storageKey.length - 32); // Remove the second key part
+      
+      // Query all keys with this prefix
+      const keys = await this.api.rpc.state.getKeysPaged(prefix, 1000);
+      
+      // Get current block number
+      const currentHeader = await this.api.rpc.chain.getHeader();
+      const currentBlock = currentHeader.number.toNumber();
+      
+      // Decode and filter active keys
+      for (const key of keys) {
+        try {
+          // Decode the storage key to get session key address
+          const storageEntry = await this.api.rpc.state.getStorage(key);
+          if (storageEntry) {
+            const expiryBlock = this.api.createType('u32', storageEntry);
+            const expiry = expiryBlock.toNumber();
+            
+            // Extract session key from storage key
+            // The storage key format is: prefix + primary_account + session_key
+            const keyBytes = key.slice(prefix.length);
+            // Skip primary account (32 bytes) to get session key
+            const sessionKeyBytes = keyBytes.slice(32);
+            const sessionKey = this.api.createType('AccountId32', sessionKeyBytes);
+            
+            // Only include if not expired
+            if (expiry > currentBlock) {
+              sessionKeys.push({
+                sessionKey: sessionKey.toString(),
+                expiryBlock: expiry,
+              });
+            }
+          }
+        } catch (error) {
+          // Skip keys that fail to decode
+          continue;
+        }
+      }
+
+      return sessionKeys;
+    } catch (error) {
+      console.error('Failed to query active session keys:', error);
+      return [];
+    }
   }
 
   /**

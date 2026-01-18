@@ -16,6 +16,7 @@ scale-info = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 pallet-balances = { workspace = true }
+pallet-game-assets = { path = "../pallet-game-assets", default-features = false }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 sp-core = { workspace = true }
@@ -29,6 +30,7 @@ std = [
     "frame-support/std",
     "frame-system/std",
     "pallet-balances/std",
+    "pallet-game-assets/std",
     "sp-runtime/std",
     "sp-std/std",
     "sp-core/std",

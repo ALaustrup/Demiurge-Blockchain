@@ -1,0 +1,24 @@
+[package]
+name = "demiurge-consensus"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Consensus mechanism for Demiurge blockchain - Hybrid PoS + BFT"
+
+[dependencies]
+codec = { workspace = true }
+scale-info = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+blake2 = { workspace = true }
+ed25519-dalek = { workspace = true }
+
+# Internal dependencies
+demiurge-core = { path = "../core" }
+demiurge-storage = { path = "../storage" }
+
+[dev-dependencies]
+tokio = { workspace = true }

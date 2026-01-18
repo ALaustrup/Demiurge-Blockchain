@@ -21,7 +21,7 @@ pub mod pallet {
         traits::Get,
     };
     use frame_system::pallet_prelude::*;
-    use sp_runtime::traits::{Saturating, Zero};
+    use sp_runtime::traits::{Saturating, UniqueSaturatedInto, Zero};
     use sp_std::prelude::*;
 
     /// Maximum number of shares per asset
@@ -32,25 +32,27 @@ pub mod pallet {
 
     /// Share information
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-    pub struct Share {
+    #[scale_info(skip_type_params(T))]
+    pub struct Share<T: Config> {
         /// Shareholder account
-        pub owner: <Self as frame_system::Config>::AccountId,
+        pub owner: T::AccountId,
         
         /// Number of shares owned
         pub share_count: u32,
         
         /// Time allocation per share (in blocks)
-        pub time_per_share: BlockNumberFor<Self>,
+        pub time_per_share: BlockNumberFor<T>,
         
         /// Last time access was used
-        pub last_access_block: BlockNumberFor<Self>,
+        pub last_access_block: BlockNumberFor<T>,
         
         /// Total time used this period
-        pub time_used_this_period: BlockNumberFor<Self>,
+        pub time_used_this_period: BlockNumberFor<T>,
     }
 
     /// Fractional asset
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+    #[scale_info(skip_type_params(T))]
     pub struct FractionalAsset<T: Config> {
         /// Base NFT UUID (from DRC-369)
         pub base_uuid: [u8; 32],
@@ -77,6 +79,9 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_timestamp::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        
+        /// DRC-369 pallet for NFT ownership verification
+        type Drc369: pallet_drc369::Config<AccountId = Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -145,6 +150,8 @@ pub mod pallet {
         AccessPeriodExpired,
         /// Not enough time allocation
         InsufficientTimeAllocation,
+        /// Not the owner of the base NFT
+        NotOwner,
     }
 
     #[pallet::hooks]
@@ -171,7 +178,16 @@ pub mod pallet {
         ) -> DispatchResult {
             let creator = ensure_signed(origin)?;
             
-            // TODO: Verify base_uuid exists and creator owns it
+            // Verify base_uuid exists in DRC-369 pallet and creator owns it
+            let nft_owner = pallet_drc369::ItemOwners::<T::Drc369>::get(&base_uuid)
+                .ok_or(Error::<T>::AssetNotFound)?;
+            ensure!(nft_owner == creator, Error::<T>::AssetNotFound);
+            
+            // Verify the NFT actually exists in Items storage
+            ensure!(
+                pallet_drc369::Items::<T::Drc369>::contains_key(&base_uuid),
+                Error::<T>::AssetNotFound
+            );
             
             ensure!(
                 total_shares <= MAX_SHARES_PER_ASSET,
@@ -291,7 +307,8 @@ pub mod pallet {
             
             // Reset period if needed
             let current_block = frame_system::Pallet::<T>::block_number();
-            if current_block >= asset.period_reset_block {
+            let needs_reset = current_block >= asset.period_reset_block;
+            if needs_reset {
                 // Reset all shares
                 for s in asset.shares.iter_mut() {
                     s.time_used_this_period = Zero::zero();
@@ -299,12 +316,21 @@ pub mod pallet {
                 asset.period_reset_block = current_block + asset.period_length;
             }
             
+            // Find the share again after potential reset
+            let share = asset.shares.iter()
+                .find(|s| s.owner == user)
+                .ok_or(Error::<T>::InsufficientShares)?;
+            
             // Calculate available time
-            let total_time_allocation = share.share_count as u64 * share.time_per_share as u64;
-            let available_time = total_time_allocation.saturating_sub(share.time_used_this_period as u64);
+            let time_per_share_u64: u64 = share.time_per_share.unique_saturated_into();
+            let time_used_u64: u64 = share.time_used_this_period.unique_saturated_into();
+            let duration_u64: u64 = duration.unique_saturated_into();
+            
+            let total_time_allocation = (share.share_count as u64).saturating_mul(time_per_share_u64);
+            let available_time = total_time_allocation.saturating_sub(time_used_u64);
             
             ensure!(
-                duration as u64 <= available_time,
+                duration_u64 <= available_time,
                 Error::<T>::InsufficientTimeAllocation
             );
             

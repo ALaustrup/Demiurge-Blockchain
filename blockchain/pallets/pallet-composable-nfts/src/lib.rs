@@ -101,6 +101,9 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        
+        /// DRC-369 pallet for NFT ownership verification
+        type Drc369: pallet_drc369::Config<AccountId = Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -191,7 +194,16 @@ pub mod pallet {
         ) -> DispatchResult {
             let owner = ensure_signed(origin)?;
             
-            // TODO: Verify base_uuid exists in DRC-369 pallet and owner matches
+            // Verify base_uuid exists in DRC-369 pallet and owner matches
+            let nft_owner = pallet_drc369::ItemOwners::<T::Drc369>::get(&base_uuid)
+                .ok_or(Error::<T>::ComposableNftNotFound)?;
+            ensure!(nft_owner == owner, Error::<T>::NotOwner);
+            
+            // Verify the NFT actually exists in Items storage
+            ensure!(
+                pallet_drc369::Items::<T::Drc369>::contains_key(&base_uuid),
+                Error::<T>::ComposableNftNotFound
+            );
             
             ensure!(
                 slot_names.len() <= MAX_SLOTS_PER_NFT as usize,

@@ -22,6 +22,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![recursion_limit = "256"]
 
+// Make the WASM binary available.
+#[cfg(feature = "std")]
+include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
+
 // Re-export pallets for node access
 pub use frame_support::{
     construct_runtime, parameter_types,
@@ -232,17 +236,26 @@ impl pallet_energy::Config for Runtime {
 // Configure pallet_composable_nfts
 impl pallet_composable_nfts::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type Drc369 = Drc369;
 }
 
 // Configure pallet_dex
+parameter_types! {
+    pub const DexPalletId: PalletId = PalletId(*b"dex/lp  ");
+}
+
 impl pallet_dex::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
+    type GameAssets = GameAssets;
+    type PalletId = DexPalletId;
 }
 
 // Configure pallet_fractional_assets
 impl pallet_fractional_assets::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type Drc369 = Drc369;
+    // pallet_timestamp::Config is already implemented for Runtime above
 }
 
 // Configure pallet_drc369_ocw
@@ -253,17 +266,51 @@ parameter_types! {
 impl pallet_drc369_ocw::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type MaxGameSources = MaxGameSources;
+    type Drc369 = Drc369;
 }
 
 // Configure pallet_session_keys (Phase 11: Revolutionary Features)
 parameter_types! {
-    pub const MaxSessionDuration: BlockNumber = DAYS * 7; // 7 days max session
+    pub const MaxSessionDuration: BlockNumber = DAYS * 7; // 7 days max session (100,800 blocks)
+}
+
+// Implement QOR Identity query trait for session keys pallet
+impl pallet_session_keys::QorIdentityQuery<Runtime> for Runtime {
+    fn get_qor_id_username(account: &AccountId) -> Option<frame_support::BoundedVec<u8, ConstU32<20>>> {
+        // Query AccountToIdentity to get the QOR ID hash
+        if let Some(qor_id_hash) = pallet_qor_identity::AccountToIdentity::<Runtime>::get(account) {
+            // Query Identities to get the full identity with username
+            if let Some(identity) = pallet_qor_identity::Identities::<Runtime>::get(qor_id_hash) {
+                return Some(identity.username);
+            }
+        }
+        None
+    }
 }
 
 impl pallet_session_keys::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_session_keys::weights::SubstrateWeight<Runtime>;
     type MaxSessionDuration = MaxSessionDuration;
+    type QorIdentity = QorIdentity; // Link to QOR Identity pallet for QOR ID lookups
+    type QorIdentityQuery = Runtime; // Runtime implements the query trait
+}
+
+// Configure pallet_yield_nfts (Phase 11: Revolutionary Features)
+parameter_types! {
+    pub const MinStakingDuration: BlockNumber = 100; // Minimum 100 blocks (~10 minutes)
+    pub const MaxStakingDuration: BlockNumber = 0; // 0 = unlimited
+    pub const DefaultYieldRate: Balance = CGT_UNIT / 1000; // 0.001 CGT per block (very small)
+}
+
+impl pallet_yield_nfts::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type Drc369 = Drc369;
+    type MinStakingDuration = MinStakingDuration;
+    type MaxStakingDuration = MaxStakingDuration;
+    type DefaultYieldRate = DefaultYieldRate;
+    type WeightInfo = pallet_yield_nfts::weights::SubstrateWeight<Runtime>;
 }
 
 // Construct runtime
@@ -283,6 +330,7 @@ construct_runtime!(
         Drc369Ocw: pallet_drc369_ocw,
         Governance: pallet_governance,
         SessionKeys: pallet_session_keys,
+        YieldNfts: pallet_yield_nfts,
     }
 );
 
@@ -400,6 +448,20 @@ sp_api::impl_runtime_apis! {
     impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
         fn account_nonce(account: AccountId) -> Nonce {
             System::account_nonce(account)
+        }
+    }
+
+    impl pallet_session_keys::runtime_api::SessionKeysApi<Block> for Runtime {
+        fn get_active_session_keys(primary_account: AccountId) -> Vec<(AccountId, BlockNumber)> {
+            SessionKeys::get_active_session_keys(&primary_account)
+        }
+
+        fn is_session_key_valid(primary_account: AccountId, session_key: AccountId) -> bool {
+            SessionKeys::is_session_key_valid(&primary_account, &session_key)
+        }
+
+        fn get_session_key_expiry(primary_account: AccountId, session_key: AccountId) -> Option<BlockNumber> {
+            SessionKeys::session_key_expiry(&primary_account, &session_key)
         }
     }
 

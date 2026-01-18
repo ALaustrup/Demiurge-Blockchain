@@ -58,15 +58,51 @@
 
 ---
 
-## ⛓️ BLOCKCHAIN TRACK (Milestones 1-6)
+## ⛓️ BLOCKCHAIN TRACK - CUSTOM FRAMEWORK
 
-### ✅ Milestone 1: Genesis (COMPLETE)
-### 🔨 Milestone 2: Substrate Aeon (40% Complete)
-### ⏳ Milestone 3-6: Core Blockchain
-- Milestone 3: Qor Identity
-- Milestone 4: Creator God Token
-- Milestone 5: Unreal Emanation
-- Milestone 6: The Pleroma
+### 🚀 NEW APPROACH: Building Our Own Framework
+
+**Status**: Foundation Complete, Building Core Components
+
+**Why**: Complete independence, optimized for creators/gamers, maximum innovation
+
+### ✅ Milestone 1: Framework Foundation (COMPLETE)
+- ✅ Core runtime engine
+- ✅ Storage layer with Merkle trees
+- ✅ Module system (replacement for pallets)
+- ✅ Architecture design
+
+### 🔨 Milestone 2: Core Components (IN PROGRESS)
+- 🚧 Consensus mechanism (Hybrid PoS + BFT)
+- 🚧 P2P networking layer
+- 🚧 RPC API layer
+- 🚧 Full node implementation
+
+### ⏳ Milestone 3: Module Migration
+- Migrate all existing modules
+- Build ZK module (private transactions)
+- Test all modules
+- Performance optimization
+
+### ⏳ Milestone 4: Integration & Testing
+- QOR Identity integration
+- Web platform updates
+- SDK development
+- Comprehensive testing
+
+### ⏳ Milestone 5: Testnet Launch
+- Deploy testnet
+- Developer onboarding
+- Game integrations
+- Community feedback
+
+### ⏳ Milestone 6: Mainnet Launch
+- Mainnet deployment
+- Token distribution
+- Game launches
+- Ecosystem growth
+
+**See**: `docs/ULTIMATE_BLOCKCHAIN_DESIGN.md` for complete architecture
 
 ---
 

@@ -15,6 +15,13 @@ frame-support = { workspace = true }
 frame-system = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
+sp-api = { workspace = true, optional = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+
+# Local dependencies
+pallet-qor-identity = { workspace = true }
+pallet-balances = { workspace = true }
 
 [features]
 default = ["std"]
@@ -26,6 +33,11 @@ std = [
 	"scale-info/std",
 	"sp-runtime/std",
 	"sp-std/std",
+	"sp-api/std",
+	"sp-core/std",
+	"sp-io/std",
+	"pallet-balances/std",
 ]
+runtime = ["sp-api"]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]

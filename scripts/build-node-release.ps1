@@ -54,7 +54,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "      .\target\release\demiurge-node.exe --dev" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "   2. Test RPC endpoints:" -ForegroundColor Gray
-    Write-Host "      curl -H 'Content-Type: application/json' -d '{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"cgt_totalBurned\",\"params\":[]}' http://127.0.0.1:9944" -ForegroundColor DarkGray
+    Write-Host "      curl -H 'Content-Type: application/json' -d '{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"cgt_totalBurned\",\"params':[]}' http://127.0.0.1:9944" -ForegroundColor DarkGray
 } else {
     Write-Host "❌ Build failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     Write-Host ""

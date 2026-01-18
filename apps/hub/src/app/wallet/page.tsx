@@ -4,14 +4,19 @@ import { useEffect, useState } from 'react';
 import { qorAuth } from '@demiurge/qor-sdk';
 import { useBlockchain } from '@/contexts/BlockchainContext';
 import { blockchainClient } from '@/lib/blockchain';
+import { getOrCreateAddressForQorId, formatQorId } from '@/lib/qor-wallet';
+import { getBalance as getBalanceWithMock } from '@/lib/mock-blockchain';
 import { SendCGTModal } from '@/components/wallet/SendCGTModal';
 import { ReceiveCGTModal } from '@/components/wallet/ReceiveCGTModal';
 import { TransactionHistory } from '@/components/wallet/TransactionHistory';
+import { SessionKeyManager } from '@/components/wallet/SessionKeyManager';
+import { WalletSelector } from '@/components/wallet/WalletSelector';
 
 export default function WalletPage() {
   const { getBalance, isConnected } = useBlockchain();
   const [balance, setBalance] = useState('0');
   const [address, setAddress] = useState<string | null>(null);
+  const [qorId, setQorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
@@ -35,12 +40,26 @@ export default function WalletPage() {
     setLoading(true);
     try {
       const profile = await qorAuth.getProfile();
-      const userAddress = profile?.on_chain?.address || null;
+      setQorId(profile.qor_id);
+
+      // Get or create blockchain address for QOR ID
+      const userAddress = await getOrCreateAddressForQorId(profile, false);
       setAddress(userAddress);
 
-      if (userAddress && isConnected) {
-        const balanceStr = await getBalance(userAddress);
-        setBalance(balanceStr);
+      // Get balance (uses mock if blockchain not connected)
+      if (userAddress) {
+        try {
+          // Try real blockchain first
+          const balanceStr = isConnected 
+            ? await getBalance(userAddress)
+            : await getBalanceWithMock(userAddress);
+          setBalance(balanceStr);
+        } catch (error) {
+          console.warn('Failed to get balance, using mock:', error);
+          // Fallback to mock
+          const balanceStr = await getBalanceWithMock(userAddress);
+          setBalance(balanceStr);
+        }
       } else {
         setBalance('0');
       }
@@ -98,15 +117,27 @@ export default function WalletPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold text-white">Wallet</h1>
-            <p className="text-gray-400">
-              Blockchain status: {isConnected ? 'Connected' : 'Disconnected'}
-            </p>
+            <div className="flex items-center gap-4 mt-2">
+              {qorId && (
+                <p className="text-demiurge-cyan font-semibold">
+                  {formatQorId(qorId)}
+                </p>
+              )}
+              <p className="text-gray-400">
+                Blockchain: {isConnected ? (
+                  <span className="text-green-400">Connected</span>
+                ) : (
+                  <span className="text-yellow-400">Using Mock Data</span>
+                )}
+              </p>
+            </div>
           </div>
           <button
             onClick={loadWallet}
             className="glass-panel px-4 py-2 rounded hover:chroma-glow transition-all"
+            disabled={loading}
           >
-            Refresh
+            {loading ? 'Loading...' : 'Refresh'}
           </button>
         </div>
 
@@ -137,18 +168,35 @@ export default function WalletPage() {
           </div>
 
           {address && (
-            <div className="mt-6">
-              <div className="text-sm text-gray-400 mb-2">On-chain Address</div>
-              <div className="flex flex-col md:flex-row md:items-center gap-3">
-                <div className="bg-gray-800/50 rounded p-3 text-sm font-mono break-all flex-1">
-                  {address}
+            <div className="mt-6 space-y-4">
+              <div>
+                <div className="text-sm text-gray-400 mb-2">Selected Wallet</div>
+                <WalletSelector
+                  qorId={qorId || ''}
+                  selectedAddress={address}
+                  onSelectAddress={(newAddress) => {
+                    setAddress(newAddress);
+                    loadWallet();
+                  }}
+                  onAddWallet={() => {
+                    // TODO: Show add wallet modal
+                    console.log('Add wallet clicked');
+                  }}
+                />
+              </div>
+              <div>
+                <div className="text-sm text-gray-400 mb-2">On-chain Address</div>
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
+                  <div className="bg-gray-800/50 rounded p-3 text-sm font-mono break-all flex-1">
+                    {address}
+                  </div>
+                  <button
+                    onClick={handleCopyAddress}
+                    className="glass-panel px-4 py-2 rounded hover:chroma-glow transition-all"
+                  >
+                    {copied ? 'Copied' : 'Copy'}
+                  </button>
                 </div>
-                <button
-                  onClick={handleCopyAddress}
-                  className="glass-panel px-4 py-2 rounded hover:chroma-glow transition-all"
-                >
-                  {copied ? 'Copied' : 'Copy'}
-                </button>
               </div>
             </div>
           )}
@@ -162,6 +210,12 @@ export default function WalletPage() {
             <div className="text-gray-400">No on-chain address found.</div>
           )}
         </div>
+
+        {address && qorId && (
+          <div className="mt-6">
+            <SessionKeyManager qorId={qorId} primaryAddress={address} />
+          </div>
+        )}
       </div>
 
       {showSendModal && address && (

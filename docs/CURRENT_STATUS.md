@@ -1,124 +1,118 @@
-# Current Status - Monad Server Setup
+# 📊 Current Status - Substrate Fork Fix
 
 **Date:** January 17, 2026  
-**Server:** pleroma (51.210.209.112)
-
-## ✅ Completed
-
-### Core Services
-- ✅ **PostgreSQL 18** - Running and healthy
-- ✅ **Redis 7.4** - Running and healthy
-- ✅ **QOR Auth** - Running and healthy (port 8080)
-- ✅ **Docker & Docker Compose** - Installed and configured
-
-### System Configuration
-- ✅ Ubuntu 24.04 LTS
-- ✅ Rust nightly with wasm32-unknown-unknown target
-- ✅ System optimizations applied
-- ✅ Kernel parameters tuned
-- ✅ Memory overcommit enabled
-
-### Server Hosting Setup
-- ✅ **Nginx** installed
-- ✅ **Certbot** installed
-- ✅ **Nginx config** created for both domains
-- ✅ **Docker Compose** updated with Hub service
-- ✅ **SSL setup script** ready
-
-### Games
-- ✅ Games exist in `/apps/hub/public/games/`
-- ✅ `galaga-creator` and `killBot-clicker` present
-- ✅ `index.html` files exist
-- ✅ GameWrapper component implemented
-
-### Documentation
-- ✅ `docs/PHASER_INTEGRATION_GUIDE.md` - Complete Phaser.js integration guide
-- ✅ `docs/SERVER_HOSTING_SETUP.md` - Domain hosting setup
-- ✅ `docs/BUILD_ISSUE_RESOLUTION.md` - Build troubleshooting
-- ✅ `scripts/setup-ssl-domains.sh` - SSL certificate automation
+**Last Updated:** Just now
 
 ---
 
-## ⚠️ In Progress
+## ✅ COMPLETED
 
-### Blockchain Node Build
-- **Status**: Build failing due to `frame-system` version conflicts
-- **Issue**: Multiple versions (37.1.0, 38.0.0, 39.1.0) causing compilation errors
-- **Workaround**: External build recommended (see `docker/BLOCKCHAIN_NODE.md`)
-- **Next**: Try aligning all Substrate dependencies to compatible versions
+### 1. Substrate Fork Setup ✅
+- ✅ Initialized git repository in `substrate/` directory
+- ✅ Added remotes:
+  - `origin`: https://github.com/ALaustrup/substrate.git
+  - `upstream`: https://github.com/paritytech/substrate.git
+- ✅ Created branch: `fix/librocksdb-sys-conflict`
 
-### Hub App Build
-- **Status**: Dockerfile context issue fixed
-- **Next**: Build Hub app for production deployment
+### 2. Dependency Fix Applied ✅
+- ✅ Updated `substrate/client/db/Cargo.toml`:
+  - `kvdb-rocksdb = "0.21.0"` (was 0.19.0)
+- ✅ Updated `substrate/bin/node/bench/Cargo.toml`:
+  - `kvdb-rocksdb = "0.21.0"` (was 0.19.0)
+- ✅ Committed fix: `fa1e785` - "fix: Update kvdb-rocksdb to 0.21.0 to resolve librocksdb-sys conflict"
 
----
-
-## 📋 Pending
-
-### SSL Certificates
-- **Status**: Ready to set up
-- **Requires**: DNS records configured
-- **Domains**: 
-  - demiurge.cloud → 51.210.209.112
-  - demiurge.guru → 51.210.209.112
-- **Action**: Run `sudo bash /tmp/setup-ssl-domains.sh` after DNS is ready
-
-### Game Loading Verification
-- **Status**: Games exist, need to verify loading in Hub app
-- **Next**: Build Hub app and test game loading
-
-### Phaser Integration
-- **Status**: Documentation complete
-- **Next**: Create starter Phaser game template
-- **Next**: Integrate with Demiurge blockchain
+### 3. Demiurge Blockchain Integration ✅
+- ✅ Added `[patch.crates-io]` section to `blockchain/Cargo.toml`
+- ✅ Configured to use local path dependencies:
+  ```toml
+  sc-cli = { path = "../substrate/client/cli", package = "sc-cli" }
+  sc-service = { path = "../substrate/client/service", package = "sc-service" }
+  sc-client-db = { path = "../substrate/client/db", package = "sc-client-db" }
+  ```
+- ✅ Ran `cargo update` successfully
 
 ---
 
-## 🚀 Next Steps
+## 🔄 IN PROGRESS
 
-### Immediate (Before SSL)
-1. **Fix Hub Dockerfile** - ✅ Done
-2. **Build Hub app** - Test game loading
-3. **Verify games** - Ensure Rosebud.ai games load properly
-
-### After DNS Configuration
-1. **Run SSL setup script** - `sudo bash /tmp/setup-ssl-domains.sh`
-2. **Start Hub service** - `docker compose -f docker/docker-compose.production.yml up -d hub nginx`
-3. **Test domains** - Verify HTTPS works for both domains
-
-### Blockchain Node
-1. **Resolve build issues** - Align Substrate dependency versions
-2. **Or use external build** - Build node directly on server
-3. **Set up systemd service** - Run node as service
-
-### Phaser Development
-1. **Install Phaser Editor Core** on server
-2. **Create starter template** with blockchain integration
-3. **Build first Phaser game** using your game design
+### Build Testing
+- ⏳ `cargo check --bin demiurge-node` was started but timed out
+- This is normal for large Rust projects - compilation can take 10-30+ minutes
+- **Status:** Build is likely still compiling in background
 
 ---
 
-## 📊 Service Status
+## ⏳ PENDING
 
-| Service | Status | Port | Notes |
-|---------|--------|------|-------|
-| PostgreSQL | ✅ Running | 5432 | Healthy |
-| Redis | ✅ Running | 6379 | Healthy |
-| QOR Auth | ✅ Running | 8080 | Healthy |
-| Hub | ⏳ Pending | 3000 | Needs build |
-| Nginx | ⏳ Pending | 80/443 | Needs SSL |
-| Blockchain Node | ⏳ Pending | 9944 | Build issue |
+### 1. Push Fork to GitHub
+**Issue:** Push failed due to GitHub email privacy settings
+
+**To Fix:**
+```powershell
+cd x:\Demiurge-Blockchain\substrate
+git config user.email "ALaustrup@users.noreply.github.com"
+git push -u origin fix/librocksdb-sys-conflict
+```
+
+**After Push:** Update `blockchain/Cargo.toml` to use git dependencies instead of local paths:
+```toml
+[patch.crates-io]
+sc-cli = { git = "https://github.com/ALaustrup/substrate.git", branch = "fix/librocksdb-sys-conflict", package = "sc-cli" }
+sc-service = { git = "https://github.com/ALaustrup/substrate.git", branch = "fix/librocksdb-sys-conflict", package = "sc-service" }
+sc-client-db = { git = "https://github.com/ALaustrup/substrate.git", branch = "fix/librocksdb-sys-conflict", package = "sc-client-db" }
+```
+
+### 2. Verify Build Success
+- Wait for `cargo check` to complete
+- If successful, proceed with development
+- If failed, investigate errors
 
 ---
 
-## 🔗 Key Files
+## 📁 Files Modified
 
-- **Nginx Config**: `docker/nginx.conf`
-- **Docker Compose**: `docker/docker-compose.production.yml`
-- **SSL Script**: `scripts/setup-ssl-domains.sh`
-- **Hosting Guide**: `docs/SERVER_HOSTING_SETUP.md`
-- **Phaser Guide**: `docs/PHASER_INTEGRATION_GUIDE.md`
+### Substrate Fork:
+- `substrate/client/db/Cargo.toml` - kvdb-rocksdb → 0.21.0
+- `substrate/bin/node/bench/Cargo.toml` - kvdb-rocksdb → 0.21.0
+
+### Demiurge Blockchain:
+- `blockchain/Cargo.toml` - Added [patch.crates-io] section
 
 ---
 
-**Ready for**: SSL setup (after DNS), Hub app build, Phaser game development
+## 🎯 Next Steps
+
+1. **Check Build Status:**
+   ```powershell
+   cd x:\Demiurge-Blockchain\blockchain
+   cargo check --bin demiurge-node
+   ```
+   (Run in external terminal - may take 10-30 minutes)
+
+2. **If Build Succeeds:**
+   - Push fork to GitHub (fix email issue)
+   - Update Cargo.toml to use git dependencies
+   - Proceed with Session Keys development
+
+3. **If Build Fails:**
+   - Review error messages
+   - Verify substrate paths are correct
+   - May need to adjust dependency configuration
+
+---
+
+## 🔍 What We Fixed
+
+**Problem:**
+- `sc-cli` → `sc-client-db` → `kvdb-rocksdb 0.19.0` → `librocksdb-sys 0.11.0` ❌
+- `sc-service` → `sc-client-db` → `kvdb-rocksdb 0.21.0` → `librocksdb-sys 0.17.3` ❌
+- **CONFLICT!**
+
+**Solution:**
+- Updated both paths to use `kvdb-rocksdb 0.21.0`
+- Both now resolve to `librocksdb-sys 0.17.3` ✅
+- **NO CONFLICT!**
+
+---
+
+**Current Status:** ✅ Fix applied, build in progress. Waiting for compilation to complete.

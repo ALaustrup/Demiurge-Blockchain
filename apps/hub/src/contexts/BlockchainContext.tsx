@@ -9,6 +9,13 @@ interface BlockchainContextType {
   disconnect: () => Promise<void>;
   getBalance: (address: string) => Promise<string>;
   transfer: (fromPair: any, toAddress: string, amount: string) => Promise<string>;
+  transferWithWasm: (
+    keypairJson: string,
+    fromAddress: string,
+    toAddress: string,
+    amount: string,
+    signMessage: (keypairJson: string, message: Uint8Array) => Promise<string>
+  ) => Promise<string>;
   getUserAssets: (address: string) => Promise<any[]>;
   getTransactions: (address: string) => Promise<any[]>;
   getApi: () => any | null;
@@ -73,6 +80,19 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
     return blockchainClient.transferCGT(fromPair, toAddress, amount);
   };
 
+  const transferWithWasm = async (
+    keypairJson: string,
+    fromAddress: string,
+    toAddress: string,
+    amount: string,
+    signMessage: (keypairJson: string, message: Uint8Array) => Promise<string>
+  ): Promise<string> => {
+    if (!isConnected) {
+      await connect();
+    }
+    return blockchainClient.transferCGTWithWasm(keypairJson, fromAddress, toAddress, amount, signMessage);
+  };
+
   const getUserAssets = async (address: string): Promise<any[]> => {
     if (!isConnected) {
       await connect();
@@ -99,6 +119,7 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
         disconnect,
         getBalance,
         transfer,
+        transferWithWasm,
         getUserAssets,
         getTransactions,
         getApi,

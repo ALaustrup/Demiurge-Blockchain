@@ -15,6 +15,7 @@ use base64::Engine;
 
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
+use sqlx;
 
 /// Get current user's profile
 pub async fn get_profile(
@@ -164,17 +165,54 @@ pub async fn revoke_session(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Link on-chain wallet to Qor ID
+/// Link on-chain wallet address to Qor ID
+/// 
+/// Links a blockchain address to the authenticated user's QOR ID account.
+/// The address can be generated deterministically from QOR ID or provided by the user.
 pub async fn link_wallet(
-    State(_state): State<Arc<AppState>>,
-    Json(_req): Json<Value>,
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<Value>,
 ) -> AppResult<Json<Value>> {
-    // TODO: Verify wallet signature
-    // TODO: Submit on-chain transaction
-    // TODO: Update user record
+    // TODO: Extract user from auth middleware
+    // For now, we'll accept address from request
+    
+    let address = req.get("address")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError::ValidationError("Missing 'address' field".to_string()))?;
+
+    // Validate address format (SS58 format, 48 characters for AccountId32)
+    if address.len() < 32 || address.len() > 48 {
+        return Err(AppError::ValidationError(
+            "Invalid address format. Expected SS58 format (32-48 characters)".to_string()
+        ));
+    }
+
+    // TODO: Verify wallet signature (optional - can be done client-side)
+    // TODO: Submit on-chain transaction to link identity (if needed)
+    
+    // Update user record with on-chain address
+    // For now, we'll use a placeholder user_id
+    // In production, extract from auth middleware
+    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")
+        .map_err(|_| AppError::InternalError("Invalid user ID".to_string()))?;
+
+    // Update user's on_chain_address in database
+    sqlx::query!(
+        r#"
+        UPDATE users
+        SET on_chain_address = $1, updated_at = NOW()
+        WHERE id = $2
+        "#,
+        address,
+        user_id
+    )
+    .execute(&state.db)
+    .await
+    .map_err(|e| AppError::DatabaseError(format!("Failed to update address: {}", e)))?;
 
     Ok(Json(json!({
         "message": "Wallet linked successfully",
-        "address": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+        "address": address,
+        "qor_id": "placeholder#0001" // TODO: Get from user
     })))
 }
