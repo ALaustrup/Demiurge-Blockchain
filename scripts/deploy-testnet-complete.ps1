@@ -41,48 +41,27 @@ ssh "${SERVER_USER}@${SERVER}" "cd ${REPO_DIR}/framework && source ~/.cargo/env 
 
 # Step 7: Create systemd service for blockchain node
 Write-Host "⚙️  Creating blockchain node service..." -ForegroundColor Green
-$nodeServiceContent = @"
-[Unit]
-Description=Demiurge Blockchain Node
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=$REPO_DIR/framework
-ExecStart=$REPO_DIR/framework/target/release/demiurge-node --data-dir $DATA_DIR --rpc-addr 0.0.0.0:$RPC_PORT --p2p-addr 0.0.0.0:$P2P_PORT
-Restart=always
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-"@
-
-# Create service file using heredoc
-$serviceCmd = @"
-cat > /tmp/demiurge-service.txt << 'EOFSERVICE'
-[Unit]
-Description=Demiurge Blockchain Node
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=$REPO_DIR/framework
-ExecStart=$REPO_DIR/framework/target/release/demiurge-node --data-dir $DATA_DIR --rpc-addr 0.0.0.0:$RPC_PORT --p2p-addr 0.0.0.0:$P2P_PORT
-Restart=always
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-EOFSERVICE
-sudo mv /tmp/demiurge-service.txt /etc/systemd/system/$NODE_SERVICE.service
-"@
-ssh "${SERVER_USER}@${SERVER}" $serviceCmd
+$serviceLines = @(
+    "[Unit]",
+    "Description=Demiurge Blockchain Node",
+    "After=network.target",
+    "",
+    "[Service]",
+    "Type=simple",
+    "User=root",
+    "WorkingDirectory=$REPO_DIR/framework",
+    "ExecStart=$REPO_DIR/framework/target/release/demiurge-node --data-dir $DATA_DIR --rpc-addr 0.0.0.0:$RPC_PORT --p2p-addr 0.0.0.0:$P2P_PORT",
+    "Restart=always",
+    "RestartSec=10",
+    "StandardOutput=journal",
+    "StandardError=journal",
+    "",
+    "[Install]",
+    "WantedBy=multi-user.target"
+)
+$serviceContent = $serviceLines -join "`n"
+$serviceContentEscaped = $serviceContent -replace "'", "'\''"
+ssh "${SERVER_USER}@${SERVER}" "printf '%s\n' '$serviceContentEscaped' | sudo tee /etc/systemd/system/$NODE_SERVICE.service > /dev/null"
 
 # Step 8: Start blockchain node
 Write-Host "🚀 Starting blockchain node..." -ForegroundColor Green
