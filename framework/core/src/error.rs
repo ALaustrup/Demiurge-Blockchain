@@ -2,6 +2,7 @@
 
 use std::string::String;
 use thiserror::Error;
+use demiurge_storage::StorageError;
 
 /// Result type
 pub type Result<T> = std::result::Result<T, Error>;
@@ -20,6 +21,9 @@ pub enum Error {
 
     #[error("Storage error: {0}")]
     StorageError(String),
+
+    #[error("Storage backend error")]
+    StorageBackendError(#[from] StorageError),
 
     #[error("Insufficient balance")]
     InsufficientBalance,
