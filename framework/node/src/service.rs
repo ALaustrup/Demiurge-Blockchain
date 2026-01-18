@@ -3,6 +3,8 @@
 use crate::NodeConfig;
 use demiurge_core::Runtime;
 use demiurge_storage::StorageBackend;
+use demiurge_rpc::{RpcServer, RpcMethods};
+use std::sync::Arc;
 use anyhow::Result;
 use tracing::info;
 
@@ -28,6 +30,7 @@ impl NodeService {
         Ok(Self {
             config,
             runtime,
+            rpc_server: None,
         })
     }
 
@@ -48,7 +51,13 @@ impl NodeService {
     /// Stop the node service
     pub async fn stop(&mut self) -> Result<()> {
         info!("Shutting down node service...");
-        // TODO: Cleanup
+        
+        // Stop RPC server
+        if let Some(mut rpc_server) = self.rpc_server.take() {
+            rpc_server.stop().await?;
+            info!("RPC server stopped");
+        }
+        
         Ok(())
     }
 

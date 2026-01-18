@@ -1,8 +1,10 @@
 //! Runtime engine - executes transactions and manages state
 
-use crate::{Block, Result, Transaction};
+use crate::{Block, Result, Transaction, TransactionData};
 use demiurge_storage::Storage;
 use demiurge_modules::ModuleRegistry;
+use demiurge_module_balances::{BalancesModule, BalanceCall};
+use codec::Encode;
 use std::sync::Arc;
 
 /// The core runtime engine
@@ -38,14 +40,53 @@ impl<S: Storage> Runtime<S> {
 
         // Execute based on transaction type
         match tx.data {
-            crate::TransactionData::ModuleCall { module, call } => {
-                // TODO: Implement module execution
-                // For now, just validate the call exists
-                let _ = (module, call);
-                // self.modules.execute(&module, call, &mut self.storage)?;
+            TransactionData::ModuleCall { module, call } => {
+                // Execute module call
+                match module.as_str() {
+                    "Balances" => {
+                        // Decode balance call
+                        let balance_call: BalanceCall = codec::Decode::decode(&mut &call[..])
+                            .map_err(|e| crate::Error::InvalidTransaction(format!("Failed to decode balance call: {}", e)))?;
+                        
+                        // Get mutable storage reference
+                        // Note: We need to handle Arc<Storage> - for now use unsafe or redesign
+                        // This is a temporary solution - we'll need interior mutability or redesign
+                        unsafe {
+                            let storage_ptr = Arc::as_ptr(&self.storage) as *mut dyn Storage;
+                            let storage_ref = &mut *storage_ptr;
+                            
+                            match balance_call {
+                                BalanceCall::Transfer { from, to, amount } => {
+                                    BalancesModule::transfer(storage_ref, from, to, amount)
+                                        .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                                }
+                                BalanceCall::Mint { to, amount } => {
+                                    BalancesModule::mint(storage_ref, to, amount)
+                                        .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                                }
+                                BalanceCall::Burn { from, amount } => {
+                                    BalancesModule::burn(storage_ref, from, amount)
+                                        .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                                }
+                            }
+                        }
+                    }
+                    _ => {
+                        // Try to execute via module registry
+                        // For now, return error for unknown modules
+                        return Err(crate::Error::ModuleError(format!("Unknown module: {}", module)));
+                    }
+                }
             }
-            crate::TransactionData::Transfer { .. } => {
-                // Handle transfers
+            TransactionData::Transfer { to, amount } => {
+                // Direct transfer - use balances module
+                unsafe {
+                    let storage_ptr = Arc::as_ptr(&self.storage) as *mut dyn Storage;
+                    let storage_ref = &mut *storage_ptr;
+                    
+                    BalancesModule::transfer(storage_ref, tx.from, to, amount)
+                        .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                }
             }
         }
 

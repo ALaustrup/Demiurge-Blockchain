@@ -18,6 +18,7 @@ blake2 = { workspace = true }
 # Internal dependencies
 demiurge-storage = { path = "../storage" }
 demiurge-modules = { path = "../modules" }
+demiurge-module-balances = { path = "../modules/balances" }
 
 [dev-dependencies]
 tokio = { workspace = true }
