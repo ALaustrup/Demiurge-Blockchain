@@ -5,7 +5,7 @@ use demiurge_storage::Storage;
 use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
     RpcModule,
-    core::{RpcResult, Error as JsonRpcError},
+    core::RpcResult,
     server::rpc_module::Extensions,
     Params,
 };
@@ -87,7 +87,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
             let ctx = ctx.clone();
             async move {
                 ctx.get_chain_info().await
-                    .map_err(|e| JsonRpcError::internal_error(&format!("RPC error: {}", e)))
+                    .map_err(|e| jsonrpsee::core::Error::from(jsonrpsee::types::error::CallError::Failed(e.to_string().into())))
             }
         })?;
         
