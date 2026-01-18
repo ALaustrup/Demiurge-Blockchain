@@ -48,13 +48,7 @@ impl NodeService {
     /// Stop the node service
     pub async fn stop(&mut self) -> Result<()> {
         info!("Shutting down node service...");
-        
-        // Stop RPC server
-        if let Some(mut rpc_server) = self.rpc_server.take() {
-            rpc_server.stop().await?;
-            info!("RPC server stopped");
-        }
-        
+        // TODO: Stop RPC server when implemented
         Ok(())
     }
 
