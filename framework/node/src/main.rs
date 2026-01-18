@@ -48,8 +48,9 @@ async fn main() -> anyhow::Result<()> {
     info!("The flame burns eternal. The code serves the will.");
 
     // Create node configuration
+    let data_dir = args.data_dir.clone();
     let config = NodeConfig {
-        data_dir: args.data_dir.into(),
+        data_dir: data_dir.clone().into(),
         rpc_addr: args.rpc_addr.parse()
             .map_err(|e| anyhow::anyhow!("Invalid RPC address: {}", e))?,
         p2p_addr: args.p2p_addr.parse()
@@ -68,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
     info!("RPC: {}", args.rpc_addr);
     info!("P2P: {}", args.p2p_addr);
     info!("Block time: {}ms", args.block_time);
-    info!("Data directory: {}", args.data_dir);
+    info!("Data directory: {}", data_dir);
 
     // Main event loop - keep running until Ctrl+C
     info!("Entering main event loop...");
