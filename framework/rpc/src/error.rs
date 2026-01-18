@@ -25,4 +25,7 @@ pub enum RpcError {
 
     #[error("Subscription error: {0}")]
     SubscriptionError(String),
+
+    #[error("Storage error: {0}")]
+    StorageError(String),
 }
