@@ -2,7 +2,7 @@
 
 use std::string::String;
 use thiserror::Error;
-use demiurge_storage::StorageError;
+use demiurge_storage::backend::StorageError;
 
 /// Result type
 pub type Result<T> = std::result::Result<T, Error>;
