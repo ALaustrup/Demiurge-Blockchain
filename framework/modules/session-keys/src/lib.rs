@@ -2,8 +2,6 @@
 //!
 //! Temporary authorization for games - No wallet popups during gameplay
 
-#![cfg_attr(not(feature = "std"), no_std)]
-
 pub mod session;
 pub mod error;
 

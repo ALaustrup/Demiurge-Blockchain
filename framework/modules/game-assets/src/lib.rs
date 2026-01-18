@@ -2,7 +2,6 @@
 //!
 //! Multi-asset system for games - Feeless transfers, developer controls
 
-#![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod assets;
 pub mod error;

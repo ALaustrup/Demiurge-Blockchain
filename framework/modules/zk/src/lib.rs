@@ -3,7 +3,6 @@
 //! Private transactions, anonymous voting, and privacy-preserving features.
 //! The ultimate privacy for creators and gamers.
 
-#![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod private_transfer;
 pub mod anonymous_vote;

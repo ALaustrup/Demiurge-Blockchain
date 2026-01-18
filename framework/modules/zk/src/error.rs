@@ -1,5 +1,6 @@
 //! ZK module errors
 
+use std::string::String;
 use thiserror::Error;
 
 /// Result type
