@@ -114,15 +114,20 @@ cargo run
 - [`ULTIMATE_BLOCKCHAIN_DESIGN.md`](docs/ULTIMATE_BLOCKCHAIN_DESIGN.md) - Complete blockchain design
 - [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) - Technical architecture
 - [`COMPONENT_MAP.md`](docs/COMPONENT_MAP.md) - Component overview
+- [`CONSENSUS_DESIGN.md`](docs/CONSENSUS_DESIGN.md) - Consensus mechanism
 
 ### Development
 - [`MODULE_SPECS.md`](docs/MODULE_SPECS.md) - Module specifications
 - [`MIGRATION_GUIDE.md`](docs/MIGRATION_GUIDE.md) - Migration guide
 - [`ZK_FEATURES.md`](docs/ZK_FEATURES.md) - Zero-knowledge features
+- [`FRONTEND_INTEGRATION_PLAN.md`](docs/FRONTEND_INTEGRATION_PLAN.md) - Frontend integration
+- [`GAME_INTEGRATION_GUIDE.md`](docs/GAME_INTEGRATION_GUIDE.md) - Game integration
 
 ### Features
 - [`CGT_TOKENOMICS.md`](docs/blockchain/CGT_TOKENOMICS.md) - Token economics
-- [`MASTER_ROADMAP.md`](docs/MASTER_ROADMAP.md) - Development roadmap
+- [`ROADMAP.md`](docs/ROADMAP.md) - Development roadmap
+- [`STATUS.md`](docs/STATUS.md) - Current project status
+- [`DEPLOYMENT.md`](docs/DEPLOYMENT.md) - Deployment guide
 
 ---
 
@@ -131,32 +136,43 @@ cargo run
 ### ✅ 100% COMPLETE - Ready for Testnet
 
 **Core Framework (7/7)**
-- ✅ Core runtime engine
-- ✅ Storage layer with Merkle trees
-- ✅ Consensus (Hybrid PoS + BFT, < 2s finality)
-- ✅ P2P networking (LibP2P)
-- ✅ Module system (hot-swappable)
-- ✅ RPC layer (JSON-RPC + WebSocket)
-- ✅ Full node implementation
+- ✅ Core runtime engine (`framework/core/`)
+- ✅ Storage layer with Merkle trees (`framework/storage/`)
+- ✅ Consensus (Hybrid PoS + BFT, < 2s finality) (`framework/consensus/`)
+- ✅ P2P networking (LibP2P) (`framework/network/`)
+- ✅ Module system (hot-swappable) (`framework/modules/`)
+- ✅ RPC layer (JSON-RPC + WebSocket) (`framework/rpc/`)
+- ✅ Full node implementation (`framework/node/`)
 
-**Modules (6 Migrated)**
-- ✅ Balances (CGT token)
-- ✅ DRC-369 (Stateful NFTs)
-- ✅ Game Assets (Multi-asset system)
-- ✅ Energy (Regenerating costs)
-- ✅ Session Keys (Temporary auth)
-- ✅ Yield NFTs (Passive income)
-- ✅ ZK Module (Privacy foundation)
+**Modules (6 Migrated + ZK Foundation)**
+- ✅ Balances (CGT token) (`framework/modules/balances/`)
+- ✅ DRC-369 (Stateful NFTs) (`framework/modules/drc369/`)
+- ✅ Game Assets (Multi-asset system) (`framework/modules/game-assets/`)
+- ✅ Energy (Regenerating costs) (`framework/modules/energy/`)
+- ✅ Session Keys (Temporary auth) (`framework/modules/session-keys/`)
+- ✅ Yield NFTs (Passive income) (`framework/modules/yield-nfts/`)
+- ✅ ZK Module (Privacy foundation) (`framework/modules/zk/`)
+
+**Frontend (Complete)**
+- ✅ Enhanced dark futuristic theme
+- ✅ Real-time navbar with QOR ID chain data
+- ✅ Development page (`/development`)
+- ✅ NFT Portal (`/nft-portal`)
+- ✅ Staking interface (`/staking`)
+- ✅ Validators explorer (`/validators`)
+- ✅ Network Analytics (`/analytics`)
+- ✅ Wallet management (`/wallet`)
 
 **Services**
-- ✅ QOR Identity system
+- ✅ QOR Identity system (`services/qor-auth/`)
 - ✅ QOR Auth service
 
 ### 🚀 Ready For
-- Testnet deployment
-- Module implementation completion
-- ZK proof library integration
-- Mainnet launch
+- ✅ Testnet deployment (see [DEPLOYMENT.md](docs/DEPLOYMENT.md))
+- ⏳ User testing (see [USER_TESTING_GUIDE.md](docs/USER_TESTING_GUIDE.md))
+- ⏳ Module implementation completion
+- ⏳ ZK proof library integration
+- ⏳ Mainnet launch
 
 ---
 
