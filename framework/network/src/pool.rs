@@ -2,6 +2,7 @@
 
 use crate::{NetworkError, Result};
 use demiurge_core::Transaction;
+use codec::Encode;
 use std::collections::{HashMap, VecDeque};
 
 /// Transaction pool for pending transactions
