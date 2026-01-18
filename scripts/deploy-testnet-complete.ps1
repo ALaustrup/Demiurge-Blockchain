@@ -106,8 +106,8 @@ Write-Host "  Frontend: http://${SERVER}:${FRONTEND_PORT}" -ForegroundColor Whit
 Write-Host "  P2P: /ip4/${SERVER}/tcp/${P2P_PORT}" -ForegroundColor White
 Write-Host ""
 Write-Host "Monitoring Commands:" -ForegroundColor Yellow
-Write-Host "  Node logs: ssh ${SERVER_USER}@${SERVER} 'journalctl -u ${NODE_SERVICE} -f'" -ForegroundColor Gray
-Write-Host "  Frontend logs: ssh ${SERVER_USER}@${SERVER} 'docker logs -f demiurge-hub'" -ForegroundColor Gray
-Write-Host "  Node status: ssh ${SERVER_USER}@${SERVER} 'systemctl status ${NODE_SERVICE}'" -ForegroundColor Gray
+Write-Host ("  Node logs: ssh " + $SERVER_USER + "@" + $SERVER + " journalctl -u " + $NODE_SERVICE + " -f") -ForegroundColor Gray
+Write-Host ("  Frontend logs: ssh " + $SERVER_USER + "@" + $SERVER + " docker logs -f demiurge-hub") -ForegroundColor Gray
+Write-Host ("  Node status: ssh " + $SERVER_USER + "@" + $SERVER + " systemctl status " + $NODE_SERVICE) -ForegroundColor Gray
 Write-Host ""
 Write-Host "The flame burns eternal. The code serves the will." -ForegroundColor Cyan
