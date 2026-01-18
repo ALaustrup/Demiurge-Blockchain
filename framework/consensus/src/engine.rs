@@ -3,7 +3,7 @@
 use crate::{Finality, Result, ValidatorSet, ConsensusError};
 use demiurge_core::{Block, Transaction};
 use demiurge_storage::Storage;
-use codec::Encode;
+use codec::{Encode, Encode as _};
 use std::collections::HashMap;
 
 /// Consensus engine combining PoS and BFT
