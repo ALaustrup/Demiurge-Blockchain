@@ -6,58 +6,72 @@
 
 ---
 
-## 🎯 Quick Start
+## 🎯 Quick Navigation
 
-- **New to Demiurge?** Start with [STATUS.md](./STATUS.md) for current state
-- **Want to deploy?** See [DEPLOYMENT.md](./DEPLOYMENT.md)
-- **Want to develop?** See [Development Page](/development) or [FRONTEND_INTEGRATION_PLAN.md](./FRONTEND_INTEGRATION_PLAN.md)
-- **Want to integrate games?** See [GAME_INTEGRATION_GUIDE.md](./GAME_INTEGRATION_GUIDE.md)
+### For Developers 👨‍💻
+- **[Developer Documentation](./developers/)** - Complete integration guides
+  - [Getting Started](./developers/getting-started.md) - Setup and basics
+  - [RPC API Reference](./developers/rpc-api-reference.md) - All RPC methods
+  - [Chain Operations](./developers/chain-operations.md) - Query blockchain state
+  - [Transaction Building](./developers/transaction-building.md) - Create transactions
+  - [Module Integration](./developers/module-integration.md) - Integrate modules
+
+### For Creators 🎨
+- **[Creator Documentation](./creators/)** - Complete creator guides
+  - [DRC-369 Complete Guide](./creators/drc369-complete-guide.md) - Stateful NFTs
+  - [Asset Management](./creators/asset-management.md) - Manage your assets
+  - [Mining Operations](./creators/mining-operations.md) - Staking and rewards
+  - [P2P Features](./creators/p2p-features.md) - Trading and P2P
+
+### Architecture 🏗️
+- **[Architecture Documentation](./architecture/)** - Technical architecture
+  - [Ultimate Blockchain Design](./architecture/ULTIMATE_BLOCKCHAIN_DESIGN.md) - Complete design
+  - [Architecture Overview](./architecture/ARCHITECTURE.md) - Technical breakdown
+  - [Component Map](./architecture/COMPONENT_MAP.md) - All components
+  - [Consensus Design](./architecture/CONSENSUS_DESIGN.md) - Consensus mechanism
+  - [Consensus Algorithm](./architecture/CONSENSUS_ALGORITHM_DESIGN.md) - Algorithm details
+
+### Deployment 🚀
+- **[Deployment Documentation](./deployment/)** - Deployment guides
+  - [Deployment Guide](./deployment/DEPLOYMENT.md) - Complete deployment
+  - [Testnet Deployment](./deployment/TESTNET_DEPLOYMENT.md) - Testnet setup
 
 ---
 
 ## 📖 Core Documentation
 
-### Architecture & Design
-- **[ULTIMATE_BLOCKCHAIN_DESIGN.md](./ULTIMATE_BLOCKCHAIN_DESIGN.md)** - Complete blockchain design vision
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Technical architecture breakdown
-- **[COMPONENT_MAP.md](./COMPONENT_MAP.md)** - All components mapped
-- **[CONSENSUS_DESIGN.md](./CONSENSUS_DESIGN.md)** - Hybrid PoS + BFT consensus
-- **[CONSENSUS_ALGORITHM_DESIGN.md](./CONSENSUS_ALGORITHM_DESIGN.md)** - Detailed consensus algorithm
+### Framework & Modules
+- **[Module Specifications](./MODULE_SPECS.md)** - All module specifications
+- **[ZK Features](./ZK_FEATURES.md)** - Zero-knowledge privacy features
+- **[Migration Guide](./MIGRATION_GUIDE.md)** - Migration from Substrate
 
-### Module Specifications
-- **[MODULE_SPECS.md](./MODULE_SPECS.md)** - All module specifications
-- **[ZK_FEATURES.md](./ZK_FEATURES.md)** - Zero-knowledge privacy features
-- **[blockchain/CGT_TOKENOMICS.md](./blockchain/CGT_TOKENOMICS.md)** - Token economics
-- **[blockchain/DRC369_ARCHITECTURE.md](./blockchain/DRC369_ARCHITECTURE.md)** - Stateful NFT standard
-- **[blockchain/DRC369_ATOMIC_SWAPS.md](./blockchain/DRC369_ATOMIC_SWAPS.md)** - Atomic swap protocol
-- **[blockchain/NEXT_GEN_GAMING_ARCHITECTURE.md](./blockchain/NEXT_GEN_GAMING_ARCHITECTURE.md)** - Gaming architecture
-
-### Development Guides
-- **[FRONTEND_INTEGRATION_PLAN.md](./FRONTEND_INTEGRATION_PLAN.md)** - Frontend integration guide
-- **[FRONTEND_RECOMMENDATIONS.md](./FRONTEND_RECOMMENDATIONS.md)** - Frontend best practices
-- **[GAME_INTEGRATION_GUIDE.md](./GAME_INTEGRATION_GUIDE.md)** - Game integration guide
-- **[RPC_IMPLEMENTATION_NOTES.md](./RPC_IMPLEMENTATION_NOTES.md)** - RPC API reference
-- **[MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md)** - Migration from Substrate
+### Blockchain Features
+- **[CGT Tokenomics](./blockchain/CGT_TOKENOMICS.md)** - Token economics
+- **[DRC-369 Architecture](./blockchain/DRC369_ARCHITECTURE.md)** - Stateful NFT standard
+- **[DRC-369 Atomic Swaps](./blockchain/DRC369_ATOMIC_SWAPS.md)** - Atomic swap protocol
+- **[Next-Gen Gaming Architecture](./blockchain/NEXT_GEN_GAMING_ARCHITECTURE.md)** - Gaming architecture
 
 ### Identity & Authentication
-- **[identity/QOR_ID_SPEC.md](./identity/QOR_ID_SPEC.md)** - QOR ID specification
-- **[QOR_ID_WALLET_INTEGRATION.md](./QOR_ID_WALLET_INTEGRATION.md)** - Wallet integration
-- **[SESSION_KEYS_QOR_ID_INTEGRATION.md](./SESSION_KEYS_QOR_ID_INTEGRATION.md)** - Session keys guide
+- **[QOR ID Specification](./identity/QOR_ID_SPEC.md)** - QOR ID system
+- **[QOR ID Wallet Integration](./QOR_ID_WALLET_INTEGRATION.md)** - Wallet integration
+- **[Session Keys Integration](./SESSION_KEYS_QOR_ID_INTEGRATION.md)** - Session keys guide
 
-### Deployment & Testing
-- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
-- **[TESTNET_DEPLOYMENT.md](./TESTNET_DEPLOYMENT.md)** - Testnet deployment instructions
-- **[USER_TESTING_GUIDE.md](./USER_TESTING_GUIDE.md)** - User testing guide
+### Development Guides
+- **[Frontend Integration Plan](./FRONTEND_INTEGRATION_PLAN.md)** - Frontend integration
+- **[Frontend Recommendations](./FRONTEND_RECOMMENDATIONS.md)** - Best practices
+- **[Game Integration Guide](./GAME_INTEGRATION_GUIDE.md)** - Game integration
+- **[RPC Implementation Notes](./RPC_IMPLEMENTATION_NOTES.md)** - RPC API
 
 ### Project Status
-- **[STATUS.md](./STATUS.md)** - Current project status
-- **[ROADMAP.md](./ROADMAP.md)** - Development roadmap
+- **[Status](./STATUS.md)** - Current project status
+- **[Roadmap](./ROADMAP.md)** - Development roadmap
 
-### Design System
-- **[design/DEMIURGE_DESIGN_SYSTEM.md](./design/DEMIURGE_DESIGN_SYSTEM.md)** - Design system guidelines
+### Testing & User Guides
+- **[User Testing Guide](./USER_TESTING_GUIDE.md)** - User testing guide
 
-### System Configuration
-- **[systems/MONAD_CONFIG.md](./systems/MONAD_CONFIG.md)** - Server configuration
+### Design & Systems
+- **[Design System](./design/DEMIURGE_DESIGN_SYSTEM.md)** - Design guidelines
+- **[Monad Config](./systems/MONAD_CONFIG.md)** - Server configuration
 
 ---
 
@@ -85,9 +99,9 @@ framework/
 
 ## 🚀 Quick Links
 
-- **Getting Started**: See `framework/README.md`
-- **Module Development**: See `framework/modules/`
-- **Deployment**: See [DEPLOYMENT.md](./DEPLOYMENT.md)
+- **Getting Started**: See [Developer Getting Started](./developers/getting-started.md)
+- **RPC Endpoint**: `http://51.210.209.112:9944`
+- **Frontend**: `http://51.210.209.112:3000`
 - **Development Page**: `/development` (in frontend)
 
 ---
