@@ -167,8 +167,8 @@ impl SessionKeysModule {
     /// Note: This is a simplified implementation. In production, we'd use an index
     /// to efficiently find expired keys without scanning all keys.
     fn cleanup_expired_keys(
-        storage: &mut dyn Storage,
-        current_block: u64,
+        _storage: &mut dyn Storage,
+        _current_block: u64,
     ) -> Result<()> {
         // In a production system, we'd maintain an index of keys by expiry block
         // For now, we'll rely on lazy cleanup (checking validity on access)
