@@ -2,7 +2,7 @@
 
 use crate::{Block, Result, Transaction, TransactionData};
 use demiurge_storage::Storage;
-use demiurge_modules::ModuleRegistry;
+use demiurge_modules::{ModuleRegistry, traits::Module};
 use demiurge_module_balances::{BalancesModule, BalanceCall};
 use demiurge_module_energy::{EnergyModule, EnergyCall, constants as EnergyConstants};
 use demiurge_module_session_keys::{SessionKeysModule, SessionCall};
