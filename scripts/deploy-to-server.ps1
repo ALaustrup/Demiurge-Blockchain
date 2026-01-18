@@ -48,7 +48,7 @@ if (-not $rustCheck) {
 
 # Step 7: Create data directory
 Write-Host "📁 Creating data directory..." -ForegroundColor Green
-Invoke-SSH "sudo mkdir -p ${DATA_DIR} && sudo chown ubuntu:ubuntu ${DATA_DIR}"
+Invoke-SSH "sudo mkdir -p ${DATA_DIR}; sudo chown ubuntu:ubuntu ${DATA_DIR}"
 
 # Step 8: Build framework
 Write-Host "🔨 Building framework (this may take a while)..." -ForegroundColor Green
@@ -111,6 +111,6 @@ Write-Host "P2P Address: /ip4/51.210.209.112/tcp/30333" -ForegroundColor Yellow
 Write-Host "Data Directory: ${DATA_DIR}" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Useful commands:" -ForegroundColor Gray
-Write-Host "  Check status: ssh $SSH_HOST 'sudo systemctl status demiurge-node'" -ForegroundColor Gray
-Write-Host "  View logs: ssh $SSH_HOST 'sudo journalctl -u demiurge-node -f'" -ForegroundColor Gray
-Write-Host "  Restart: ssh $SSH_HOST 'sudo systemctl restart demiurge-node'" -ForegroundColor Gray
+Write-Host "  Check status: ssh $SSH_HOST sudo systemctl status demiurge-node" -ForegroundColor Gray
+Write-Host "  View logs: ssh $SSH_HOST sudo journalctl -u demiurge-node -f" -ForegroundColor Gray
+Write-Host "  Restart: ssh $SSH_HOST sudo systemctl restart demiurge-node" -ForegroundColor Gray
