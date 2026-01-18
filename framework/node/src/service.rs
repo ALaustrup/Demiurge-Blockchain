@@ -3,8 +3,6 @@
 use crate::NodeConfig;
 use demiurge_core::Runtime;
 use demiurge_storage::StorageBackend;
-use demiurge_rpc::{RpcServer, RpcMethods};
-use std::sync::Arc;
 use anyhow::Result;
 use tracing::info;
 
@@ -30,7 +28,6 @@ impl NodeService {
         Ok(Self {
             config,
             runtime,
-            rpc_server: None,
         })
     }
 
