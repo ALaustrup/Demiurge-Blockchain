@@ -3,7 +3,6 @@
 //! Fast finality, energy efficient, governance-integrated consensus.
 //! Built for creators, developers, and gamers.
 
-#![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod engine;
 pub mod validator;

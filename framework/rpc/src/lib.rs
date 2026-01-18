@@ -3,7 +3,6 @@
 //! Complete RPC layer for external access to the blockchain.
 //! Supports JSON-RPC 2.0 and WebSocket subscriptions.
 
-#![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod server;
 pub mod methods;

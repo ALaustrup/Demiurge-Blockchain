@@ -3,7 +3,6 @@
 //! Efficient block propagation, transaction pool, and peer discovery.
 //! Built on LibP2P for maximum compatibility.
 
-#![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod service;
 pub mod protocol;
