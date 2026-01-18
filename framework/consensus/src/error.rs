@@ -1,6 +1,8 @@
 //! Consensus errors
 
+use std::string::String;
 use thiserror::Error;
+use demiurge_core::Error as CoreError;
 
 /// Result type
 pub type Result<T> = std::result::Result<T, ConsensusError>;
@@ -43,4 +45,7 @@ pub enum ConsensusError {
 
     #[error("Block validation failed: {0}")]
     BlockValidationFailed(String),
+
+    #[error("Core error: {0}")]
+    CoreError(#[from] CoreError),
 }

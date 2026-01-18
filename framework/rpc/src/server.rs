@@ -1,6 +1,7 @@
 //! RPC server implementation
 
-use crate::{RpcError, Result, RpcMethods};
+use crate::{RpcError, Result};
+use demiurge_storage::Storage;
 use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
     RpcModule,
@@ -41,10 +42,10 @@ impl RpcServer {
     }
 
     /// Register RPC methods
-    fn register_methods(
+    fn register_methods<S: Storage>(
         &self,
         module: &mut RpcModule<()>,
-        methods: RpcMethods,
+        methods: crate::RpcMethods<S>,
     ) -> Result<()> {
         // TODO: Register methods using jsonrpsee macros
         // For now, placeholder

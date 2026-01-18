@@ -165,7 +165,7 @@ impl<S: Storage> ConsensusEngine<S> {
     }
 
     /// Verify block signature
-    fn verify_signature(&self, block: &CoreBlock, proof: &BlockProof) -> Result<()> {
+    fn verify_signature(&self, block: &Block, proof: &BlockProof) -> Result<()> {
         // TODO: Implement actual verification
         let message = block.hash();
         // For now, always succeed
