@@ -26,12 +26,12 @@ fn set_block_number(storage: &mut StorageBackend, block: u64) {
 #[test]
 fn test_consume_energy_success() {
     let mut storage = create_test_storage();
-    set_block_number(&mut storage, 100);
+    set_block_number(&mut storage, 1);
     
     let account = [1u8; 32];
     let amount = 5u64; // Less than REGENERATION_RATE
     
-    // Regenerate energy first to get some
+    // Regenerate energy first (1 block passed, so REGENERATION_RATE = 10)
     EnergyModule::regenerate_energy(&mut storage, account).unwrap();
     
     // Consume energy
@@ -63,33 +63,33 @@ fn test_regenerate_energy() {
     
     let account = [1u8; 32];
     
-    // Regenerate energy
+    // Regenerate energy (100 blocks passed from 0, so 100 * REGENERATION_RATE = 1000, capped at MAX_ENERGY)
     EnergyModule::regenerate_energy(&mut storage, account).unwrap();
     
-    // Check energy balance (should be REGENERATION_RATE since starting from 0)
+    // Check energy balance (should be MAX_ENERGY since 100 blocks passed)
     let energy = EnergyModule::get_energy(&storage, account).unwrap();
-    assert_eq!(energy, constants::REGENERATION_RATE);
+    assert_eq!(energy, constants::MAX_ENERGY);
 }
 
 #[test]
 fn test_regenerate_energy_multiple_blocks() {
     let mut storage = create_test_storage();
-    set_block_number(&mut storage, 100);
+    set_block_number(&mut storage, 1);
     
     let account = [1u8; 32];
     
-    // First regeneration
+    // First regeneration (1 block passed from 0, so 1 * REGENERATION_RATE = 10)
     EnergyModule::regenerate_energy(&mut storage, account).unwrap();
     let energy1 = EnergyModule::get_energy(&storage, account).unwrap();
     assert_eq!(energy1, constants::REGENERATION_RATE);
     
     // Advance block number
-    set_block_number(&mut storage, 105);
+    set_block_number(&mut storage, 6);
     
-    // Regenerate again (5 blocks passed)
+    // Regenerate again (5 blocks passed: 6 - 1 = 5, so 5 * REGENERATION_RATE = 50)
     EnergyModule::regenerate_energy(&mut storage, account).unwrap();
     let energy2 = EnergyModule::get_energy(&storage, account).unwrap();
-    assert_eq!(energy2, constants::REGENERATION_RATE * 6); // 1 + 5 blocks
+    assert_eq!(energy2, constants::REGENERATION_RATE * 6); // 10 + 50 = 60
 }
 
 #[test]
@@ -136,14 +136,16 @@ fn test_sponsor_transaction() {
 #[test]
 fn test_sponsor_transaction_insufficient_energy() {
     let mut storage = create_test_storage();
-    set_block_number(&mut storage, 100);
+    set_block_number(&mut storage, 1);
     
     let developer = [1u8; 32];
     let user = [2u8; 32];
     
-    // Don't regenerate energy - developer has 0
+    // Regenerate a little energy (not enough for BASE_TX_COST)
+    EnergyModule::regenerate_energy(&mut storage, developer).unwrap();
+    // Developer now has REGENERATION_RATE (10), but BASE_TX_COST is 100
     
-    // Try to sponsor - should fail
+    // Try to sponsor - should fail (insufficient energy)
     let result = EnergyModule::sponsor_transaction(&mut storage, developer, user);
     assert!(result.is_err());
 }
