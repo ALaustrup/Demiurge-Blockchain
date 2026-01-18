@@ -49,8 +49,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=${REPO_DIR}/framework
-ExecStart=${REPO_DIR}/framework/target/release/demiurge-node --data-dir ${DATA_DIR} --rpc-addr 0.0.0.0:${RPC_PORT} --p2p-addr 0.0.0.0:${P2P_PORT}
+WorkingDirectory=$REPO_DIR/framework
+ExecStart=$REPO_DIR/framework/target/release/demiurge-node --data-dir $DATA_DIR --rpc-addr 0.0.0.0:$RPC_PORT --p2p-addr 0.0.0.0:$P2P_PORT
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -60,7 +60,29 @@ StandardError=journal
 WantedBy=multi-user.target
 "@
 
-ssh "${SERVER_USER}@${SERVER}" "echo '$nodeServiceContent' | sudo tee /etc/systemd/system/${NODE_SERVICE}.service > /dev/null"
+# Create service file using heredoc
+$serviceCmd = @"
+cat > /tmp/demiurge-service.txt << 'EOFSERVICE'
+[Unit]
+Description=Demiurge Blockchain Node
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$REPO_DIR/framework
+ExecStart=$REPO_DIR/framework/target/release/demiurge-node --data-dir $DATA_DIR --rpc-addr 0.0.0.0:$RPC_PORT --p2p-addr 0.0.0.0:$P2P_PORT
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOFSERVICE
+sudo mv /tmp/demiurge-service.txt /etc/systemd/system/$NODE_SERVICE.service
+"@
+ssh "${SERVER_USER}@${SERVER}" $serviceCmd
 
 # Step 8: Start blockchain node
 Write-Host "🚀 Starting blockchain node..." -ForegroundColor Green
@@ -88,13 +110,19 @@ ssh "${SERVER_USER}@${SERVER}" "cd ${REPO_DIR}/apps/hub && docker build -t demiu
 
 # Step 14: Create frontend environment file
 Write-Host "📝 Creating frontend environment configuration..." -ForegroundColor Green
-$envContent = "NEXT_PUBLIC_DEMIURGE_RPC_URL=http://localhost:${RPC_PORT}`nNEXT_PUBLIC_QOR_AUTH_URL=http://localhost:8080/api/v1`nNODE_ENV=production`nPORT=${FRONTEND_PORT}"
-
-ssh "${SERVER_USER}@${SERVER}" "echo '${envContent}' | sudo tee ${REPO_DIR}/apps/hub/.env.production > /dev/null"
+$envLines = @(
+    "NEXT_PUBLIC_DEMIURGE_RPC_URL=http://localhost:$RPC_PORT",
+    "NEXT_PUBLIC_QOR_AUTH_URL=http://localhost:8080/api/v1",
+    "NODE_ENV=production",
+    "PORT=$FRONTEND_PORT"
+)
+$envContent = $envLines -join "`n"
+$envContentEscaped = $envContent -replace "'", "'\''"
+ssh "${SERVER_USER}@${SERVER}" "printf '%s\n' '$envContentEscaped' | sudo tee $REPO_DIR/apps/hub/.env.production > /dev/null"
 
 # Step 15: Run frontend container
 Write-Host "🚀 Starting frontend container..." -ForegroundColor Green
-ssh "${SERVER_USER}@${SERVER}" "docker run -d --name demiurge-hub --restart unless-stopped -p ${FRONTEND_PORT}:${FRONTEND_PORT} --env-file ${REPO_DIR}/apps/hub/.env.production -v ${REPO_DIR}/apps/hub:/app demiurge-hub:latest"
+ssh "${SERVER_USER}@${SERVER}" "docker run -d --name demiurge-hub --restart unless-stopped -p $FRONTEND_PORT:$FRONTEND_PORT --env-file $REPO_DIR/apps/hub/.env.production -v $REPO_DIR/apps/hub:/app demiurge-hub:latest"
 
 # Step 16: Display connection info
 Write-Host ""
