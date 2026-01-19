@@ -11,7 +11,7 @@ use tracing::warn;
 
 /// Consensus engine combining PoS and BFT
 pub struct ConsensusEngine<S: Storage> {
-    validators: ValidatorSet,
+    pub validators: ValidatorSet,
     finality: Finality,
     storage: S,
     current_era: u64,
@@ -19,7 +19,7 @@ pub struct ConsensusEngine<S: Storage> {
     era_length: u64, // Blocks per era (default: 1000)
     validator_keys: HashMap<[u8; 32], SigningKey>, // Validator account -> signing key
     slashing: SlashingTracker, // Slashing tracker
-    pub(crate) staking_pools: HashMap<[u8; 32], StakingPool>, // Validator -> staking pool (pub for testing)
+    pub staking_pools: HashMap<[u8; 32], StakingPool>, // Validator -> staking pool
     transaction_fees: u128, // Accumulated transaction fees for current era
 }
 
@@ -371,7 +371,7 @@ impl<S: Storage> ConsensusEngine<S> {
     }
 
     /// Get latest block number from storage
-    fn get_latest_block_number(&self) -> Result<u64> {
+    pub fn get_latest_block_number(&self) -> Result<u64> {
         let key = b"System:BlockNumber";
         match self.storage.get(key) {
             Some(value) => {
