@@ -507,14 +507,14 @@ pub struct StakingPoolInfo {
     pub commission: u8,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct NominationInfo {
     pub account: String,
     pub stake: String,
     pub era: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ConsensusStatus {
     pub current_era: u64,
     pub block_number: u64,
@@ -523,7 +523,7 @@ pub struct ConsensusStatus {
     pub transaction_fees: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct EnergyInfo {
     pub current: u64,
     pub max: u64,
@@ -531,7 +531,7 @@ pub struct EnergyInfo {
     pub last_update: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SessionKeyInfo {
     pub session_key: String,
     pub expiry_block: u32,
