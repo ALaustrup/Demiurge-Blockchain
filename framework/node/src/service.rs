@@ -83,7 +83,14 @@ impl NodeService {
             
             // Register validator in validator set
             let public_key = signing_key.verifying_key();
-            consensus.register_validator_public_key(account, stake, 10, *public_key);
+            let validator = Validator {
+                account,
+                stake,
+                commission: 10,
+                active: true,
+                public_key: *public_key,
+            };
+            consensus.validators.register_validator(validator);
             
             self.is_validator = true;
             self.validator_account = Some(account);
@@ -109,13 +116,14 @@ impl NodeService {
         if self.is_validator {
             info!("Starting block production loop...");
             let consensus_clone = self.consensus.clone().unwrap();
+            let runtime_clone = self.runtime.clone();
             let block_time = Duration::from_millis(self.config.block_time_ms);
             
             // Note: Runtime sharing needs to be handled differently
             // For now, block production loop runs but doesn't execute blocks
             // TODO: Refactor storage sharing between runtime and consensus
             tokio::spawn(async move {
-                Self::block_production_loop(consensus_clone, block_time).await;
+                Self::block_production_loop(consensus_clone, runtime_clone, block_time).await;
             });
         }
         
@@ -208,12 +216,7 @@ impl NodeService {
     }
 
     /// Get runtime reference
-    pub fn runtime(&self) -> &Runtime<StorageBackend> {
+    pub fn runtime(&self) -> &Arc<Mutex<Runtime<StorageBackend>>> {
         &self.runtime
-    }
-
-    /// Get runtime mutable reference
-    pub fn runtime_mut(&mut self) -> &mut Runtime<StorageBackend> {
-        &mut self.runtime
     }
 }

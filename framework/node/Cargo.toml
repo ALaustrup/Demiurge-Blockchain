@@ -41,5 +41,6 @@ serde_json = { workspace = true }
 
 # Utilities
 hex = "0.4"
+ed25519-dalek = { workspace = true }
 
 [dev-dependencies]

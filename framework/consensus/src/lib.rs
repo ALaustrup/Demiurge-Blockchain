@@ -11,7 +11,7 @@ pub mod staking;
 pub mod slashing;
 pub mod error;
 
-pub use engine::ConsensusEngine;
+pub use engine::{ConsensusEngine, BlockProof, BlockSignature};
 pub use validator::{Validator, ValidatorSet};
 pub use finality::Finality;
 pub use staking::{Stake, StakingPool};
