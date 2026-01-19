@@ -1,7 +1,6 @@
 //! Storage backend implementation
 
 use thiserror::Error;
-use std::sync::Arc;
 
 /// Storage trait
 pub trait Storage {

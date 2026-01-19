@@ -200,7 +200,6 @@ impl<S: Storage> Runtime<S> {
 
     /// Calculate state root from current storage state
     fn calculate_state_root(&self) -> Result<[u8; 32]> {
-        use demiurge_storage::MerkleTree;
         use blake2::{Blake2b512, Digest};
         
         // Simplified state root calculation

@@ -22,6 +22,20 @@ const nextConfig = {
       asyncWebAssembly: true,
     };
     
+    // Ignore WASM wallet module during build (it's loaded dynamically at runtime)
+    // Use IgnorePlugin to prevent webpack from trying to resolve it
+    const webpack = require('webpack');
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^@demiurge\/wallet-wasm$/,
+      })
+    );
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /packages\/wallet-wasm\/pkg\/wallet_wasm$/,
+      })
+    );
+    
     return config;
   },
 }

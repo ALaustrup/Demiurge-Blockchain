@@ -139,22 +139,26 @@
   opacity: 0;
   transform: translateY(-10px);
   transition: all 0.3s ease;
+  pointer-events: none;
 }
 
 .cascade-menu.open {
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 .cascade-menu-item {
   opacity: 0;
   transform: translateX(-20px);
   transition: all 0.3s ease;
+  color: white;
 }
 
 .cascade-menu.open .cascade-menu-item {
   opacity: 1;
   transform: translateX(0);
+  color: white;
 }
 
 .cascade-menu.open .cascade-menu-item:nth-child(1) { transition-delay: 0.1s; }

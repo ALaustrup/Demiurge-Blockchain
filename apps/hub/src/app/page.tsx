@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DemiurgeIntro } from '@/components/DemiurgeIntro';
-import { QorIdAuthFlow } from '@/components/auth/QorIdAuthFlow';
 import { qorAuth } from '@demiurge/qor-sdk';
 
 interface Particle {
@@ -19,7 +18,6 @@ interface Particle {
 export default function Home() {
   const router = useRouter();
   const [showIntro, setShowIntro] = useState(true);
-  const [showAuth, setShowAuth] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -53,34 +51,23 @@ export default function Home() {
 
   const handleIntroComplete = () => {
     setShowIntro(false);
-    if (!isAuthenticated) {
-      setShowAuth(true);
-    }
   };
 
-  const handleAuthSuccess = () => {
-    setIsAuthenticated(true);
-    setShowAuth(false);
-    router.refresh();
-  };
+  // Redirect to login if not authenticated (after intro completes)
+  useEffect(() => {
+    if (!showIntro && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [showIntro, isAuthenticated, router]);
 
   // Show intro first
   if (showIntro) {
     return <DemiurgeIntro onComplete={handleIntroComplete} />;
   }
 
-  // Show auth flow if not authenticated
-  if (showAuth && !isAuthenticated) {
-    return (
-      <>
-        <QorIdAuthFlow
-          isOpen={true}
-          onClose={() => setShowAuth(false)}
-          onSuccess={handleAuthSuccess}
-        />
-        <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#0f0f1a] to-[#050510]" />
-      </>
-    );
+  // Redirect to login if not authenticated (after intro)
+  if (!isAuthenticated) {
+    return null; // Will redirect via useEffect
   }
 
   // Main homepage content
@@ -222,12 +209,12 @@ export default function Home() {
           {/* Quick Actions */}
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
             {!isAuthenticated ? (
-              <button
-                onClick={() => setShowAuth(true)}
+              <Link
+                href="/login"
                 className="neon-button px-12 py-4 text-lg"
               >
                 CONNECT WITH QOR ID
-              </button>
+              </Link>
             ) : (
               <Link
                 href="/portal"
@@ -294,14 +281,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Auth Flow Modal */}
-      {showAuth && (
-        <QorIdAuthFlow
-          isOpen={showAuth}
-          onClose={() => setShowAuth(false)}
-          onSuccess={handleAuthSuccess}
-        />
-      )}
     </main>
   );
 }

@@ -489,10 +489,17 @@ impl<S: Storage> ConsensusEngine<S> {
         let proposer_count = self.validators.count() as u128;
         if proposer_count > 0 {
             let proposer_reward_per_validator = proposer_share / proposer_count;
-            for (account, validator) in self.validators.iter() {
-                // Update validator stake with reward
-                let mut updated_validator = validator.clone();
-                updated_validator.stake += proposer_reward_per_validator;
+            // Collect validators to update first
+            let validators_to_update: Vec<Validator> = self.validators.iter()
+                .map(|(_account, validator)| {
+                    let mut updated_validator = validator.clone();
+                    updated_validator.stake += proposer_reward_per_validator;
+                    updated_validator
+                })
+                .collect();
+            
+            // Update validators outside the iterator
+            for updated_validator in validators_to_update {
                 self.validators.register_validator(updated_validator);
             }
         }
@@ -500,6 +507,10 @@ impl<S: Storage> ConsensusEngine<S> {
         // Distribute validator rewards based on stake weight (including staking pools)
         let total_stake = self.validators.total_stake();
         if total_stake > 0 {
+            // Collect validators to update first
+            let mut validators_to_update: Vec<Validator> = Vec::new();
+            let mut pool_updates: Vec<([u8; 32], Vec<([u8; 32], u128)>)> = Vec::new();
+            
             for (account, validator) in self.validators.iter() {
                 // Get staking pool for this validator
                 let pool_stake = self.staking_pools
@@ -517,25 +528,37 @@ impl<S: Storage> ConsensusEngine<S> {
                 let commission_amount = (validator_reward * validator.commission as u128) / 100;
                 let validator_net_reward = validator_reward - commission_amount;
                 
-                // Update validator stake (validator gets net reward + commission)
+                // Prepare validator update (validator gets net reward + commission)
                 let mut updated_validator = validator.clone();
                 updated_validator.stake += validator_net_reward + commission_amount;
-                self.validators.register_validator(updated_validator);
+                validators_to_update.push(updated_validator);
                 
-                // Distribute to nominators in staking pool
-                if let Some(pool) = self.staking_pools.get_mut(account) {
+                // Collect nominator distributions
+                if let Some(pool) = self.staking_pools.get(account) {
                     if pool.total_stake() > 0 {
-                        // Distribute net reward (after commission) to nominators proportionally
-                        let stakes = pool.stakes().clone(); // Clone to avoid borrow issues
-                        for (staker_account, stake) in stakes.iter() {
+                        let mut nominator_shares = Vec::new();
+                        let stakes = pool.stakes();
+                        for (_staker_account, stake) in stakes.iter() {
                             let nominator_share = (validator_net_reward * stake.amount) / pool.total_stake();
+                            nominator_shares.push((*_staker_account, nominator_share));
                             // TODO: Distribute to nominator account via balances module
                             // For now, we'll track it in the staking pool
                             // In production, we'd call: BalancesModule::mint(storage, *staker_account, nominator_share)
                         }
+                        pool_updates.push((*account, nominator_shares));
                     }
                 }
             }
+            
+            // Update validators outside the iterator
+            for updated_validator in validators_to_update {
+                self.validators.register_validator(updated_validator);
+            }
+            
+            // Apply pool updates (if needed in the future)
+            // Pool updates are handled above during collection
+            // Future: distribute rewards to nominator accounts
+            let _ = pool_updates; // Acknowledge that pool_updates is collected but not yet used
         }
         
         Ok(())

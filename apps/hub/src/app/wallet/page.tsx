@@ -93,19 +93,73 @@ export default function WalletPage() {
 
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="glass-panel rounded-lg p-8 text-center">
-            <h1 className="text-3xl font-bold text-demiurge-cyan mb-4">Wallet</h1>
-            <p className="text-gray-300 mb-6">
-              Sign in with your Qor ID to view your CGT wallet.
-            </p>
-            <a
-              href="/login"
-              className="inline-block bg-demiurge-cyan text-black font-bold py-2 px-6 rounded hover:bg-demiurge-cyan/80 transition-colors"
-            >
-              Go to Login
-            </a>
+      <main className="min-h-screen p-8 flex items-center justify-center">
+        <div className="max-w-4xl mx-auto w-full">
+          <div className="glass-panel liquid-border rounded-xl p-12 text-center border-2 border-demiurge-violet/50 relative overflow-hidden">
+            {/* Animated background glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/10 via-neon-magenta/10 to-neon-green/10 animate-pulse opacity-50"></div>
+            
+            <div className="relative z-10">
+              {/* Icon/Logo */}
+              <div className="mb-6 flex justify-center">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-neon-cyan via-neon-magenta to-neon-green flex items-center justify-center shadow-2xl">
+                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+              </div>
+
+              <h1 className="text-5xl font-grunge mb-4 bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green bg-clip-text text-transparent">
+                DEMIURGE WALLET
+              </h1>
+              
+              <p className="text-xl text-gray-300 mb-2 font-body">
+                Your Gateway to the Blockchain Economy
+              </p>
+              
+              <p className="text-gray-400 mb-8 font-body">
+                Secure, decentralized wallet for CGT tokens, NFTs, and on-chain assets
+              </p>
+
+              {/* Feature highlights */}
+              <div className="grid md:grid-cols-3 gap-4 mb-10 text-left">
+                <div className="glass-panel p-4 rounded-lg border border-neon-cyan/30">
+                  <div className="text-neon-cyan text-2xl mb-2">🔐</div>
+                  <div className="text-white font-semibold mb-1">Secure</div>
+                  <div className="text-gray-400 text-sm">QOR ID authentication with on-chain identity</div>
+                </div>
+                <div className="glass-panel p-4 rounded-lg border border-neon-magenta/30">
+                  <div className="text-neon-magenta text-2xl mb-2">⚡</div>
+                  <div className="text-white font-semibold mb-1">Fast</div>
+                  <div className="text-gray-400 text-sm">Instant transactions on Demiurge blockchain</div>
+                </div>
+                <div className="glass-panel p-4 rounded-lg border border-neon-green/30">
+                  <div className="text-neon-green text-2xl mb-2">🎮</div>
+                  <div className="text-white font-semibold mb-1">Integrated</div>
+                  <div className="text-gray-400 text-sm">Seamless gaming and NFT experiences</div>
+                </div>
+              </div>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a
+                  href="/login"
+                  className="w-full sm:w-auto bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green text-white font-grunge-alt py-4 px-8 rounded-lg hover:scale-105 transition-all text-lg chroma-glow shadow-lg"
+                >
+                  LOGIN TO WALLET
+                </a>
+                <a
+                  href="/login?step=register"
+                  className="w-full sm:w-auto glass-panel border-2 border-neon-cyan/50 text-neon-cyan font-grunge-alt py-4 px-8 rounded-lg hover:border-neon-cyan hover:chroma-glow transition-all text-lg"
+                >
+                  CREATE QOR ID
+                </a>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-6 font-body">
+                New to Demiurge? Create a free QOR ID in seconds and start earning CGT
+              </p>
+            </div>
           </div>
         </div>
       </main>

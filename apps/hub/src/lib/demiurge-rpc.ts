@@ -105,13 +105,19 @@ export class DemiurgeRpcClient {
     };
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
       const response = await fetch(this.rpcUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(request),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -125,6 +131,23 @@ export class DemiurgeRpcClient {
 
       return data.result as T;
     } catch (error: any) {
+      // Handle network errors gracefully (blockchain may not be running)
+      const isNetworkError = 
+        error.name === 'AbortError' || 
+        error.message?.includes('fetch') || 
+        error.message?.includes('Failed to fetch') ||
+        error.message?.includes('NetworkError') ||
+        error.code === 'ERR_NETWORK';
+
+      if (isNetworkError) {
+        // Create a custom error that components can check for
+        // Don't log network errors - they're expected when blockchain is offline
+        const networkError = new Error('Blockchain RPC unavailable');
+        (networkError as any).isNetworkError = true;
+        throw networkError;
+      }
+      
+      // For other errors, log and rethrow
       console.error(`RPC request failed for ${method}:`, error);
       throw error;
     }

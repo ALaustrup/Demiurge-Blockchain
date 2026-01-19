@@ -103,12 +103,12 @@ export function QorIdLoginModal({ isOpen, onClose, onLoginSuccess, onSwitchToReg
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Safe Word (Password)</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your safe word"
+            <label className="block text-sm text-gray-400 mb-2">Chain PIN (Password)</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your Chain PIN"
               className="w-full bg-gray-800/50 border border-gray-700 rounded p-3 text-white placeholder-gray-500 focus:border-demiurge-cyan focus:outline-none"
               required
             />

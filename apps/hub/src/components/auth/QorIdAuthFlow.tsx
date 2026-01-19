@@ -7,18 +7,22 @@ interface QorIdAuthFlowProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  variant?: 'modal' | 'page'; // 'modal' = full-screen overlay, 'page' = simple page layout
+  initialStep?: AuthStep; // Initial step to show (for signup links)
 }
 
-type AuthStep = 'login' | 'register-email' | 'register-username' | 'register-pin';
+type AuthStep = 'login' | 'register-username' | 'register-email' | 'register-pin' | 'backup-code' | 'email-verification';
 
-export function QorIdAuthFlow({ isOpen, onClose, onSuccess }: QorIdAuthFlowProps) {
-  const [step, setStep] = useState<AuthStep>('login');
+export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', initialStep }: QorIdAuthFlowProps) {
+  const [step, setStep] = useState<AuthStep>(initialStep || 'login');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [usernameStatus, setUsernameStatus] = useState<'checking' | 'available' | 'taken' | 'invalid' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [backupCode, setBackupCode] = useState<string | null>(null);
+  const [emailVerificationToken, setEmailVerificationToken] = useState<string | null>(null);
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -30,6 +34,8 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess }: QorIdAuthFlowProps
       setPassword('');
       setUsernameStatus(null);
       setError(null);
+      setBackupCode(null);
+      setEmailVerificationToken(null);
     }
   }, [isOpen]);
 
@@ -73,30 +79,40 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess }: QorIdAuthFlowProps
     setIsLoading(true);
 
     try {
-      await qorAuth.login(username, password);
+      const response = await qorAuth.login(username, password);
+      // Set cookie for middleware (needed for page variant)
+      if (variant === 'page') {
+        document.cookie = `qor_token=${response.token}; path=/; max-age=86400`;
+      }
       onSuccess();
-      onClose();
+      if (variant === 'modal') {
+        onClose();
+      }
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err.message || err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email.trim()) {
-      setStep('register-username');
-      setError(null);
     }
   };
 
   const handleUsernameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (usernameStatus === 'available') {
-      setStep('register-pin');
+      setStep('register-email');
       setError(null);
     }
+  };
+
+  const handleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Email is optional - can skip to password
+    setStep('register-pin');
+    setError(null);
+  };
+
+  const handleSkipEmail = () => {
+    setEmail('');
+    setStep('register-pin');
   };
 
   const handlePinSubmit = async (e: React.FormEvent) => {
@@ -113,12 +129,20 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess }: QorIdAuthFlowProps
         username,
       });
 
-      // Registration doesn't auto-login - user needs to login after email verification
-      // For username-only accounts, they can login immediately
-      // For email accounts, they need to verify email first
-      
-      onSuccess();
-      onClose();
+      // Handle response based on whether email was provided
+      if (response.backup_code) {
+        // Username-only account: show backup code
+        setBackupCode(response.backup_code);
+        setStep('backup-code');
+      } else if (response.email_verification_token) {
+        // Email account: show verification message
+        setEmailVerificationToken(response.email_verification_token);
+        setStep('email-verification');
+      } else {
+        // Should not happen, but handle gracefully
+        onSuccess();
+        onClose();
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -126,8 +150,314 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess }: QorIdAuthFlowProps
     }
   };
 
+  const handleBackupCodeAcknowledged = () => {
+    onSuccess();
+    onClose();
+  };
+
+  const handleEmailVerificationAcknowledged = () => {
+    // User needs to verify email before they can login
+    // Redirect to login page
+    setStep('login');
+    setError('Please check your email and verify your account before logging in.');
+  };
+
   if (!isOpen) return null;
 
+  // Page variant: simple layout without modal overlay
+  if (variant === 'page') {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-8">
+        <div className="glass-panel p-8 max-w-md w-full">
+          {/* Login Step */}
+          {step === 'login' && (
+            <div className="space-y-6">
+              <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
+                Login to Demiurge
+              </h1>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">
+                    Email or Username
+                  </label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter your email or username"
+                    className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">
+                    Chain PIN
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your Chain PIN"
+                    className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
+                    required
+                  />
+                </div>
+
+                {error && (
+                  <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading || !username || !password}
+                  className="w-full glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold disabled:opacity-50"
+                >
+                  {isLoading ? 'Logging in...' : 'Login'}
+                </button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <a
+                  href="/login?step=register"
+                  className="text-demiurge-cyan hover:text-demiurge-violet"
+                >
+                  Don't have an account? Register
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Registration steps - same styling but in page layout */}
+          {step !== 'login' && (
+            <div className="space-y-6">
+              {/* Register Username Step */}
+              {step === 'register-username' && (
+                <>
+                  <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
+                    Create QOR ID
+                  </h1>
+                  <form onSubmit={handleUsernameSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-300">Username</label>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                        placeholder="3-20 characters, alphanumeric and _"
+                        className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
+                        required
+                        minLength={3}
+                        maxLength={20}
+                        pattern="[a-zA-Z0-9_]{3,20}"
+                      />
+                      {usernameStatus === 'checking' && (
+                        <div className="text-xs text-demiurge-cyan mt-2 animate-pulse">Checking availability...</div>
+                      )}
+                      {usernameStatus === 'available' && (
+                        <div className="text-xs text-green-400 mt-2">✓ Username available</div>
+                      )}
+                      {usernameStatus === 'taken' && (
+                        <div className="text-xs text-red-400 mt-2">✗ Username already taken</div>
+                      )}
+                      {usernameStatus === 'invalid' && username.length > 0 && (
+                        <div className="text-xs text-red-400 mt-2">Invalid format (3-20 alphanumeric characters)</div>
+                      )}
+                    </div>
+                    {error && (
+                      <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400">
+                        {error}
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={usernameStatus !== 'available'}
+                      className="w-full glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold disabled:opacity-50"
+                    >
+                      CONTINUE
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStep('login')}
+                      className="w-full text-demiurge-cyan hover:text-demiurge-violet text-sm"
+                    >
+                      Back to Login
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {/* Register Email Step */}
+              {step === 'register-email' && (
+                <>
+                  <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
+                    Add Email (Optional)
+                  </h1>
+                  <form onSubmit={handleEmailSubmit} className="space-y-4">
+                    <div className="bg-gradient-to-r from-yellow-900/30 to-yellow-800/30 border border-yellow-500/50 rounded-lg p-4">
+                      <div className="text-yellow-300 font-semibold mb-2">🎁 BONUS OFFER</div>
+                      <div className="text-yellow-200 text-sm">
+                        Add your email address and receive <strong className="text-yellow-300">5 CGT</strong> as a welcome bonus!
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-300">
+                        Email Address <span className="text-gray-500">(Optional)</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        className="flex-1 glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold"
+                      >
+                        CONTINUE
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSkipEmail}
+                        className="px-4 py-3 glass-panel rounded-lg hover:chroma-glow transition-all"
+                      >
+                        Skip
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStep('register-username')}
+                      className="w-full text-demiurge-cyan hover:text-demiurge-violet text-sm"
+                    >
+                      ← Back
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {/* Register PIN Step */}
+              {step === 'register-pin' && (
+                <>
+                  <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
+                    Set Chain PIN
+                  </h1>
+                  <form onSubmit={handlePinSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-300">Chain PIN (Password)</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Minimum 6 characters"
+                        className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
+                        required
+                        minLength={6}
+                      />
+                      {password.length > 0 && (
+                        <div className={`text-xs mt-2 ${password.length >= 6 ? 'text-green-400' : 'text-red-400'}`}>
+                          {password.length >= 6 ? '✓ Chain PIN accepted' : `Minimum 6 characters (${password.length}/6)`}
+                        </div>
+                      )}
+                    </div>
+                    {error && (
+                      <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400">
+                        {error}
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={password.length < 6 || isLoading}
+                      className="w-full glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold disabled:opacity-50"
+                    >
+                      {isLoading ? 'Creating Account...' : 'GET IT NOW'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStep('register-email')}
+                      className="w-full text-demiurge-cyan hover:text-demiurge-violet text-sm"
+                    >
+                      ← Back
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {/* Backup Code Step */}
+              {step === 'backup-code' && backupCode && (
+                <>
+                  <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
+                    Save Your Backup Code
+                  </h1>
+                  <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 mb-4">
+                    <div className="text-yellow-300 font-semibold mb-2">⚠️ IMPORTANT</div>
+                    <div className="text-yellow-200 text-sm mb-4">
+                      You did not provide an email address. This backup code is your only way to reset your Chain PIN if you forget it.
+                      <strong className="block mt-2 text-yellow-300">Save this code in a safe place!</strong>
+                    </div>
+                    <div className="bg-black/50 p-4 rounded border border-yellow-500/30">
+                      <div className="text-xs text-gray-400 mb-1">BACKUP CODE</div>
+                      <div className="text-2xl font-mono font-bold text-yellow-300 tracking-wider text-center py-2">
+                        {backupCode}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(backupCode)}
+                      className="w-full mt-3 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 py-2 rounded transition-colors text-sm"
+                    >
+                      Copy to Clipboard
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleBackupCodeAcknowledged}
+                    className="w-full glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold"
+                  >
+                    I'VE SAVED MY CODE
+                  </button>
+                </>
+              )}
+
+              {/* Email Verification Step */}
+              {step === 'email-verification' && email && (
+                <>
+                  <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
+                    Check Your Email
+                  </h1>
+                  <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4 mb-4">
+                    <div className="text-blue-300 font-semibold mb-2">📧 Email Verification Required</div>
+                    <div className="text-blue-200 text-sm">
+                      We've sent a verification email to <strong className="text-blue-300">{email}</strong>.
+                      Please check your inbox and click the verification link to activate your account.
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleEmailVerificationAcknowledged}
+                    className="w-full glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold"
+                  >
+                    GOT IT - I'LL VERIFY MY EMAIL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep('login')}
+                    className="w-full text-demiurge-cyan hover:text-demiurge-violet text-sm mt-2"
+                  >
+                    Back to Login
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  }
+
+  // Modal variant: full-screen overlay (default)
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50">
       <div className="glass-panel liquid-border p-10 rounded-xl w-full max-w-lg border-2 border-demiurge-violet/50 relative overflow-hidden">
@@ -189,74 +519,25 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess }: QorIdAuthFlowProps
               </button>
 
               <div className="text-center pt-4 border-t border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setStep('register-email')}
+                <a
+                  href="/login?step=register"
                   className="text-neon-cyan hover:text-neon-magenta transition-colors underline font-body"
                 >
-                  Create QOR ID
-                </button>
+                  Don't have a QOR ID? Get one here
+                </a>
               </div>
             </form>
           </div>
         )}
 
-        {/* Register Email Step */}
-        {step === 'register-email' && (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-grunge text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green mb-2">
-                CREATE QOR ID
-              </h2>
-              <p className="text-gray-400 font-body">Step 1 of 3: Email Address</p>
-            </div>
-
-            <form onSubmit={handleEmailSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-300 mb-2 font-body">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className="w-full bg-gray-900/50 border-2 border-gray-700 rounded-lg p-4 text-white placeholder-gray-500 focus:border-neon-cyan focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 transition-all"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-2 font-body">Used for account recovery and notifications</p>
-              </div>
-
-              {error && (
-                <div className="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-4 text-red-400 text-sm">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green text-white font-grunge-alt py-4 rounded-lg hover:scale-105 transition-all text-lg chroma-glow"
-              >
-                CONTINUE
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep('login')}
-                className="w-full text-neon-cyan hover:text-neon-magenta transition-colors text-sm underline font-body"
-              >
-                Back to Login
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* Register Username Step */}
+        {/* Register Username Step (Step 1) */}
         {step === 'register-username' && (
           <div className="space-y-6">
             <div className="text-center mb-8">
               <h2 className="text-4xl font-grunge text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green mb-2">
-                CHOOSE USERNAME
+                CHOOSE YOUR ON-CHAIN USERNAME
               </h2>
-              <p className="text-gray-400 font-body">Step 2 of 3: Your on-chain identity</p>
+              <p className="text-gray-400 font-body">Step 1 of 3: Your on-chain identity</p>
             </div>
 
             <form onSubmit={handleUsernameSubmit} className="space-y-4">
@@ -307,7 +588,76 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess }: QorIdAuthFlowProps
 
               <button
                 type="button"
-                onClick={() => setStep('register-email')}
+                onClick={() => setStep('login')}
+                className="w-full text-neon-cyan hover:text-neon-magenta transition-colors text-sm underline font-body"
+              >
+                Back to Login
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Register Email Step (Step 2 - Optional) */}
+        {step === 'register-email' && (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-grunge text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green mb-2">
+                ADD EMAIL (OPTIONAL)
+              </h2>
+              <p className="text-gray-400 font-body">Step 2 of 3: Get 5 CGT bonus</p>
+            </div>
+
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div className="bg-gradient-to-r from-yellow-900/30 to-yellow-800/30 border-2 border-yellow-500/50 rounded-lg p-4">
+                <div className="text-yellow-300 font-semibold mb-2">🎁 BONUS OFFER</div>
+                <div className="text-yellow-200 text-sm font-body">
+                  Add your email address and receive <strong className="text-yellow-300">5 CGT</strong> as a welcome bonus!
+                  <br />
+                  <span className="text-xs text-yellow-300/80 mt-1 block">Helps us build our community and keep you updated.</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-300 mb-2 font-body">
+                  Email Address <span className="text-gray-500">(Optional)</span>
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full bg-gray-900/50 border-2 border-gray-700 rounded-lg p-4 text-white placeholder-gray-500 focus:border-neon-cyan focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 transition-all"
+                />
+                {email && (
+                  <div className="text-xs text-neon-green mt-2 font-body">✓ Email added - You'll receive 5 CGT bonus!</div>
+                )}
+              </div>
+
+              {error && (
+                <div className="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-4 text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green text-white font-grunge-alt py-4 rounded-lg hover:scale-105 transition-all text-lg chroma-glow"
+                >
+                  CONTINUE
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSkipEmail}
+                  className="px-4 py-4 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors font-body"
+                >
+                  Skip
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setStep('register-username')}
                 className="w-full text-neon-cyan hover:text-neon-magenta transition-colors text-sm underline font-body"
               >
                 ← Back
@@ -361,17 +711,101 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess }: QorIdAuthFlowProps
                     : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                {isLoading ? 'CREATING ACCOUNT...' : 'CREATE QOR ID'}
+                {isLoading ? 'CREATING ACCOUNT...' : 'GET IT NOW'}
               </button>
 
               <button
                 type="button"
-                onClick={() => setStep('register-username')}
+                onClick={() => setStep('register-email')}
                 className="w-full text-neon-cyan hover:text-neon-magenta transition-colors text-sm underline font-body"
               >
                 ← Back
               </button>
             </form>
+          </div>
+        )}
+
+        {/* Backup Code Step (Username-only accounts) */}
+        {step === 'backup-code' && backupCode && (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-grunge text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green mb-2">
+                SAVE YOUR BACKUP CODE
+              </h2>
+              <p className="text-gray-400 font-body">Important: Store this code securely</p>
+            </div>
+
+            <div className="bg-yellow-900/30 border-2 border-yellow-500/50 rounded-lg p-6">
+              <div className="text-yellow-300 font-semibold mb-3 font-body">⚠️ IMPORTANT</div>
+              <div className="text-yellow-200 text-sm mb-4 font-body">
+                You did not provide an email address. This backup code is your only way to reset your Chain PIN if you forget it.
+                <strong className="block mt-2 text-yellow-300">Save this code in a safe place!</strong>
+              </div>
+              <div className="bg-black/50 p-4 rounded border border-yellow-500/30">
+                <div className="text-xs text-gray-400 mb-1 font-body">BACKUP CODE</div>
+                <div className="text-2xl font-mono font-bold text-yellow-300 tracking-wider text-center py-2">
+                  {backupCode}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(backupCode);
+                }}
+                className="w-full mt-3 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 py-2 rounded transition-colors text-sm font-body"
+              >
+                Copy to Clipboard
+              </button>
+            </div>
+
+            <button
+              onClick={handleBackupCodeAcknowledged}
+              className="w-full bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green text-white font-grunge-alt py-4 rounded-lg hover:scale-105 transition-all text-lg chroma-glow"
+            >
+              I'VE SAVED MY CODE
+            </button>
+          </div>
+        )}
+
+        {/* Email Verification Step */}
+        {step === 'email-verification' && email && (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-grunge text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green mb-2">
+                CHECK YOUR EMAIL
+              </h2>
+              <p className="text-gray-400 font-body">Verify your account to continue</p>
+            </div>
+
+            <div className="bg-blue-900/30 border-2 border-blue-500/50 rounded-lg p-6">
+              <div className="text-blue-300 font-semibold mb-3 font-body">📧 Email Verification Required</div>
+              <div className="text-blue-200 text-sm mb-4 font-body">
+                We've sent a verification email to <strong className="text-blue-300">{email}</strong>.
+                Please check your inbox and click the verification link to activate your account.
+              </div>
+              {emailVerificationToken && (
+                <div className="bg-black/50 p-3 rounded border border-blue-500/30 mt-3">
+                  <div className="text-xs text-gray-400 mb-1 font-body">VERIFICATION TOKEN</div>
+                  <div className="text-sm font-mono text-blue-300 break-all font-body">
+                    {emailVerificationToken}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleEmailVerificationAcknowledged}
+              className="w-full bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green text-white font-grunge-alt py-4 rounded-lg hover:scale-105 transition-all text-lg chroma-glow"
+            >
+              GOT IT - I'LL VERIFY MY EMAIL
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStep('login')}
+              className="w-full text-neon-cyan hover:text-neon-magenta transition-colors text-sm underline font-body"
+            >
+              Back to Login
+            </button>
           </div>
         )}
       </div>

@@ -11,7 +11,7 @@ interface QorIdRegisterModalProps {
 }
 
 export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackToLogin }: QorIdRegisterModalProps) {
-  const [step, setStep] = useState<'username' | 'password' | 'backup-code' | 'email-verification'>('username');
+  const [step, setStep] = useState<'username' | 'email' | 'password' | 'backup-code' | 'email-verification'>('username');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,6 +21,7 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
   const [passwordStatus, setPasswordStatus] = useState<'valid' | 'invalid' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [emailAdded, setEmailAdded] = useState(false);
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
       setUsernameStatus(null);
       setPasswordStatus(null);
       setError(null);
+      setEmailAdded(false);
     }
   }, [isOpen]);
 
@@ -99,9 +101,21 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
   const handleUsernameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (usernameStatus === 'available') {
-      setStep('password');
+      setStep('email');
       setError(null);
     }
+  };
+
+  const handleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setStep('password');
+    setError(null);
+  };
+
+  const handleSkipEmail = () => {
+    setEmail('');
+    setEmailAdded(false);
+    setStep('password');
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -164,7 +178,7 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
         {step === 'username' ? (
           <>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-demiurge-violet">CHOOSE AN ON-CHAIN USERNAME</h2>
+              <h2 className="text-2xl font-bold text-demiurge-violet">CHOOSE YOUR ON-CHAIN USERNAME</h2>
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-white transition-colors text-2xl"
@@ -176,25 +190,8 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
             <form onSubmit={handleUsernameSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
-                  Email (Optional)
-                  <span className="text-xs text-gray-500 ml-2">- For password recovery</span>
+                  Username <span className="text-red-400">*</span>
                 </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com (optional)"
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded p-3 text-white placeholder-gray-500 focus:border-demiurge-violet focus:outline-none"
-                />
-                {!email && (
-                  <div className="text-xs text-yellow-400 mt-1">
-                    ⚠️ Without email, you'll receive a backup code for password recovery
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Username</label>
                 <input
                   type="text"
                   value={username}
@@ -241,7 +238,7 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
                     : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                ENGAGE
+                {usernameStatus === 'available' ? 'CONTINUE' : 'CHECKING...'}
               </button>
 
               <button
@@ -253,12 +250,70 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
               </button>
             </form>
           </>
+        ) : step === 'email' ? (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-demiurge-cyan">ADD EMAIL (OPTIONAL)</h2>
+              <button
+                onClick={() => setStep('username')}
+                className="text-gray-400 hover:text-white transition-colors text-sm"
+              >
+                ← Back
+              </button>
+            </div>
+
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div className="bg-gradient-to-r from-yellow-900/30 to-yellow-800/30 border-2 border-yellow-500/50 rounded p-4">
+                <div className="text-yellow-300 font-semibold mb-2">🎁 BONUS OFFER</div>
+                <div className="text-yellow-200 text-sm">
+                  Add your email address and receive <strong className="text-yellow-300">5 CGT</strong> as a welcome bonus!
+                  <br />
+                  <span className="text-xs text-yellow-300/80 mt-1 block">Helps us build our community and keep you updated.</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">
+                  Email Address <span className="text-gray-500">(Optional)</span>
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEmailAdded(e.target.value.trim().length > 0);
+                  }}
+                  placeholder="your@email.com"
+                  className="w-full bg-gray-800/50 border border-gray-700 rounded p-3 text-white placeholder-gray-500 focus:border-demiurge-cyan focus:outline-none"
+                />
+                {email && (
+                  <div className="text-xs text-green-400 mt-1">✓ Email added - You'll receive 5 CGT bonus!</div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-white font-bold py-3 rounded-lg hover:chroma-glow transition-all"
+                >
+                  CONTINUE
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSkipEmail}
+                  className="px-4 py-3 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
+                >
+                  Skip
+                </button>
+              </div>
+            </form>
+          </>
         ) : step === 'password' ? (
           <>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-demiurge-gold">CHOOSE A SAFE WORD</h2>
               <button
-                onClick={() => setStep('username')}
+                onClick={() => setStep('email')}
                 className="text-gray-400 hover:text-white transition-colors text-sm"
               >
                 ← Back
@@ -306,7 +361,7 @@ export function QorIdRegisterModal({ isOpen, onClose, onRegisterSuccess, onBackT
                     : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                {isLoading ? 'Creating Account...' : 'ENGAGE'}
+                {isLoading ? 'Creating Account...' : 'GET IT NOW'}
               </button>
             </form>
           </>

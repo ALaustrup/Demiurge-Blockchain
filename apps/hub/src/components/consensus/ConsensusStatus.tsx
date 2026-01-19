@@ -23,8 +23,13 @@ export function ConsensusStatus() {
     try {
       const data = await demiurgeRpc.getConsensusStatus();
       setStatus(data);
-    } catch (err) {
-      console.error('Failed to load consensus status:', err);
+    } catch (err: any) {
+      // Silently handle network/RPC errors (blockchain may not be running)
+      // Don't log network errors - they're expected when blockchain is offline
+      if (!err?.isNetworkError && err?.message && !err.message.includes('fetch') && !err.message.includes('RPC unavailable')) {
+        console.warn('Blockchain RPC error:', err.message);
+      }
+      // Don't set error state - component will show offline state
     } finally {
       setLoading(false);
     }
@@ -33,12 +38,13 @@ export function ConsensusStatus() {
   if (loading || !status) {
     return (
       <div className="flex items-center gap-3 text-xs">
-        <div className="animate-pulse flex items-center gap-3">
-          <div className="h-4 w-12 bg-gray-700 rounded"></div>
-          <div className="h-4 w-px bg-gray-600"></div>
-          <div className="h-4 w-16 bg-gray-700 rounded"></div>
-          <div className="h-4 w-px bg-gray-600"></div>
-          <div className="h-4 w-12 bg-gray-700 rounded"></div>
+        <div className="flex items-center gap-1">
+          <span className="text-gray-500">Blockchain</span>
+          <span className="text-gray-600">Offline</span>
+        </div>
+        <div className="flex items-center gap-1.5 ml-1">
+          <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+          <span className="text-gray-500 font-medium">Disconnected</span>
         </div>
       </div>
     );

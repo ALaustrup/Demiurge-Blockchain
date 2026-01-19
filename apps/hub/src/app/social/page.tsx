@@ -1,23 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { QorIdLoginModal } from '@/components/auth/QorIdLoginModal';
-import { QorIdRegisterModal } from '@/components/auth/QorIdRegisterModal';
+import { useRouter } from 'next/navigation';
 import { qorAuth } from '@demiurge/qor-sdk';
+import { useEffect } from 'react';
 
 export default function SocialPage() {
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const router = useRouter();
 
-  const handleLoginSuccess = () => {
-    // Refresh page to update nav bar with avatar
-    window.location.reload();
-  };
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!qorAuth.isAuthenticated()) {
+      router.push('/login');
+    }
+  }, [router]);
 
-  const handleRegisterSuccess = () => {
-    // Refresh page to update nav bar with avatar
-    window.location.reload();
-  };
+  if (!qorAuth.isAuthenticated()) {
+    return null; // Will redirect
+  }
 
   return (
     <main className="min-h-screen p-8">
@@ -35,42 +34,13 @@ export default function SocialPage() {
               CONNECT WITH QOR ID
             </h2>
             
-            {!qorAuth.isAuthenticated() ? (
-              <button
-                onClick={() => setShowLoginModal(true)}
-                className="glass-panel px-12 py-4 rounded-lg hover:chroma-glow transition-all text-xl font-bold bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-white"
-              >
-                LOGIN TO JOIN
-              </button>
-            ) : (
-              <div className="text-demiurge-cyan">
-                <p className="text-lg">You are connected!</p>
-                <p className="text-sm text-gray-400 mt-2">Social features coming soon...</p>
-              </div>
-            )}
+            <div className="text-demiurge-cyan">
+              <p className="text-lg">You are connected!</p>
+              <p className="text-sm text-gray-400 mt-2">Social features coming soon...</p>
+            </div>
           </div>
         </div>
       </div>
-
-      <QorIdLoginModal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        onLoginSuccess={handleLoginSuccess}
-        onSwitchToRegister={() => {
-          setShowLoginModal(false);
-          setShowRegisterModal(true);
-        }}
-      />
-
-      <QorIdRegisterModal
-        isOpen={showRegisterModal}
-        onClose={() => setShowRegisterModal(false)}
-        onRegisterSuccess={handleRegisterSuccess}
-        onBackToLogin={() => {
-          setShowRegisterModal(false);
-          setShowLoginModal(true);
-        }}
-      />
     </main>
   );
 }

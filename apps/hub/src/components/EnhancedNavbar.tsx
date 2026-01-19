@@ -39,6 +39,18 @@ export function EnhancedNavbar() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    // Close menu when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showMenu && !target.closest('.menu-container')) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
+
   const loadUserData = async () => {
     if (!qorAuth.isAuthenticated()) {
       setQorId(null);
@@ -92,7 +104,7 @@ export function EnhancedNavbar() {
       {/* Ancient glow background */}
       <div className="ancient-glow-bg" />
 
-      <nav className="fixed top-0 left-0 right-0 z-50 glass-panel liquid-border border-b-2 wardens-gaze">
+      <nav className="fixed top-0 left-0 right-0 z-50 liquid-border border-b-2 wardens-gaze overflow-visible bg-[rgba(10,10,15,0.75)] backdrop-blur-xl shadow-lg">
         <div className="flex justify-between items-center max-w-7xl mx-auto px-4 py-3">
           {/* Left: Logo + Chain Status */}
           <div className="flex items-center gap-4">
@@ -141,40 +153,78 @@ export function EnhancedNavbar() {
 
           {/* Right: Navigation + User */}
           <div className="flex gap-4 items-center ml-auto">
-            <div className="relative">
+            {/* Visible Navigation Links */}
+            <div className="hidden md:flex items-center gap-3">
+              <Link 
+                href="/games" 
+                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-cyan transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
+              >
+                Games
+              </Link>
+              <Link 
+                href="/portal" 
+                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-magenta transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
+              >
+                Portal
+              </Link>
+              <Link 
+                href="/wallet" 
+                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-green transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
+              >
+                Wallet
+              </Link>
+              <Link 
+                href="/staking" 
+                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-purple transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
+              >
+                Staking
+              </Link>
+              <Link 
+                href="/nft-portal" 
+                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-pink transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
+              >
+                NFTs
+              </Link>
+            </div>
+
+            {/* Mobile Menu Button & Dropdown */}
+            <div className="relative menu-container z-[60]">
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="font-grunge-alt text-sm uppercase tracking-wider text-gray-300 hover:text-neon-cyan transition-all duration-300 hover:chroma-glow px-3 py-1 rounded"
+                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-cyan transition-all duration-300 hover:chroma-glow px-3 py-1 rounded border border-neon-cyan/30 hover:border-neon-cyan bg-black/20 backdrop-blur-sm"
+                aria-label="Toggle menu"
               >
-                Menu
+                <span className="md:hidden">☰</span>
+                <span className="hidden md:inline">More</span>
               </button>
               {showMenu && (
-                <div className="cascade-menu open absolute right-0 top-full mt-2 glass-panel p-2 rounded-lg min-w-[180px] z-50">
-                  <Link href="/games" className="cascade-menu-item block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left mb-1">
-                    Games
-                  </Link>
-                  <Link href="/portal" className="cascade-menu-item block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left mb-1">
-                    Portal
-                  </Link>
-                  <Link href="/wallet" className="cascade-menu-item block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left mb-1">
-                    Wallet
-                  </Link>
-                  <Link href="/staking" className="cascade-menu-item block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left mb-1">
-                    Staking
-                  </Link>
-                  <Link href="/validators" className="cascade-menu-item block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left mb-1">
+                <div className="cascade-menu open absolute right-0 top-full mt-2 glass-panel p-2 rounded-lg min-w-[180px] z-[200] border border-neon-cyan/50 shadow-2xl bg-[rgba(10,10,15,0.98)] backdrop-blur-[20px]">
+                  <Link 
+                    href="/validators" 
+                    onClick={() => setShowMenu(false)}
+                    className="cascade-menu-item block w-full text-white py-2 px-3 rounded hover:chroma-glow hover:bg-neon-cyan/10 transition-all text-left mb-1"
+                  >
                     Validators
                   </Link>
-                  <Link href="/analytics" className="cascade-menu-item block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left mb-1">
+                  <Link 
+                    href="/analytics" 
+                    onClick={() => setShowMenu(false)}
+                    className="cascade-menu-item block w-full text-white py-2 px-3 rounded hover:chroma-glow hover:bg-neon-magenta/10 transition-all text-left mb-1"
+                  >
                     Analytics
                   </Link>
-                  <Link href="/nft-portal" className="cascade-menu-item block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left mb-1">
-                    NFTs
-                  </Link>
-                  <Link href="/development" className="cascade-menu-item block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left mb-1">
+                  <Link 
+                    href="/development" 
+                    onClick={() => setShowMenu(false)}
+                    className="cascade-menu-item block w-full text-white py-2 px-3 rounded hover:chroma-glow hover:bg-neon-green/10 transition-all text-left mb-1"
+                  >
                     Development
                   </Link>
-                  <Link href="/social" className="cascade-menu-item block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left">
+                  <Link 
+                    href="/social" 
+                    onClick={() => setShowMenu(false)}
+                    className="cascade-menu-item block w-full text-white py-2 px-3 rounded hover:chroma-glow hover:bg-neon-purple/10 transition-all text-left"
+                  >
                     VYB
                   </Link>
                 </div>

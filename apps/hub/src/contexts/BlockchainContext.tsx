@@ -69,14 +69,15 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
     if (!isConnected) {
       await connect();
     }
-    return blockchainClient.getCGTBalance(address);
+    return demiurgeRpc.getBalance(address);
   };
 
   const transfer = async (fromPair: any, toAddress: string, amount: string): Promise<string> => {
     if (!isConnected) {
       await connect();
     }
-    return blockchainClient.transferCGT(fromPair, toAddress, amount);
+    // TODO: Implement with proper signing
+    throw new Error('Transfer not implemented - use transferWithWasm');
   };
 
   const transferWithWasm = async (
@@ -89,25 +90,77 @@ export function BlockchainProvider({ children }: { children: ReactNode }) {
     if (!isConnected) {
       await connect();
     }
-    return blockchainClient.transferCGTWithWasm(keypairJson, fromAddress, toAddress, amount, signMessage);
+    // TODO: Implement with WASM signing
+    throw new Error('Transfer with WASM not fully implemented');
   };
 
   const getUserAssets = async (address: string): Promise<any[]> => {
     if (!isConnected) {
       await connect();
     }
-    return blockchainClient.getUserAssets(address);
+    // TODO: Implement asset fetching
+    return [];
   };
 
   const getTransactions = async (address: string): Promise<any[]> => {
     if (!isConnected) {
       await connect();
     }
-    return blockchainClient.getTransactions(address);
+    return demiurgeRpc.getTransactionHistory(address);
   };
 
   const getApi = () => {
-    return blockchainClient.getApi();
+    return null; // Not using Polkadot API anymore
+  };
+
+  // New Demiurge RPC methods
+  const getEnergy = async (address: string): Promise<EnergyInfo> => {
+    if (!isConnected) {
+      await connect();
+    }
+    return demiurgeRpc.getEnergy(address);
+  };
+
+  const getConsensusStatus = async (): Promise<ConsensusStatus> => {
+    if (!isConnected) {
+      await connect();
+    }
+    return demiurgeRpc.getConsensusStatus();
+  };
+
+  const getCurrentEra = async (): Promise<EraInfo> => {
+    if (!isConnected) {
+      await connect();
+    }
+    return demiurgeRpc.getCurrentEra();
+  };
+
+  const getValidators = async (): Promise<ValidatorInfo[]> => {
+    if (!isConnected) {
+      await connect();
+    }
+    return demiurgeRpc.getValidators();
+  };
+
+  const getValidator = async (account: string): Promise<ValidatorInfo | null> => {
+    if (!isConnected) {
+      await connect();
+    }
+    return demiurgeRpc.getValidator(account);
+  };
+
+  const getStakingPool = async (validator: string): Promise<StakingPoolInfo | null> => {
+    if (!isConnected) {
+      await connect();
+    }
+    return demiurgeRpc.getStakingPool(validator);
+  };
+
+  const getBlockNumber = async (): Promise<number> => {
+    if (!isConnected) {
+      await connect();
+    }
+    return demiurgeRpc.getBlockNumber();
   };
 
   return (

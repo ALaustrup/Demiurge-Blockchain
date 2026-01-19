@@ -98,7 +98,7 @@ export default function PortalPage() {
                     Pool: {(game.cgtPool || 0).toLocaleString()} CGT
                   </span>
                   <span className="text-demiurge-violet">
-                    {game.activeUsers || 0} Active
+                    {game.tags?.includes('multiplayer') ? 'Multiplayer' : 'Single Player'}
                   </span>
                 </div>
                 {game.tags && game.tags.length > 0 && (

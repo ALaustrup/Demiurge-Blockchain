@@ -176,7 +176,7 @@ export default function GamesPage() {
                     {(game.cgtPool || 0).toLocaleString()} CGT
                   </span>
                   <span className="text-demiurge-violet">
-                    {game.activeUsers || 0} Players
+                    {game.tags?.includes('multiplayer') ? 'Multiplayer' : 'Single Player'}
                   </span>
                 </div>
                 {game.tags && game.tags.length > 0 && (
@@ -197,7 +197,7 @@ export default function GamesPage() {
                   </div>
                 )}
                 {game.author && (
-                  <div className="text-xs text-gray-500 mb-2">by {game.author}</div>
+                  <div className="text-xs text-gray-500 mb-2">created by {game.author}</div>
                 )}
                 <div className="w-full glass-panel py-2 rounded text-center group-hover:chroma-glow transition-all font-bold uppercase text-demiurge-cyan">
                   Play →

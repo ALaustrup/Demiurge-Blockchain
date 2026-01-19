@@ -79,8 +79,8 @@ export function PasswordResetModal({ isOpen, onClose, onResetSuccess }: Password
   const handleNewPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (newPassword.length < 6) {
-      setError('Safe word must be at least 6 characters');
+      if (newPassword.length < 6) {
+        setError('Chain PIN must be at least 6 characters');
       return;
     }
 
@@ -225,7 +225,7 @@ export function PasswordResetModal({ isOpen, onClose, onResetSuccess }: Password
         ) : step === 'new-password' ? (
           <form onSubmit={handleNewPasswordSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">New Safe Word (Password)</label>
+              <label className="block text-sm text-gray-400 mb-2">New Chain PIN (Password)</label>
               <input
                 type="password"
                 value={newPassword}
@@ -238,7 +238,7 @@ export function PasswordResetModal({ isOpen, onClose, onResetSuccess }: Password
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Confirm Safe Word</label>
+              <label className="block text-sm text-gray-400 mb-2">Confirm Chain PIN</label>
               <input
                 type="password"
                 value={confirmPassword}

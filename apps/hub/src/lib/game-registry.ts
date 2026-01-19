@@ -114,7 +114,7 @@ function initializeRegistry() {
     thumbnail: '/games/galaga-creator/assets/player_ship.webp',
     entryPoint: 'index.html',
     version: '1.0.0',
-    author: 'Demiurge Games',
+    author: 'Astra Matrix',
     tags: ['action', 'arcade', 'shooter', 'space', 'cgt-earning', 'nft-support'],
     minLevel: 1,
     cgtPool: 0,
@@ -147,7 +147,7 @@ function initializeRegistry() {
     thumbnail: '/games/killBot-clicker/assets/mining_core.webp',
     entryPoint: 'index.html',
     version: '1.0.0',
-    author: 'Demiurge Games',
+    author: 'Astra Matrix',
     tags: ['clicker', 'mining', 'puzzle', 'cyber', 'cgt-earning'],
     minLevel: 1,
     cgtPool: 0,
@@ -162,6 +162,29 @@ function initializeRegistry() {
     nftSupport: {
       enabled: false,
       assetTypes: [],
+    },
+  });
+
+  // Register Scatter3D Engine (Demo)
+  gameRegistry.register({
+    id: 'scatter3d',
+    title: 'Scatter3D Engine',
+    description: 'High-Fidelity ASCII Raymarching Engine. Render 3D worlds entirely out of text characters. The "Matrix" meets "Dwarf Fortress". Requires QOR ID authentication and minimum stake.',
+    thumbnail: '/games/scatter3d/thumbnail.png', // Placeholder - create actual thumbnail
+    entryPoint: '/scatter3d', // Route to the page
+    version: '1.0.0-alpha',
+    author: 'Astra Matrix',
+    tags: ['engine', '3d', 'ascii', 'raymarching', 'experimental', 'stake-required'],
+    minLevel: 1,
+    cgtPool: 0,
+    activeUsers: 0,
+    // Scatter3D is an engine demo, not a game with CGT earning
+    cgtEarning: {},
+    // DRC-369 NFT support (for future NFT rendering)
+    nftSupport: {
+      enabled: true,
+      assetTypes: ['3d_model', 'voxel_asset'],
+      exclusiveAssets: [],
     },
   });
 }

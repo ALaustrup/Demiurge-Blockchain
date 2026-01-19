@@ -18,46 +18,65 @@ let wasmModule: any = null;
 
 /**
  * Load WASM module functions dynamically
+ * Returns false if module is not available (non-blocking)
  */
-async function loadWasmModule() {
+async function loadWasmModule(): Promise<boolean> {
   if (init && generate_keypair_from_seed && sign_message && get_address_from_keypair) {
-    return; // Already loaded
+    return true; // Already loaded
+  }
+
+  // Only try to load in browser environment
+  if (typeof window === 'undefined') {
+    return false;
   }
 
   try {
-    // Try importing from the built package
-    const wasmModule = await import('@demiurge/wallet-wasm');
-    init = wasmModule.default;
-    generate_keypair_from_seed = wasmModule.generate_keypair_from_seed;
-    sign_message = wasmModule.sign_message;
-    get_address_from_keypair = wasmModule.get_address_from_keypair;
-  } catch (error) {
-    // Fallback: try loading from relative path (for development)
-    try {
-      const wasmModule = await import('../../packages/wallet-wasm/pkg/wallet_wasm');
+    // Try importing from the built package (dynamic import to avoid build-time resolution)
+    const wasmModule = await import('@demiurge/wallet-wasm').catch(() => null);
+    if (wasmModule) {
       init = wasmModule.default;
       generate_keypair_from_seed = wasmModule.generate_keypair_from_seed;
       sign_message = wasmModule.sign_message;
       get_address_from_keypair = wasmModule.get_address_from_keypair;
-    } catch (fallbackError) {
-      console.error('Failed to load WASM module:', fallbackError);
-      throw new Error('WASM wallet module not found. Please ensure the wallet-wasm package is built.');
+      return true;
     }
+  } catch (error) {
+    // Silently fail - module not available
   }
+
+  try {
+    // Fallback: try loading from relative path (for development)
+    const wasmModule = await import('../../packages/wallet-wasm/pkg/wallet_wasm').catch(() => null);
+    if (wasmModule) {
+      init = wasmModule.default;
+      generate_keypair_from_seed = wasmModule.generate_keypair_from_seed;
+      sign_message = wasmModule.sign_message;
+      get_address_from_keypair = wasmModule.get_address_from_keypair;
+      return true;
+    }
+  } catch (fallbackError) {
+    // Silently fail - module not available
+  }
+
+  return false;
 }
 
 /**
  * Initialize WASM module
+ * Returns false if WASM is not available (non-blocking)
  */
-export async function initWasm(): Promise<void> {
+export async function initWasm(): Promise<boolean> {
   if (wasmInitialized && wasmModule) {
-    return;
+    return true;
+  }
+
+  // Try to load WASM module functions first
+  const loaded = await loadWasmModule();
+  if (!loaded || !init) {
+    return false; // WASM module not available, but don't throw error
   }
 
   try {
-    // Load WASM module functions first
-    await loadWasmModule();
-    
     // Try to load WASM binary from public directory
     try {
       const wasmModulePath = '/pkg/wallet_wasm_bg.wasm';
@@ -75,15 +94,16 @@ export async function initWasm(): Promise<void> {
       try {
         wasmModule = await init();
       } catch (directError) {
-        console.error('All WASM initialization methods failed:', directError);
-        throw new Error('Failed to load WASM wallet. Please ensure the wallet-wasm package is built and copied to public/pkg/');
+        // WASM not available, return false instead of throwing
+        return false;
       }
     }
     
     wasmInitialized = true;
+    return true;
   } catch (error) {
-    console.error('Failed to initialize WASM wallet:', error);
-    throw new Error('WASM wallet initialization failed. Please ensure the wallet-wasm package is built.');
+    // WASM not available, return false instead of throwing
+    return false;
   }
 }
 
@@ -94,7 +114,10 @@ export async function initWasm(): Promise<void> {
  * @returns Keypair JSON string
  */
 export async function generateKeypairFromQorId(qorId: string): Promise<string> {
-  await initWasm();
+  const initialized = await initWasm();
+  if (!initialized) {
+    throw new Error('WASM wallet module not available. Please ensure the wallet-wasm package is built.');
+  }
   
   // Use same seed format as qor-wallet.ts
   const seed = `QOR_ID:${qorId}`;
@@ -114,7 +137,10 @@ export async function generateKeypairFromQorId(qorId: string): Promise<string> {
  * @returns Public key as hex string
  */
 export async function getPublicKeyHex(keypairJson: string): Promise<string> {
-  await initWasm();
+  const initialized = await initWasm();
+  if (!initialized) {
+    throw new Error('WASM wallet module not available.');
+  }
   
   try {
     return get_address_from_keypair(keypairJson);
@@ -135,7 +161,10 @@ export async function signMessage(
   keypairJson: string,
   message: Uint8Array
 ): Promise<string> {
-  await initWasm();
+  const initialized = await initWasm();
+  if (!initialized) {
+    throw new Error('WASM wallet module not available.');
+  }
   
   try {
     return sign_message(keypairJson, message);
@@ -158,7 +187,10 @@ export async function signTransactionPayload(
   keypairJson: string,
   payload: Uint8Array
 ): Promise<string> {
-  await initWasm();
+  const initialized = await initWasm();
+  if (!initialized) {
+    throw new Error('WASM wallet module not available.');
+  }
   
   try {
     // Sign the payload

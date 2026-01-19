@@ -67,7 +67,7 @@ impl SlashingTracker {
     }
 
     /// Record a missed block (validator didn't sign)
-    pub fn record_missed_block<S: Storage>(&mut self, storage: &mut S, validator: [u8; 32], block_number: u64) {
+    pub fn record_missed_block<S: Storage>(&mut self, storage: &mut S, validator: [u8; 32], _block_number: u64) {
         let missed_count = self.missed_blocks
             .entry(validator)
             .and_modify(|count| *count += 1)

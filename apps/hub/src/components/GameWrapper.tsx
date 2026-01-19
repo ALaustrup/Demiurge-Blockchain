@@ -392,7 +392,7 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
                 <div className="text-sm text-gray-400 mb-1">Game Info</div>
                 <div className="text-sm text-white">
                   <div>Version: {gameMetadata.version}</div>
-                  {gameMetadata.author && <div>Author: {gameMetadata.author}</div>}
+                  {gameMetadata.author && <div>created by {gameMetadata.author}</div>}
                 </div>
               </div>
             )}

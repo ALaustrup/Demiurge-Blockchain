@@ -4,7 +4,6 @@ import { PersistentHUD } from '@demiurge/ui-shared'
 import { BlockchainProvider } from '@/contexts/BlockchainContext'
 import { WalletDropdownWrapper } from '@/components/WalletDropdownWrapper'
 import { QorIdHeaderWrapper } from '@/components/QorIdHeaderWrapper'
-import { BlockchainStatusBanner } from '@/components/BlockchainStatusBanner'
 import { EnhancedNavbar } from '@/components/EnhancedNavbar'
 import { VYBChat } from '@/components/VYBChat'
 import './globals.css'
@@ -58,7 +57,6 @@ export default function RootLayout({
           <div className="relative z-10">
             {children}
           </div>
-          <BlockchainStatusBanner />
           <VYBChat />
         </BlockchainProvider>
       </body>
