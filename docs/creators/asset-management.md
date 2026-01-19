@@ -23,7 +23,7 @@ Demiurge provides powerful tools for managing your digital assets:
 ```typescript
 import { DemiurgeRpcClient } from '@demiurge/rpc-client';
 
-const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
 
 // Get balance
 const balance = await client.getBalance('0x1234...');

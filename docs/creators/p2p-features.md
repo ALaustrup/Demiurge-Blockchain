@@ -23,7 +23,7 @@ Demiurge provides powerful P2P (peer-to-peer) features for:
 ```typescript
 import { DemiurgeRpcClient } from '@demiurge/rpc-client';
 
-const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
 
 // List NFT for sale
 await client.listNFTForSale({

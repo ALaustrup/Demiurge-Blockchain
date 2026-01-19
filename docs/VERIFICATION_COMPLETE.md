@@ -83,8 +83,8 @@ cd scripts
 ### Post-Deployment Verification
 After deployment, verify:
 1. Node is running: `systemctl status demiurge-node`
-2. RPC is accessible: `curl http://51.210.209.112:9944`
-3. Frontend is accessible: `curl http://51.210.209.112:3000`
+2. RPC is accessible: `curl https://rpc.demiurge.cloud`
+3. Frontend is accessible: `curl https://demiurge.cloud`
 
 ---
 

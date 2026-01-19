@@ -63,7 +63,7 @@ cargo build --release
 ```typescript
 import { DemiurgeRpcClient } from '@demiurge/rpc-client';
 
-const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
 
 // Register validator
 await client.registerValidator({

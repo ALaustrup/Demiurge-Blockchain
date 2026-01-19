@@ -184,19 +184,24 @@ docker logs -f demiurge-hub
 ### Health Checks
 
 ```bash
-# RPC endpoint
-curl -X POST http://51.210.209.112:9944 \
+# Production RPC endpoint
+curl -X POST https://rpc.demiurge.cloud \
   -H 'Content-Type: application/json' \
-  -d '{"jsonrpc":"2.0","method":"chain_getHealth","id":1}'
+  -d '{"jsonrpc":"2.0","method":"chain_getHealth","params":[],"id":1}'
+
+# Local RPC endpoint
+curl -X POST http://localhost:9944 \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"chain_getHealth","params":[],"id":1}'
 ```
 
 ---
 
 ## 🔗 Connection Information
 
-- **Blockchain RPC**: http://51.210.209.112:9944
-- **Frontend**: http://51.210.209.112:3000
-- **P2P**: /ip4/51.210.209.112/tcp/30333
+- **Blockchain RPC**: `https://rpc.demiurge.cloud` (HTTPS) / `wss://rpc.demiurge.cloud` (WebSocket)
+- **Frontend**: `https://demiurge.cloud`
+- **Local RPC**: `http://localhost:9944` (development)
 
 ---
 

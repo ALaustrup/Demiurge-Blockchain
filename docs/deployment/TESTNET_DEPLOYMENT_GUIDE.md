@@ -242,7 +242,7 @@ systemctl reload nginx
 systemctl status demiurge-node
 
 # Check RPC endpoint
-curl -X POST http://51.210.209.112:9944 \
+curl -X POST https://rpc.demiurge.cloud \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","method":"chain_getBlockNumber","id":1}'
 

@@ -21,8 +21,8 @@ This guide helps testers evaluate the Demiurge Blockchain testnet. We're looking
 
 ### 1. Access the Testnet
 
-**Frontend URL**: http://51.210.209.112:3000  
-**RPC Endpoint**: http://51.210.209.112:9944
+**Frontend URL**: https://demiurge.cloud  
+**RPC Endpoint**: https://rpc.demiurge.cloud
 
 ### 2. Create QOR ID Account
 
@@ -411,8 +411,8 @@ This guide helps testers evaluate the Demiurge Blockchain testnet. We're looking
 
 ### Useful Links
 
-- **Testnet**: http://51.210.209.112:3000
-- **RPC**: http://51.210.209.112:9944
+- **Testnet**: https://demiurge.cloud
+- **RPC**: https://rpc.demiurge.cloud
 - **Documentation**: `docs/`
 
 ---

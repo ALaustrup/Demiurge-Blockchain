@@ -218,7 +218,7 @@ ipfs add sword_slash.mp3
 ```typescript
 import { DemiurgeRpcClient } from '@demiurge/rpc-client';
 
-const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
 
 // Mint DRC-369 NFT
 const result = await client.mintDRC369({
