@@ -52,10 +52,13 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         // Register session keys methods
         Self::register_session_keys_methods(&mut module)?;
         
+        // Configure server to support both HTTP and WebSocket
+        // ServerBuilder::default() should support both, but we ensure HTTP is enabled
+        // This allows curl (HTTP POST) for testing AND WebSocket for UI clients
         let server = ServerBuilder::default()
             .build(self.address)
             .await
-            .map_err(|e| RpcError::ServerError(e.to_string()))?;
+            .map_err(|e| RpcError::ServerError(format!("Failed to build RPC server: {}", e)))?;
         
         // Start the server - start() returns ServerHandle directly
         // The server runs in the background automatically

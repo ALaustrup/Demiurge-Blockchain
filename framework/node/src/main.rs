@@ -16,8 +16,8 @@ struct Args {
     #[arg(short, long, default_value = "./data")]
     data_dir: String,
 
-    /// RPC address
-    #[arg(short, long, default_value = "127.0.0.1:9944")]
+    /// RPC address (use 0.0.0.0:9944 for external access)
+    #[arg(short, long, default_value = "0.0.0.0:9944")]
     rpc_addr: String,
 
     /// P2P address
