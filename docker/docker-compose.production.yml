@@ -52,8 +52,8 @@ services:
   # Demiurge Blockchain Node
   demiurge-node:
     build:
-      context: ../blockchain
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: blockchain/Dockerfile
     container_name: demiurge-node
     restart: unless-stopped
     command: >

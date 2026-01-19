@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /build
 
-# Copy all files (Docker layer caching will handle Cargo.toml changes)
+# Copy blockchain files
 COPY . .
 
 # Build the node binary
