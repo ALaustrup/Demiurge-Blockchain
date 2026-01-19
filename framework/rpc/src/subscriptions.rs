@@ -56,7 +56,7 @@ impl SubscriptionManager {
     }
 
     /// Notify transaction subscribers
-    pub fn notify_transaction(&self, tx: &Transaction) {
+    pub fn notify_transaction(&self, _tx: &Transaction) {
         // TODO: Send transaction to all subscribers via WebSocket
     }
 }

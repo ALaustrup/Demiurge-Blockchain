@@ -57,10 +57,9 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
             .await
             .map_err(|e| RpcError::ServerError(e.to_string()))?;
         
-        // Start the server - start() returns Result<ServerHandle>
+        // Start the server - start() returns ServerHandle directly
         // The server runs in the background automatically
-        let handle = server.start(module)
-            .map_err(|e| RpcError::ServerError(format!("Failed to start RPC server: {}", e)))?;
+        let handle = server.start(module);
         self.handle = Some(handle);
 
         Ok(())
