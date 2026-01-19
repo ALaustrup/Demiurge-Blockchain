@@ -103,7 +103,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
 
         // chain_getTransactionHistory
         module.register_async_method("chain_getTransactionHistory", |params, ctx| async move {
-            let (address_str, limit): (String, Option<u64>) = params.parse().map_err(|_| invalid_params("Invalid params"))??;
+            let (address_str, limit): (String, Option<u64>) = params.parse().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid params") })?;
             let address = hex::decode(address_str)
                 .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address hex") })?
                 .try_into()
@@ -120,7 +120,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     fn register_balance_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // balances_getBalance
         module.register_async_method("balances_getBalance", |params, ctx| async move {
-            let address_str: String = params.one().map_err(|_| invalid_params("Invalid address"))??;
+            let address_str: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address") })?;
             let address = hex::decode(address_str)
                 .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address hex") })?
                 .try_into()
@@ -186,7 +186,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     fn register_energy_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // energy_getEnergy
         module.register_async_method("energy_getEnergy", |params, ctx| async move {
-            let address_str: String = params.one().map_err(|_| invalid_params("Invalid address"))??;
+            let address_str: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address") })?;
             let address = hex::decode(address_str)
                 .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address hex") })?
                 .try_into()
@@ -202,7 +202,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     fn register_session_keys_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // sessionKeys_getActiveKeys
         module.register_async_method("sessionKeys_getActiveKeys", |params, ctx| async move {
-            let address_str: String = params.one().map_err(|_| invalid_params("Invalid address"))??;
+            let address_str: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address") })?;
             let address = hex::decode(address_str)
                 .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address hex") })?
                 .try_into()
