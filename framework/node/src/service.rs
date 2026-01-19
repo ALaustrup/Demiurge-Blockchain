@@ -144,12 +144,11 @@ impl NodeService {
         info!("Starting RPC server on {}...", self.config.rpc_addr);
         
         // Get storage from runtime - Runtime stores it as Arc internally
-        // We need to extract it, but Runtime doesn't expose it directly
-        // For now, create a new storage instance for RPC methods (read-only access)
-        // TODO: Refactor Runtime to expose storage or use shared storage properly
-        let storage_path = self.config.data_dir.to_str().unwrap_or("./data");
-        let storage = StorageBackend::new(storage_path)?;
-        let storage_arc = Arc::new(storage);
+        // Extract it by locking the runtime and cloning the storage Arc
+        let storage_arc = {
+            let runtime_guard = self.runtime.lock().await;
+            runtime_guard.storage.clone()
+        };
         
         // Create RPC methods handler
         let mut rpc_methods = RpcMethods::new(storage_arc);
