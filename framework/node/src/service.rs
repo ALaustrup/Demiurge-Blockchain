@@ -52,14 +52,15 @@ impl NodeService {
     pub fn init_consensus(&mut self) -> Result<()> {
         info!("Initializing consensus engine...");
         
-        // Get storage from runtime (we'll need to refactor for proper sharing)
-        // For now, create a new storage instance for consensus
-        // TODO: Refactor to share storage properly
-        let storage = StorageBackend::new(
-            self.config.data_dir.to_str().unwrap_or("./data")
-        )?;
+        // Share storage with runtime by cloning the Arc
+        // Get storage from runtime - Runtime stores it as Arc internally
+        // We need to create a shared storage wrapper
+        // For now, use a separate database path for consensus to avoid lock conflicts
+        // TODO: Refactor Runtime and ConsensusEngine to accept Arc<Mutex<StorageBackend>>
+        let consensus_storage_path = format!("{}/consensus", self.config.data_dir.to_str().unwrap_or("./data"));
+        let storage = StorageBackend::new(&consensus_storage_path)?;
         
-        let mut consensus_engine = ConsensusEngine::new(storage, self.config.block_time_ms);
+        let consensus_engine = ConsensusEngine::new(storage, self.config.block_time_ms);
         
         // Register validators (for now, empty - will be populated from config or storage)
         // TODO: Load validators from storage or config
