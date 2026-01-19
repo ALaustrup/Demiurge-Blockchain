@@ -7,6 +7,7 @@ use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
     RpcModule,
     core::Error as JsonRpcError,
+    types::ErrorObjectOwned,
 };
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -78,7 +79,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
 
         // chain_getBlock
         module.register_async_method("chain_getBlock", |params, ctx| async move {
-            let block_number: u64 = params.one().map_err(|e| invalid_params(&format!("Invalid block number: {}", e)))?;
+            let block_number: u64 = params.one().map_err(|_| Err::<u64, ErrorObjectOwned>(invalid_params("Invalid block number")))?;
             ctx.chain_get_block_by_number(block_number).await
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getBlock: {}", e)))?;
@@ -102,9 +103,9 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
 
         // chain_getTransactionHistory
         module.register_async_method("chain_getTransactionHistory", |params, ctx| async move {
-            let (address_str, limit): (String, Option<u64>) = params.parse().map_err(|e| invalid_params(&format!("Invalid params: {}", e)))?;
+            let (address_str, limit): (String, Option<u64>) = params.parse().map_err(|_| invalid_params("Invalid params"))??;
             let address = hex::decode(address_str)
-                .map_err(|e| invalid_params(&format!("Invalid address hex: {}", e)))?
+                .map_err(|_| invalid_params("Invalid address hex"))?
                 .try_into()
                 .map_err(|_| invalid_params("Address must be 32 bytes"))?;
             let limit = limit.unwrap_or(50);
@@ -119,9 +120,9 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     fn register_balance_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // balances_getBalance
         module.register_async_method("balances_getBalance", |params, ctx| async move {
-            let address_str: String = params.one().map_err(|e| invalid_params(&format!("Invalid address: {}", e)))?;
+            let address_str: String = params.one().map_err(|_| invalid_params("Invalid address"))??;
             let address = hex::decode(address_str)
-                .map_err(|e| invalid_params(&format!("Invalid address hex: {}", e)))?
+                .map_err(|_| invalid_params("Invalid address hex"))?
                 .try_into()
                 .map_err(|_| invalid_params("Address must be 32 bytes"))?;
             ctx.balances_get_balance(address).await
@@ -163,9 +164,9 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
 
         // consensus_getStakingPool
         module.register_async_method("consensus_getStakingPool", |params, ctx| async move {
-            let validator_str: String = params.one().map_err(|e| invalid_params(&format!("Invalid validator: {}", e)))?;
+            let validator_str: String = params.one().map_err(|_| invalid_params("Invalid validator"))??;
             let validator = hex::decode(validator_str)
-                .map_err(|e| invalid_params(&format!("Invalid validator hex: {}", e)))?
+                .map_err(|_| invalid_params("Invalid validator hex"))?
                 .try_into()
                 .map_err(|_| invalid_params("Validator must be 32 bytes"))?;
             ctx.consensus_get_staking_pool(validator).await
@@ -185,9 +186,9 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     fn register_energy_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // energy_getEnergy
         module.register_async_method("energy_getEnergy", |params, ctx| async move {
-            let address_str: String = params.one().map_err(|e| invalid_params(&format!("Invalid address: {}", e)))?;
+            let address_str: String = params.one().map_err(|_| invalid_params("Invalid address"))??;
             let address = hex::decode(address_str)
-                .map_err(|e| invalid_params(&format!("Invalid address hex: {}", e)))?
+                .map_err(|_| invalid_params("Invalid address hex"))?
                 .try_into()
                 .map_err(|_| invalid_params("Address must be 32 bytes"))?;
             ctx.energy_get_energy(address).await
@@ -201,9 +202,9 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     fn register_session_keys_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // sessionKeys_getActiveKeys
         module.register_async_method("sessionKeys_getActiveKeys", |params, ctx| async move {
-            let address_str: String = params.one().map_err(|e| invalid_params(&format!("Invalid address: {}", e)))?;
+            let address_str: String = params.one().map_err(|_| invalid_params("Invalid address"))??;
             let address = hex::decode(address_str)
-                .map_err(|e| invalid_params(&format!("Invalid address hex: {}", e)))?
+                .map_err(|_| invalid_params("Invalid address hex"))?
                 .try_into()
                 .map_err(|_| invalid_params("Address must be 32 bytes"))?;
             ctx.session_keys_get_active_keys(address).await
