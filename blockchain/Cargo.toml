@@ -61,10 +61,10 @@ repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
 # Substrate Dependencies - Use crates.io versions (local fork not available in Docker)
 frame-benchmarking = { version = "39.0.0", default-features = false }
 frame-benchmarking-cli = { version = "39.0.0" }
-frame-executive = { path = "../substrate/frame/executive", default-features = false }
-frame-support = { path = "../substrate/frame/support", default-features = false }
-frame-system = { path = "../substrate/frame/system", default-features = false }
-frame-system-rpc-runtime-api = { path = "../substrate/frame/system/rpc/runtime-api", default-features = false }
+frame-executive = { version = "39.0.0", default-features = false }
+frame-support = { version = "39.0.0", default-features = false }
+frame-system = { version = "39.0.0", default-features = false }
+frame-system-rpc-runtime-api = { version = "39.0.0", default-features = false }
 frame-try-runtime = { version = "0.41.0", default-features = false }
 pallet-balances = { version = "39.0.0", default-features = false }
 pallet-timestamp = { version = "39.0.0", default-features = false }
