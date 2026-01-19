@@ -2,7 +2,8 @@
 # Multi-stage build for optimized binary size
 
 # Stage 1: Builder
-FROM rust:1.84-slim as builder
+# Use Rust 1.85+ for edition2024 support
+FROM rust:1.85-slim as builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
