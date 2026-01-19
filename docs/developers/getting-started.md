@@ -75,8 +75,16 @@ Expected response:
 
 ### Testnet RPC Endpoint
 
+**Production Endpoint (Recommended)**:
 ```
-http://51.210.209.112:9944
+HTTPS: https://rpc.demiurge.cloud
+WSS:   wss://rpc.demiurge.cloud
+```
+
+**Local Development**:
+```
+HTTP:  http://localhost:9944
+WS:    ws://localhost:9944
 ```
 
 ### Connect Using JavaScript/TypeScript
@@ -84,7 +92,11 @@ http://51.210.209.112:9944
 ```typescript
 import { DemiurgeRpcClient } from '@demiurge/rpc-client';
 
-const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+// Production endpoint (HTTPS)
+const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
+
+// Or local development
+// const client = new DemiurgeRpcClient('http://localhost:9944');
 
 // Get chain health
 const health = await client.getHealth();
@@ -98,13 +110,20 @@ console.log('Current block:', blockNumber);
 ### Connect Using cURL
 
 ```bash
-curl -X POST http://51.210.209.112:9944 \
+# Production endpoint (HTTPS)
+curl -X POST https://rpc.demiurge.cloud \
   -H 'Content-Type: application/json' \
   -d '{
     "jsonrpc": "2.0",
     "method": "chain_getBlockNumber",
+    "params": [],
     "id": 1
   }'
+
+# Local development
+# curl -X POST http://localhost:9944 \
+#   -H 'Content-Type: application/json' \
+#   -d '{"jsonrpc":"2.0","method":"chain_getBlockNumber","params":[],"id":1}'
 ```
 
 ---
@@ -120,7 +139,8 @@ npm install @demiurge/rpc-client
 ```typescript
 import { DemiurgeRpcClient } from '@demiurge/rpc-client';
 
-const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+// Production endpoint
+const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
 ```
 
 ### Rust

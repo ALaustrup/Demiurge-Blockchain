@@ -50,7 +50,7 @@ interface ModuleTransaction extends Transaction {
 ```typescript
 import { DemiurgeRpcClient } from '@demiurge/rpc-client';
 
-const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
 
 // Get current nonce
 const nonce = await client.getNonce('0x1234...');
@@ -122,7 +122,7 @@ async function transferCGT(
   amount: string,
   privateKey: Uint8Array
 ) {
-  const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+  const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
   
   // Check balance
   const balance = await client.getBalance(from);
@@ -187,7 +187,7 @@ async function mintNFT(
   },
   privateKey: Uint8Array
 ) {
-  const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+  const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
   
   // Check energy
   const energy = await client.getEnergy(owner);
@@ -238,7 +238,7 @@ async function checkEnergyForTransaction(
   address: string,
   transactionType: string
 ): Promise<boolean> {
-  const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+  const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
   
   // Energy costs by transaction type
   const energyCosts = {
@@ -263,7 +263,7 @@ async function waitForEnergy(
   address: string,
   requiredEnergy: number
 ): Promise<void> {
-  const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+  const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
   
   while (true) {
     const energy = await client.getEnergy(address);
@@ -295,7 +295,7 @@ async function trackTransaction(
   txHash: string,
   timeout: number = 30000
 ): Promise<any> {
-  const client = new DemiurgeRpcClient('http://51.210.209.112:9944');
+  const client = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
   const startTime = Date.now();
   
   while (Date.now() - startTime < timeout) {

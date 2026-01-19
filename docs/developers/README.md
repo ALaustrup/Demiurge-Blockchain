@@ -8,11 +8,12 @@
 
 ## 🚀 Quick Start
 
-1. **[Getting Started](./getting-started.md)** - Set up your development environment
-2. **[RPC API Reference](./rpc-api-reference.md)** - Complete RPC method documentation
-3. **[Chain Operations](./chain-operations.md)** - Interact with blockchain state
-4. **[Transaction Building](./transaction-building.md)** - Create and submit transactions
-5. **[Module Integration](./module-integration.md)** - Integrate blockchain modules
+1. **[Quick Start](./QUICK_START.md)** ⚡ - Build your first dApp in 5 minutes
+2. **[Getting Started](./getting-started.md)** - Complete development environment setup
+3. **[RPC API Reference](./rpc-api-reference.md)** - Complete RPC method documentation
+4. **[Chain Operations](./chain-operations.md)** - Interact with blockchain state
+5. **[Transaction Building](./transaction-building.md)** - Create and submit transactions
+6. **[Module Integration](./module-integration.md)** - Integrate blockchain modules
 
 ---
 

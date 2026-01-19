@@ -83,24 +83,38 @@ Demiurge-Blockchain/
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### For Developers (Building dApps/Games)
+
+**No installation needed** - Use our public RPC endpoint:
+
+```typescript
+import { DemiurgeRpcClient } from '@demiurge/rpc-client';
+const rpc = new DemiurgeRpcClient('https://rpc.demiurge.cloud');
+const health = await rpc.getHealth();
+```
+
+**📖 Full Guide**: [`DEVELOPER_GUIDE.md`](DEVELOPER_GUIDE.md) | [`docs/developers/QUICK_START.md`](docs/developers/QUICK_START.md)
+
+### For Contributors (Running Locally)
+
+**Prerequisites**:
 - Rust 1.80+
 - Node.js 20+
 - PostgreSQL (for QOR auth)
 
-### Build Framework
+**Build Framework**:
 ```bash
 cd framework
 cargo build --release
 ```
 
-### Run Web Platform
+**Run Web Platform**:
 ```bash
 npm install
 npm run dev
 ```
 
-### Run QOR Auth Service
+**Run QOR Auth Service**:
 ```bash
 cd services/qor-auth
 cargo run
@@ -217,10 +231,19 @@ MIT License - See LICENSE file
 
 ## 🔗 Links
 
+- **RPC Endpoint**: `https://rpc.demiurge.cloud`
 - **Documentation**: `docs/`
 - **Framework**: `framework/`
 - **Web Platform**: `apps/hub/`
 - **QOR Auth**: `services/qor-auth/`
+
+## 👨‍💻 For Developers
+
+**Quick Start**: See [`docs/developers/QUICK_START.md`](docs/developers/QUICK_START.md) to build your first dApp in 5 minutes.
+
+**RPC Endpoint**: `https://rpc.demiurge.cloud` (HTTPS) / `wss://rpc.demiurge.cloud` (WebSocket)
+
+**Full Documentation**: [`docs/developers/`](docs/developers/)
 
 ---
 

@@ -100,8 +100,8 @@ framework/
 ## 🚀 Quick Links
 
 - **Getting Started**: See [Developer Getting Started](./developers/getting-started.md)
-- **RPC Endpoint**: `http://51.210.209.112:9944`
-- **Frontend**: `http://51.210.209.112:3000`
+- **RPC Endpoint**: `https://rpc.demiurge.cloud` (HTTPS) / `wss://rpc.demiurge.cloud` (WebSocket)
+- **Frontend**: `https://demiurge.cloud`
 - **Development Page**: `/development` (in frontend)
 
 ---
