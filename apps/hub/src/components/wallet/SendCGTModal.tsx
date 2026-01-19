@@ -72,7 +72,7 @@ export function SendCGTModal({ isOpen, onClose, fromAddress, currentBalance }: S
 
     try {
       // Get current user's QOR ID
-      const user = qorAuth.getCurrentUser();
+      const user = await qorAuth.getProfile();
       if (!user) {
         throw new Error('Not authenticated. Please log in.');
       }

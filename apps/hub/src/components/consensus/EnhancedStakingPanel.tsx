@@ -128,7 +128,7 @@ export function EnhancedStakingPanel({ address, onStake }: EnhancedStakingPanelP
 
     try {
       // Get current user
-      const user = qorAuth.getCurrentUser();
+      const user = await qorAuth.getProfile();
       if (!user) {
         throw new Error('Not authenticated. Please log in.');
       }

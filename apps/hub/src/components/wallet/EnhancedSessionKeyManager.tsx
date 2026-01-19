@@ -125,7 +125,7 @@ export function EnhancedSessionKeyManager({ qorId, primaryAddress }: EnhancedSes
 
     try {
       // Get current user
-      const user = qorAuth.getCurrentUser();
+      const user = await qorAuth.getProfile();
       if (!user) {
         throw new Error('Not authenticated. Please log in.');
       }
@@ -199,7 +199,7 @@ export function EnhancedSessionKeyManager({ qorId, primaryAddress }: EnhancedSes
       }
 
       // Get current user
-      const user = qorAuth.getCurrentUser();
+      const user = await qorAuth.getProfile();
       if (!user) {
         throw new Error('Not authenticated. Please log in.');
       }
