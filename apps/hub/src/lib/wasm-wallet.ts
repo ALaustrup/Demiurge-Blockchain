@@ -32,7 +32,8 @@ async function loadWasmModule(): Promise<boolean> {
 
   try {
     // Try importing from the built package (dynamic import to avoid build-time resolution)
-    const wasmModule = await import('@demiurge/wallet-wasm').catch(() => null);
+    // Use string concatenation to prevent TypeScript from statically analyzing the import
+    const wasmModule = await import('@demiurge/' + 'wallet-wasm').catch(() => null);
     if (wasmModule) {
       init = wasmModule.default;
       generate_keypair_from_seed = wasmModule.generate_keypair_from_seed;
