@@ -21,7 +21,10 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /build
 
-# Copy blockchain directory (when build context is repo root)
+# Copy substrate directory first (for local fork dependencies)
+COPY substrate/ ./substrate/
+
+# Copy blockchain directory
 COPY blockchain/ .
 
 # Build the node binary
