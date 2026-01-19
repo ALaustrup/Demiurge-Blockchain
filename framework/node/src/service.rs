@@ -128,10 +128,45 @@ impl NodeService {
             });
         }
         
+        // Start RPC server if enabled
+        if self.config.enable_rpc {
+            self.start_rpc_server().await?;
+        }
+        
         // TODO: Start network
-        // TODO: Start RPC server
         
         info!("✅ Node service started");
+        Ok(())
+    }
+
+    /// Start RPC server
+    async fn start_rpc_server(&mut self) -> Result<()> {
+        info!("Starting RPC server on {}...", self.config.rpc_addr);
+        
+        // Get storage from runtime - Runtime stores it as Arc internally
+        // We need to extract it, but Runtime doesn't expose it directly
+        // For now, create a new storage instance for RPC methods (read-only access)
+        // TODO: Refactor Runtime to expose storage or use shared storage properly
+        let storage_path = self.config.data_dir.to_str().unwrap_or("./data");
+        let storage = StorageBackend::new(storage_path)?;
+        let storage_arc = Arc::new(storage);
+        
+        // Create RPC methods handler
+        let mut rpc_methods = RpcMethods::new(storage_arc);
+        
+        // Set runtime and consensus references
+        rpc_methods.set_runtime(self.runtime.clone());
+        if let Some(consensus) = &self.consensus {
+            rpc_methods.set_consensus(consensus.clone());
+        }
+        
+        // Create and start RPC server
+        let mut rpc_server = RpcServer::new(self.config.rpc_addr);
+        rpc_server.start(Arc::new(rpc_methods)).await
+            .map_err(|e| anyhow::anyhow!("Failed to start RPC server: {}", e))?;
+        
+        self.rpc_server = Some(rpc_server);
+        info!("✅ RPC server started on {}", self.config.rpc_addr);
         Ok(())
     }
 
@@ -212,7 +247,14 @@ impl NodeService {
     /// Stop the node service
     pub async fn stop(&mut self) -> Result<()> {
         info!("Shutting down node service...");
-        // TODO: Stop RPC server when implemented
+        
+        // Stop RPC server if running
+        if let Some(ref mut rpc_server) = self.rpc_server {
+            rpc_server.stop().await
+                .map_err(|e| anyhow::anyhow!("Failed to stop RPC server: {}", e))?;
+            info!("✅ RPC server stopped");
+        }
+        
         Ok(())
     }
 
