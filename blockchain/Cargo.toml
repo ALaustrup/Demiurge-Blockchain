@@ -55,6 +55,9 @@ sp-transaction-pool = { path = "../substrate/primitives/transaction-pool", packa
 sp-version = { path = "../substrate/primitives/version", package = "sp-version" }
 sp-weights = { path = "../substrate/primitives/weights", package = "sp-weights" }
 
+# Force schnorrkel version to match local substrate (0.9.1)
+schnorrkel = { version = "0.9.1", features = ["preaudit_deprecated", "u64_backend"], default-features = false }
+
 [workspace.dependencies]
 # Substrate Dependencies - Use crates.io versions (local fork not available in Docker)
 frame-benchmarking = { version = "39.0.0", default-features = false }
