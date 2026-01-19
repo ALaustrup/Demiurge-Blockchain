@@ -89,3 +89,12 @@ substrate/
 # SSH keys and config
 .ssh/
 **/.ssh/
+
+# Additional exclusions for stability
+framework/target/
+apps/*/node_modules/
+apps/*/.next/
+apps/*/dist/
+*.wasm
+*.so
+*.a
