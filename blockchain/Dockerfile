@@ -20,8 +20,8 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /build
 
-# Copy blockchain files
-COPY . .
+# Copy blockchain directory (when build context is repo root)
+COPY blockchain/ .
 
 # Build the node binary
 # Docker will cache layers based on Cargo.toml/Cargo.lock changes
