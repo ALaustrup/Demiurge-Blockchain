@@ -25,7 +25,14 @@ DOCKER_DIR="$DEPLOY_DIR/docker"
 echo -e "${YELLOW}⚠️  WARNING: This will wipe all containers, volumes, and data!${NC}"
 echo -e "${YELLOW}⚠️  Only proceed if you have backups or are okay with data loss.${NC}"
 echo ""
-read -p "Type 'WIPE' to confirm: " confirm
+
+# Check for non-interactive mode
+if [ "$1" == "--yes" ] || [ "$1" == "-y" ]; then
+    confirm="WIPE"
+    echo "Non-interactive mode: proceeding with wipe..."
+else
+    read -p "Type 'WIPE' to confirm: " confirm
+fi
 
 if [ "$confirm" != "WIPE" ]; then
     echo -e "${RED}❌ Aborted.${NC}"
