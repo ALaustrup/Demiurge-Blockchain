@@ -297,9 +297,6 @@ export class BlockchainClient {
       // Build transfer extrinsic
       const transfer = this.api.tx.balances.transferKeepAlive(toAccountId, amountCompact);
       
-      // Get the signer address from the API
-      const signerAddress = this.api.createType('AccountId32', fromAddress);
-      
       // Create a custom signer that uses WASM
       const wasmSigner = {
         signPayload: async (payload: any) => {
@@ -336,7 +333,7 @@ export class BlockchainClient {
       // Sign and submit transaction using custom signer
       return new Promise((resolve, reject) => {
         transfer.signAndSend(
-          signerAddress,
+          fromAddress,
           { signer: wasmSigner },
           ({ status, txHash }) => {
             if (status.isInBlock || status.isFinalized) {
