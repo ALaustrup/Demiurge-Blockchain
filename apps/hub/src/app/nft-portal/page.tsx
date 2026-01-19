@@ -11,7 +11,7 @@ import { useBlockchain } from '@/contexts/BlockchainContext';
  */
 
 export default function NFTPortalPage() {
-  const { isConnected, address } = useBlockchain();
+  const { isConnected } = useBlockchain();
   const [minting, setMinting] = useState(false);
 
   return (

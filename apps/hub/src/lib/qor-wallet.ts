@@ -9,6 +9,7 @@ import { Keyring } from '@polkadot/keyring';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { u8aToHex } from '@polkadot/util';
 import axios from 'axios';
+import { generateKeypairFromQorId as generateKeypairFromQorIdWasm } from './wasm-wallet';
 
 // Get default API URL (same logic as qor-sdk)
 function getDefaultApiUrl(): string {
@@ -159,6 +160,17 @@ export function getUsernameFromQorId(qorId: string): string {
 export function getDiscriminatorFromQorId(qorId: string): string {
   const parts = qorId.split('#');
   return parts[1] || '0000';
+}
+
+/**
+ * Generate keypair from QOR ID (using WASM wallet)
+ * Re-exported from wasm-wallet for convenience
+ * 
+ * @param qorId QOR ID (e.g., "username#0001")
+ * @returns Keypair JSON string
+ */
+export async function generateKeypairFromQorId(qorId: string): Promise<string> {
+  return generateKeypairFromQorIdWasm(qorId);
 }
 
 /**
