@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 use jsonrpsee::core::Error as JsonRpcError;
-use jsonrpsee::types::ErrorObject;
+use jsonrpsee::types::ErrorObjectOwned;
 
 /// Result type
 pub type Result<T> = std::result::Result<T, RpcError>;
@@ -35,7 +35,7 @@ pub enum RpcError {
     NotFound(String),
 }
 
-impl From<RpcError> for JsonRpcError {
+impl From<RpcError> for ErrorObjectOwned {
     fn from(err: RpcError) -> Self {
         let (code, message) = match err {
             RpcError::MethodNotFound => (-32601, "Method not found".to_string()),
@@ -46,20 +46,26 @@ impl From<RpcError> for JsonRpcError {
                 (-32603, msg)
             }
         };
-        let error_obj = ErrorObject::owned(code, message, None::<()>);
+        ErrorObjectOwned::owned(code, message, None::<()>)
+    }
+}
+
+impl From<RpcError> for JsonRpcError {
+    fn from(err: RpcError) -> Self {
+        let error_obj: ErrorObjectOwned = err.into();
         JsonRpcError::Call(error_obj)
     }
 }
 
 // Helper functions for creating JSON-RPC errors
-pub fn invalid_params(msg: &str) -> JsonRpcError {
-    JsonRpcError::from(RpcError::NotFound(msg.to_string()))
+pub fn invalid_params(msg: &str) -> ErrorObjectOwned {
+    ErrorObjectOwned::from(RpcError::NotFound(msg.to_string()))
 }
 
-pub fn method_not_found() -> JsonRpcError {
-    JsonRpcError::from(RpcError::MethodNotFound)
+pub fn method_not_found() -> ErrorObjectOwned {
+    ErrorObjectOwned::from(RpcError::MethodNotFound)
 }
 
-pub fn internal_error(msg: &str) -> JsonRpcError {
-    JsonRpcError::from(RpcError::InternalError(msg.to_string()))
+pub fn internal_error(msg: &str) -> ErrorObjectOwned {
+    ErrorObjectOwned::from(RpcError::InternalError(msg.to_string()))
 }

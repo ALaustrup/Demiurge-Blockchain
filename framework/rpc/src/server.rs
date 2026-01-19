@@ -67,26 +67,26 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         // chain_getHealth
         module.register_async_method("chain_getHealth", |params, ctx| async move {
             ctx.chain_get_health().await
-                .map_err(|e| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getHealth: {}", e)))?;
 
         // chain_getBlockNumber
         module.register_async_method("chain_getBlockNumber", |params, ctx| async move {
             ctx.chain_get_block_number().await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getBlockNumber: {}", e)))?;
 
         // chain_getBlock
         module.register_async_method("chain_getBlock", |params, ctx| async move {
             let block_number: u64 = params.one().map_err(|e| invalid_params(&format!("Invalid block number: {}", e)))?;
             ctx.chain_get_block_by_number(block_number).await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getBlock: {}", e)))?;
 
         // chain_getLatestBlock
         module.register_async_method("chain_getLatestBlock", |_params, ctx| async move {
             ctx.chain_get_latest_block().await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getLatestBlock: {}", e)))?;
 
         // chain_getTransaction
@@ -97,7 +97,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .try_into()
                 .map_err(|_| invalid_params("Hash must be 32 bytes"))?;
             ctx.chain_get_transaction(hash).await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getTransaction: {}", e)))?;
 
         // chain_getTransactionHistory
@@ -109,7 +109,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .map_err(|_| invalid_params("Address must be 32 bytes"))?;
             let limit = limit.unwrap_or(50);
             ctx.chain_get_transaction_history(address, limit).await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getTransactionHistory: {}", e)))?;
 
         Ok(())
@@ -125,12 +125,12 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .try_into()
                 .map_err(|_| invalid_params("Address must be 32 bytes"))?;
             ctx.balances_get_balance(address).await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register balances_getBalance: {}", e)))?;
 
         // balances_transfer (placeholder - requires transaction signing)
         module.register_async_method("balances_transfer", |_params, _ctx| async move {
-            Err::<String, _>(method_not_found())
+            Err::<String, ErrorObjectOwned>(method_not_found())
         }).map_err(|e| RpcError::ServerError(format!("Failed to register balances_transfer: {}", e)))?;
 
         Ok(())
@@ -141,13 +141,13 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         // consensus_getCurrentEra
         module.register_async_method("consensus_getCurrentEra", |_params, ctx| async move {
             ctx.consensus_get_current_era().await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getCurrentEra: {}", e)))?;
 
         // consensus_getValidators
         module.register_async_method("consensus_getValidators", |_params, ctx| async move {
             ctx.consensus_get_validators().await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getValidators: {}", e)))?;
 
         // consensus_getValidator
@@ -158,7 +158,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .try_into()
                 .map_err(|_| invalid_params("Account must be 32 bytes"))?;
             ctx.consensus_get_validator(account).await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getValidator: {}", e)))?;
 
         // consensus_getStakingPool
@@ -169,13 +169,13 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .try_into()
                 .map_err(|_| invalid_params("Validator must be 32 bytes"))?;
             ctx.consensus_get_staking_pool(validator).await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getStakingPool: {}", e)))?;
 
         // consensus_getStatus
         module.register_async_method("consensus_getStatus", |_params, ctx| async move {
             ctx.consensus_get_status().await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getStatus: {}", e)))?;
 
         Ok(())
@@ -191,7 +191,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .try_into()
                 .map_err(|_| invalid_params("Address must be 32 bytes"))?;
             ctx.energy_get_energy(address).await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register energy_getEnergy: {}", e)))?;
 
         Ok(())
@@ -207,7 +207,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .try_into()
                 .map_err(|_| invalid_params("Address must be 32 bytes"))?;
             ctx.session_keys_get_active_keys(address).await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register sessionKeys_getActiveKeys: {}", e)))?;
 
         Ok(())
