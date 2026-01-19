@@ -463,6 +463,7 @@ impl<S: Storage> RpcMethods<S> {
 // ========== Response Types ==========
 
 #[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ChainHealth {
     pub connected: bool,
     pub block_number: u64,
