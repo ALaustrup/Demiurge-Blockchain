@@ -320,8 +320,9 @@ export class BlockchainClient {
           // Sign with WASM
           const signatureHex = await signMessage(keypairJson, dataBytes);
           
-          // Return hex string signature (SignerResult expects 0x${string})
+          // Return hex string signature (SignerResult expects 0x${string} and id)
           return {
+            id: 0, // SignerResult requires id
             signature: signatureHex as `0x${string}`,
           };
         }
