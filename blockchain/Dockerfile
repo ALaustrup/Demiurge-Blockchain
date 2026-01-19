@@ -24,8 +24,11 @@ WORKDIR /build
 # Copy substrate directory first (for local fork dependencies)
 COPY substrate/ ./substrate/
 
-# Copy blockchain directory
-COPY blockchain/ .
+# Copy blockchain directory (preserve structure so ../substrate paths work)
+COPY blockchain/ ./blockchain/
+
+# Set working directory to blockchain for build
+WORKDIR /build/blockchain
 
 # Build the node binary
 # Docker will cache layers based on Cargo.toml/Cargo.lock changes
@@ -46,7 +49,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 demiurge
 
 # Copy binary from builder
-COPY --from=builder /build/target/release/demiurge-node /usr/local/bin/demiurge-node
+COPY --from=builder /build/blockchain/target/release/demiurge-node /usr/local/bin/demiurge-node
 
 # Set permissions
 RUN chmod +x /usr/local/bin/demiurge-node
