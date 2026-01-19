@@ -6,6 +6,7 @@ pub mod runtime;
 pub mod transaction;
 pub mod block;
 pub mod error;
+mod serde_helpers;
 
 pub use runtime::Runtime;
 pub use transaction::{Transaction, TransactionData};

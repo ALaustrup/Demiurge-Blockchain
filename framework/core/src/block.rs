@@ -3,8 +3,8 @@
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Serialize, Deserialize};
-use serde_bytes;
 use crate::Transaction;
+use crate::serde_helpers::{serialize_bytes, deserialize_bytes};
 
 /// A block in the blockchain
 #[derive(Clone, Debug, Encode, Decode, TypeInfo, Serialize, Deserialize)]
@@ -16,12 +16,12 @@ pub struct Block {
 /// Block header
 #[derive(Clone, Debug, Encode, Decode, TypeInfo, Serialize, Deserialize)]
 pub struct BlockHeader {
-    #[serde(with = "serde_bytes")]
+    #[serde(serialize_with = "serialize_bytes", deserialize_with = "deserialize_bytes")]
     pub parent_hash: [u8; 32],
     pub block_number: u64,
-    #[serde(with = "serde_bytes")]
+    #[serde(serialize_with = "serialize_bytes", deserialize_with = "deserialize_bytes")]
     pub state_root: [u8; 32],
-    #[serde(with = "serde_bytes")]
+    #[serde(serialize_with = "serialize_bytes", deserialize_with = "deserialize_bytes")]
     pub extrinsics_root: [u8; 32],
     pub timestamp: u64,
 }
