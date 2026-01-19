@@ -306,13 +306,10 @@ export class BlockchainClient {
           // Sign with WASM
           const signatureHex = await signMessage(keypairJson, payloadBytes);
           
-          // Convert hex signature to Uint8Array
-          const { hexToU8a } = await import('@polkadot/util');
-          const signature = hexToU8a(signatureHex);
-          
+          // Return hex string signature (SignerResult expects 0x${string})
           return {
             id: payload.id,
-            signature: signature,
+            signature: signatureHex as `0x${string}`,
           };
         },
         signRaw: async (raw: { data: string }) => {
@@ -322,10 +319,10 @@ export class BlockchainClient {
           
           // Sign with WASM
           const signatureHex = await signMessage(keypairJson, dataBytes);
-          const signature = hexToU8a(signatureHex);
           
+          // Return hex string signature (SignerResult expects 0x${string})
           return {
-            signature: signature,
+            signature: signatureHex as `0x${string}`,
           };
         }
       };
