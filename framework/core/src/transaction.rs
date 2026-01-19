@@ -25,6 +25,7 @@ pub enum TransactionData {
     },
     /// Transfer tokens
     Transfer {
+        #[serde(with = "serde_bytes")]
         to: [u8; 32],
         amount: u128,
     },
