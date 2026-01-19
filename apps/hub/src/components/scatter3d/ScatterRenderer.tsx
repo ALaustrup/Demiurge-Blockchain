@@ -13,7 +13,6 @@
 import { useEffect, useRef, useLayoutEffect } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { AsciiEffect } from 'three/examples/jsm/effects/AsciiEffect.js';
-import type { Effect } from 'three/postprocessing';
 
 interface ScatterRendererProps {
   /**
