@@ -85,3 +85,7 @@ tools/Other/*.msi
 tools/Other/*.exe
 # Substrate directory (very large, causes crashes)
 substrate/
+
+# SSH keys and config
+.ssh/
+**/.ssh/
