@@ -2,6 +2,7 @@
 
 use thiserror::Error;
 use jsonrpsee::core::Error as JsonRpcError;
+use jsonrpsee::types::ErrorObject;
 
 /// Result type
 pub type Result<T> = std::result::Result<T, RpcError>;
