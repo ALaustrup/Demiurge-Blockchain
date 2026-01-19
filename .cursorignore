@@ -83,3 +83,5 @@ archive/
 tools/Other/*.zip
 tools/Other/*.msi
 tools/Other/*.exe
+# Substrate directory (very large, causes crashes)
+substrate/
