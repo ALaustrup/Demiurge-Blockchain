@@ -15,7 +15,7 @@
 4. **Configure the connection:**
    ```
    Protocol:        SFTP - SSH File Transfer Protocol
-   Host:            pleroma (or 51.210.209.112)
+   Host:            51.210.209.112  (USE IP ADDRESS - FileZilla doesn't use SSH config)
    Port:            22
    Logon Type:      Normal
    User:            ubuntu (or your SSH username)

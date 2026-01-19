@@ -1,0 +1,55 @@
+FILEZILLA QUICK SETUP FOR SUBSTRATE SYNC
+========================================
+
+1. OPEN FILEZILLA
+   - Launch FileZilla Client
+
+2. CONNECT TO SERVER
+   - Click "File" → "Site Manager" (or Ctrl+S)
+   - Click "New Site"
+   - Name: Demiurge Server
+   
+   SETTINGS:
+   Protocol: SFTP - SSH File Transfer Protocol
+   Host: 51.210.209.112  (USE IP - FileZilla doesn't resolve hostnames from SSH config)
+   Port: 22
+   Logon Type: Normal
+   User: ubuntu
+   Password: [Your password, or leave blank if using SSH key]
+   
+   FOR SSH KEY:
+   - Click "Advanced" tab
+   - Under "SSH key file", browse to your private key
+   - Usually: C:\Users\YourName\.ssh\id_rsa
+   
+   - Click "Connect"
+
+3. NAVIGATE
+   LEFT SIDE (Local):
+   - Navigate to: X:\Demiurge-Blockchain\substrate
+   
+   RIGHT SIDE (Remote):
+   - Navigate to: /opt/demiurge-blockchain/substrate
+   - If it doesn't exist, right-click → Create directory → "substrate"
+
+4. EXCLUDE BUILD FILES (IMPORTANT!)
+   - View → Filename filters (Ctrl+I)
+   - Add these filters:
+     target
+     .git
+     *.lock
+   - This will hide build artifacts and save time
+
+5. UPLOAD
+   - Select all files/folders in local substrate directory
+   - Right-click → Upload
+   - Wait for transfer (may take 10-30 minutes)
+
+6. VERIFY
+   After upload, run:
+   ssh pleroma "ls -la /opt/demiurge-blockchain/substrate/frame/benchmarking/"
+   
+   Should see Cargo.toml file
+
+7. BUILD
+   ssh pleroma "cd /opt/demiurge-blockchain/docker && docker compose build demiurge-node"
