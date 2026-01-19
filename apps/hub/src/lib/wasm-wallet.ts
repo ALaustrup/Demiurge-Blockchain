@@ -47,7 +47,9 @@ async function loadWasmModule(): Promise<boolean> {
 
   try {
     // Fallback: try loading from relative path (for development)
-    const wasmModule = await import('../../packages/wallet-wasm/pkg/wallet_wasm').catch(() => null);
+    // Use string concatenation to prevent TypeScript from statically analyzing the import
+    const wasmPath = '../../packages/wallet-wasm/pkg/wallet_wasm';
+    const wasmModule = await import(wasmPath as any).catch(() => null);
     if (wasmModule) {
       init = wasmModule.default;
       generate_keypair_from_seed = wasmModule.generate_keypair_from_seed;
