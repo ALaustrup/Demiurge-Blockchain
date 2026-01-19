@@ -63,16 +63,17 @@ if (typeof window !== 'undefined') {
   initializeErrorSuppression();
 }
 
-// Default to production Monad server, fallback to localhost for development
+// Default to production RPC server, fallback to localhost for development
 function getDefaultWsUrl(): string {
   if (process.env.NEXT_PUBLIC_BLOCKCHAIN_WS_URL) {
     return process.env.NEXT_PUBLIC_BLOCKCHAIN_WS_URL;
   }
-  if (typeof window !== 'undefined' && window.location && window.location.hostname === 'demiurge.cloud') {
-    // Use secure WebSocket through Nginx proxy
-    return 'wss://demiurge.cloud/rpc';
+  // Use rpc.demiurge.cloud for production, localhost for development
+  if (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost') {
+    return 'ws://localhost:9944';
   }
-  return 'ws://localhost:9944';
+  // Use secure WebSocket through rpc.demiurge.cloud
+  return 'wss://rpc.demiurge.cloud';
 }
 
 const DEFAULT_WS_URL = getDefaultWsUrl();

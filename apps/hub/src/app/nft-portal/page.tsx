@@ -116,14 +116,14 @@ export default function NFTPortalPage() {
           <h2 className="text-3xl font-bold text-neon-yellow mb-4">On-Chain Resources</h2>
           <div className="space-y-3">
             <a
-              href="http://51.210.209.112:9944"
+              href="https://rpc.demiurge.cloud"
               target="_blank"
               rel="noopener noreferrer"
               className="block glass-panel p-4 rounded hover:chroma-glow transition-all"
             >
               <div className="flex items-center justify-between">
                 <span className="font-bold text-neon-cyan">RPC Endpoint</span>
-                <span className="text-gray-400 text-sm">http://51.210.209.112:9944 →</span>
+                <span className="text-gray-400 text-sm">https://rpc.demiurge.cloud →</span>
               </div>
             </a>
             <a

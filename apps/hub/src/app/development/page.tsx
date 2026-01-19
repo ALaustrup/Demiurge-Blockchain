@@ -38,7 +38,7 @@ const docSections: DocSection[] = [
     title: 'On-Chain Information',
     description: 'The ledger speaks, revealing the truth of all transactions. From the Monad, all emanates...',
     links: [
-      { name: 'RPC Endpoint', href: 'http://51.210.209.112:9944', external: true },
+      { name: 'RPC Endpoint', href: 'https://rpc.demiurge.cloud', external: true },
       { name: 'Chain ID', href: '#', external: false },
       { name: 'Network Status', href: '/analytics' },
       { name: 'Module Addresses', href: '#', external: false },
@@ -130,7 +130,7 @@ export default function DevelopmentPage() {
             <div>
               <h3 className="text-xl font-bold text-neon-cyan mb-2">Connect to Testnet</h3>
               <code className="block glass-panel p-4 rounded font-mono text-sm">
-                RPC URL: http://51.210.209.112:9944
+                RPC URL: https://rpc.demiurge.cloud
               </code>
             </div>
             <div>

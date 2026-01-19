@@ -47,12 +47,23 @@ The following methods are registered and should be accessible:
 3. Request format mismatch with jsonrpsee expectations
 4. Server needs to be spawned in a background task
 
-**Test Requests** (all return parse error):
+**Test Requests**:
 ```bash
+# Production endpoint
+curl -X POST -H 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0","method":"chain_getHealth","params":[],"id":1}' \
+  https://rpc.demiurge.cloud
+
+# Local development
 curl -X POST -H 'Content-Type: application/json' \
   --data '{"jsonrpc":"2.0","method":"chain_getHealth","params":[],"id":1}' \
   http://localhost:9944
 ```
+
+## Production Endpoint
+
+**RPC Endpoint**: `https://rpc.demiurge.cloud`  
+**WebSocket Endpoint**: `wss://rpc.demiurge.cloud`
 
 ## Next Steps
 
