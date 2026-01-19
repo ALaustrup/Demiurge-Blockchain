@@ -67,7 +67,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         // chain_getHealth
         module.register_async_method("chain_getHealth", |params, ctx| async move {
             ctx.chain_get_health().await
-                .map_err(|e: RpcError| JsonRpcError::from(e))
+                .map_err(|e| JsonRpcError::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getHealth: {}", e)))?;
 
         // chain_getBlockNumber

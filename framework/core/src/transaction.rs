@@ -4,9 +4,10 @@ use std::string::String;
 use std::vec::Vec;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
+use serde::{Serialize, Deserialize};
 
 /// A transaction on the blockchain
-#[derive(Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(Clone, Debug, Encode, Decode, TypeInfo, Serialize, Deserialize)]
 pub struct Transaction {
     pub nonce: u64,
     pub from: [u8; 32], // Account ID
@@ -15,7 +16,7 @@ pub struct Transaction {
 }
 
 /// Transaction data payload
-#[derive(Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(Clone, Debug, Encode, Decode, TypeInfo, Serialize, Deserialize)]
 pub enum TransactionData {
     /// Call a module function
     ModuleCall {

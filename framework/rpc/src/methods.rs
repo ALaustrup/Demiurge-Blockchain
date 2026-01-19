@@ -42,7 +42,7 @@ impl<S: Storage> RpcMethods<S> {
     // ========== Chain Methods ==========
 
     /// Get chain health status
-    pub async fn chain_get_health(&self) -> Result<ChainHealth, RpcError> {
+    pub async fn chain_get_health(&self) -> std::result::Result<ChainHealth, RpcError> {
         let block_number = self.get_block_number().await?;
         let connected = self.consensus.is_some();
         
@@ -470,7 +470,7 @@ pub struct ChainHealth {
     pub finality: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TransactionInfo {
     pub hash: String,
     pub from: String,

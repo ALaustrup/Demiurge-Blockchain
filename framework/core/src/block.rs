@@ -2,17 +2,18 @@
 
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
+use serde::{Serialize, Deserialize};
 use crate::Transaction;
 
 /// A block in the blockchain
-#[derive(Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(Clone, Debug, Encode, Decode, TypeInfo, Serialize, Deserialize)]
 pub struct Block {
     pub header: BlockHeader,
     pub transactions: Vec<Transaction>,
 }
 
 /// Block header
-#[derive(Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(Clone, Debug, Encode, Decode, TypeInfo, Serialize, Deserialize)]
 pub struct BlockHeader {
     pub parent_hash: [u8; 32],
     pub block_number: u64,
