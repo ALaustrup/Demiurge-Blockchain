@@ -55,6 +55,12 @@ sp-transaction-pool = { path = "../substrate/primitives/transaction-pool", packa
 sp-version = { path = "../substrate/primitives/version", package = "sp-version" }
 sp-weights = { path = "../substrate/primitives/weights", package = "sp-weights" }
 
+# Patch bandersnatch_vrfs to use local stub instead of broken git dependency
+# This prevents Cargo from trying to fetch the broken fflonk git repo
+# bandersnatch_vrfs is optional and we don't use the bandersnatch-experimental feature
+[patch.'https://github.com/w3f/ring-vrf']
+bandersnatch_vrfs = { path = "stubs/bandersnatch_vrfs", optional = true }
+
 [workspace.dependencies]
 # Substrate Dependencies - Patched crates use local paths (see [patch.crates-io] above)
 # For patched crates, use path to ensure version consistency with local substrate

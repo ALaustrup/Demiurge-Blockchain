@@ -1,0 +1,13 @@
+[package]
+name = "bandersnatch_vrfs"
+version = "0.0.1"
+edition = "2021"
+authors = ["Demiurge Stub"]
+license = "MIT"
+
+[features]
+default = []
+getrandom = []
+
+[dependencies]
+getrandom = { version = "0.2", optional = true }
