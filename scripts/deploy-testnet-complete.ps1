@@ -87,7 +87,7 @@ ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "command -v docker > /dev/null || (cu
 
 # Step 13: Build frontend Docker image
 Write-Host "  Building frontend Docker image..." -ForegroundColor Green
-ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "cd ${REPO_DIR}/apps/hub && sudo docker build -t demiurge-hub:latest ."
+ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "cd ${REPO_DIR} && sudo docker build -f apps/hub/Dockerfile -t demiurge-hub:latest ."
 
 # Step 14: Create frontend environment file
 Write-Host " Creating frontend environment configuration..." -ForegroundColor Green

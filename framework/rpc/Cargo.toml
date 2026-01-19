@@ -11,7 +11,7 @@ description = "RPC layer for Demiurge blockchain - JSON-RPC + WebSocket"
 serde = { workspace = true }
 serde_json = { workspace = true }
 codec = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 futures = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
@@ -20,7 +20,6 @@ anyhow = { workspace = true }
 # RPC dependencies
 jsonrpsee = { version = "0.20", features = ["server", "macros"] }
 hex = "0.4"
-tokio = { workspace = true, features = ["sync"] }
 
 # Internal dependencies
 demiurge-core = { path = "../core" }
