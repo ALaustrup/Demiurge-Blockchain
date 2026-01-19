@@ -481,6 +481,7 @@ pub struct TransactionInfo {
 }
 
 #[derive(Serialize, Deserialize)]
+#[derive(Clone)]
 pub struct EraInfo {
     pub era: u64,
     pub block_number: u64,
