@@ -82,13 +82,13 @@ impl NodeService {
             consensus.register_validator_key(account, signing_key.clone());
             
             // Register validator in validator set
-            let public_key = *signing_key.verifying_key();
+            let public_key = signing_key.verifying_key();
             let validator = Validator {
                 account,
                 stake,
                 commission: 10,
                 active: true,
-                public_key,
+                public_key: public_key.clone(),
             };
             consensus.validators.register_validator(validator);
             
