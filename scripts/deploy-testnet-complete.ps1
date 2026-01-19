@@ -24,9 +24,9 @@ ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "sudo systemctl stop ${NODE_SERVICE} 
 Write-Host " Cleaning old deployment..." -ForegroundColor Yellow
 ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "sudo rm -rf ${REPO_DIR} ${DATA_DIR} || true; sudo mkdir -p ${DATA_DIR}; sudo chmod 755 ${DATA_DIR}"
 
-# Step 3: Clone repository
+# Step 3: Clone repository (with sudo, then fix permissions)
 Write-Host " Cloning repository..." -ForegroundColor Green
-ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "git clone https://github.com/Alaustrup/Demiurge-Blockchain.git ${REPO_DIR}"
+ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "sudo git clone https://github.com/Alaustrup/Demiurge-Blockchain.git ${REPO_DIR}; sudo chown -R ${SERVER_USER}:${SERVER_USER} ${REPO_DIR}"
 
 # Step 4: Checkout correct branch
 Write-Host " Checking out branch..." -ForegroundColor Green
@@ -37,7 +37,7 @@ Write-Host " Rust already installed, skipping..." -ForegroundColor Green
 
 # Step 6: Build blockchain node
 Write-Host " Building blockchain node (this may take 10-20 minutes)..." -ForegroundColor Green
-ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "cd ${REPO_DIR}/framework; source ~/.cargo/env; cargo build --release"
+ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "cd ${REPO_DIR}/framework && source ~/.cargo/env && cargo build --release"
 
 # Step 7: Create systemd service for blockchain node
 Write-Host "  Creating blockchain node service..." -ForegroundColor Green
@@ -48,7 +48,7 @@ $serviceLines = @(
     "",
     "[Service]",
     "Type=simple",
-    "User=root",
+    "User=ubuntu",
     "WorkingDirectory=$REPO_DIR/framework",
     "ExecStart=$REPO_DIR/framework/target/release/demiurge-node --data-dir $DATA_DIR --rpc-addr 0.0.0.0:$RPC_PORT --p2p-addr 0.0.0.0:$P2P_PORT",
     "Restart=always",
@@ -79,15 +79,15 @@ ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "sudo systemctl status ${NODE_SERVICE
 
 # Step 11: Install Node.js if needed
 Write-Host " Checking Node.js installation..." -ForegroundColor Green
-ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" 'bash -c "if ! command -v node > /dev/null 2>&1; then curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -; sudo apt-get install -y nodejs; fi"'
+ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "command -v node > /dev/null 2>&1 || (curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs)"
 
 # Step 12: Install Docker if needed
 Write-Host " Checking Docker installation..." -ForegroundColor Green
-ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "if ! command -v docker > /dev/null; then curl -fsSL https://get.docker.com | sh; fi"
+ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "command -v docker > /dev/null || (curl -fsSL https://get.docker.com | sudo sh)"
 
 # Step 13: Build frontend Docker image
 Write-Host "  Building frontend Docker image..." -ForegroundColor Green
-ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "cd ${REPO_DIR}/apps/hub; docker build -t demiurge-hub:latest ."
+ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "cd ${REPO_DIR}/apps/hub && sudo docker build -t demiurge-hub:latest ."
 
 # Step 14: Create frontend environment file
 Write-Host " Creating frontend environment configuration..." -ForegroundColor Green
@@ -100,13 +100,13 @@ $envLines = @(
 $envContent = $envLines -join "`n"
 # Use base64 encoding to avoid quote escaping issues
 $envContentBase64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($envContent))
-$envCommand = "echo $envContentBase64 | base64 -d | sudo tee $REPO_DIR/apps/hub/.env.production > /dev/null"
+$envCommand = "echo $envContentBase64 | base64 -d | tee $REPO_DIR/apps/hub/.env.production > /dev/null"
 ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" $envCommand
 
 # Step 15: Run frontend container
 Write-Host " Starting frontend container..." -ForegroundColor Green
 $dockerPort = "${FRONTEND_PORT}:${FRONTEND_PORT}"
-ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "docker run -d --name demiurge-hub --restart unless-stopped -p $dockerPort --env-file $REPO_DIR/apps/hub/.env.production -v $REPO_DIR/apps/hub:/app demiurge-hub:latest"
+ssh -i $SSH_KEY "${SERVER_USER}@${SERVER}" "sudo docker run -d --name demiurge-hub --restart unless-stopped -p $dockerPort --env-file $REPO_DIR/apps/hub/.env.production -v $REPO_DIR/apps/hub:/app demiurge-hub:latest"
 
 # Step 16: Display connection info
 Write-Host ""
