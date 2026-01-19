@@ -24,5 +24,9 @@ hex = "0.4"
 # Internal dependencies
 demiurge-core = { path = "../core" }
 demiurge-storage = { path = "../storage" }
+demiurge-consensus = { path = "../consensus" }
+demiurge-module-energy = { path = "../modules/energy" }
+demiurge-module-session-keys = { path = "../modules/session-keys" }
+blake2 = { workspace = true }
 
 [dev-dependencies]

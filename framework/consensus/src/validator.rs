@@ -89,7 +89,7 @@ impl ValidatorSet {
 
     /// Iterate over validators
     pub fn iter(&self) -> impl Iterator<Item = (&[u8; 32], &Validator)> {
-        self.validators.iter().map(|(k, v)| (k.as_ref(), v))
+        self.validators.iter().map(|(k, v)| (k, v))
     }
 }
 

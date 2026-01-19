@@ -1,6 +1,7 @@
 //! RPC server implementation
 
 use crate::{RpcError, Result, RpcMethods};
+use crate::error::{invalid_params, method_not_found};
 use demiurge_storage::Storage;
 use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
@@ -85,7 +86,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         module.register_async_method("chain_getBlock", |params, ctx, _exts| {
             let ctx = ctx.clone();
             async move {
-                let block_number: u64 = params.one().map_err(|e| JsonRpcError::invalid_params(&format!("Invalid block number: {}", e)))?;
+                let block_number: u64 = params.one().map_err(|e| RpcError::invalid_params(&format!("Invalid block number: {}", e)))?;
                 ctx.chain_get_block_by_number(block_number).await
                     .map_err(|e| JsonRpcError::from(e))
             }
@@ -104,11 +105,11 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         module.register_async_method("chain_getTransaction", |params, ctx, _exts| {
             let ctx = ctx.clone();
             async move {
-                let hash_str: String = params.one().map_err(|e| JsonRpcError::invalid_params(&format!("Invalid hash: {}", e)))?;
+                let hash_str: String = params.one().map_err(|e| RpcError::invalid_params(&format!("Invalid hash: {}", e)))?;
                 let hash = hex::decode(hash_str)
-                    .map_err(|e| JsonRpcError::invalid_params(&format!("Invalid hash hex: {}", e)))?
+                    .map_err(|e| RpcError::invalid_params(&format!("Invalid hash hex: {}", e)))?
                     .try_into()
-                    .map_err(|_| JsonRpcError::invalid_params("Hash must be 32 bytes"))?;
+                    .map_err(|_| RpcError::invalid_params("Hash must be 32 bytes"))?;
                 ctx.chain_get_transaction(hash).await
                     .map_err(|e| JsonRpcError::from(e))
             }
@@ -118,11 +119,11 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         module.register_async_method("chain_getTransactionHistory", |params, ctx, _exts| {
             let ctx = ctx.clone();
             async move {
-                let (address_str, limit): (String, Option<u64>) = params.parse().map_err(|e| JsonRpcError::invalid_params(&format!("Invalid params: {}", e)))?;
+                let (address_str, limit): (String, Option<u64>) = params.parse().map_err(|e| RpcError::invalid_params(&format!("Invalid params: {}", e)))?;
                 let address = hex::decode(address_str)
-                    .map_err(|e| JsonRpcError::invalid_params(&format!("Invalid address hex: {}", e)))?
+                    .map_err(|e| RpcError::invalid_params(&format!("Invalid address hex: {}", e)))?
                     .try_into()
-                    .map_err(|_| JsonRpcError::invalid_params("Address must be 32 bytes"))?;
+                    .map_err(|_| RpcError::invalid_params("Address must be 32 bytes"))?;
                 let limit = limit.unwrap_or(50);
                 ctx.chain_get_transaction_history(address, limit).await
                     .map_err(|e| JsonRpcError::from(e))
@@ -138,11 +139,11 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         module.register_async_method("balances_getBalance", |params, ctx, _exts| {
             let ctx = ctx.clone();
             async move {
-                let address_str: String = params.one().map_err(|e| JsonRpcError::invalid_params(&format!("Invalid address: {}", e)))?;
+                let address_str: String = params.one().map_err(|e| RpcError::invalid_params(&format!("Invalid address: {}", e)))?;
                 let address = hex::decode(address_str)
-                    .map_err(|e| JsonRpcError::invalid_params(&format!("Invalid address hex: {}", e)))?
+                    .map_err(|e| RpcError::invalid_params(&format!("Invalid address hex: {}", e)))?
                     .try_into()
-                    .map_err(|_| JsonRpcError::invalid_params("Address must be 32 bytes"))?;
+                    .map_err(|_| RpcError::invalid_params("Address must be 32 bytes"))?;
                 ctx.balances_get_balance(address).await
                     .map_err(|e| JsonRpcError::from(e))
             }
@@ -151,7 +152,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         // balances_transfer (placeholder - requires transaction signing)
         module.register_async_method("balances_transfer", |_params, _ctx, _exts| {
             async move {
-                Err::<String, _>(JsonRpcError::method_not_found())
+                Err::<String, _>(method_not_found())
             }
         }).map_err(|e| RpcError::ServerError(format!("Failed to register balances_transfer: {}", e)))?;
 
@@ -182,11 +183,11 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         module.register_async_method("consensus_getValidator", |params, ctx, _exts| {
             let ctx = ctx.clone();
             async move {
-                let account_str: String = params.one().map_err(|e| JsonRpcError::invalid_params(&format!("Invalid account: {}", e)))?;
+                let account_str: String = params.one().map_err(|e| RpcError::invalid_params(&format!("Invalid account: {}", e)))?;
                 let account = hex::decode(account_str)
-                    .map_err(|e| JsonRpcError::invalid_params(&format!("Invalid account hex: {}", e)))?
+                    .map_err(|e| RpcError::invalid_params(&format!("Invalid account hex: {}", e)))?
                     .try_into()
-                    .map_err(|_| JsonRpcError::invalid_params("Account must be 32 bytes"))?;
+                    .map_err(|_| RpcError::invalid_params("Account must be 32 bytes"))?;
                 ctx.consensus_get_validator(account).await
                     .map_err(|e| JsonRpcError::from(e))
             }
@@ -196,11 +197,11 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         module.register_async_method("consensus_getStakingPool", |params, ctx, _exts| {
             let ctx = ctx.clone();
             async move {
-                let validator_str: String = params.one().map_err(|e| JsonRpcError::invalid_params(&format!("Invalid validator: {}", e)))?;
+                let validator_str: String = params.one().map_err(|e| RpcError::invalid_params(&format!("Invalid validator: {}", e)))?;
                 let validator = hex::decode(validator_str)
-                    .map_err(|e| JsonRpcError::invalid_params(&format!("Invalid validator hex: {}", e)))?
+                    .map_err(|e| RpcError::invalid_params(&format!("Invalid validator hex: {}", e)))?
                     .try_into()
-                    .map_err(|_| JsonRpcError::invalid_params("Validator must be 32 bytes"))?;
+                    .map_err(|_| RpcError::invalid_params("Validator must be 32 bytes"))?;
                 ctx.consensus_get_staking_pool(validator).await
                     .map_err(|e| JsonRpcError::from(e))
             }
@@ -224,11 +225,11 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         module.register_async_method("energy_getEnergy", |params, ctx, _exts| {
             let ctx = ctx.clone();
             async move {
-                let address_str: String = params.one().map_err(|e| JsonRpcError::invalid_params(&format!("Invalid address: {}", e)))?;
+                let address_str: String = params.one().map_err(|e| RpcError::invalid_params(&format!("Invalid address: {}", e)))?;
                 let address = hex::decode(address_str)
-                    .map_err(|e| JsonRpcError::invalid_params(&format!("Invalid address hex: {}", e)))?
+                    .map_err(|e| RpcError::invalid_params(&format!("Invalid address hex: {}", e)))?
                     .try_into()
-                    .map_err(|_| JsonRpcError::invalid_params("Address must be 32 bytes"))?;
+                    .map_err(|_| RpcError::invalid_params("Address must be 32 bytes"))?;
                 ctx.energy_get_energy(address).await
                     .map_err(|e| JsonRpcError::from(e))
             }
@@ -243,11 +244,11 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         module.register_async_method("sessionKeys_getActiveKeys", |params, ctx, _exts| {
             let ctx = ctx.clone();
             async move {
-                let address_str: String = params.one().map_err(|e| JsonRpcError::invalid_params(&format!("Invalid address: {}", e)))?;
+                let address_str: String = params.one().map_err(|e| RpcError::invalid_params(&format!("Invalid address: {}", e)))?;
                 let address = hex::decode(address_str)
-                    .map_err(|e| JsonRpcError::invalid_params(&format!("Invalid address hex: {}", e)))?
+                    .map_err(|e| RpcError::invalid_params(&format!("Invalid address hex: {}", e)))?
                     .try_into()
-                    .map_err(|_| JsonRpcError::invalid_params("Address must be 32 bytes"))?;
+                    .map_err(|_| RpcError::invalid_params("Address must be 32 bytes"))?;
                 ctx.session_keys_get_active_keys(address).await
                     .map_err(|e| JsonRpcError::from(e))
             }

@@ -36,14 +36,28 @@ pub enum RpcError {
 
 impl From<RpcError> for JsonRpcError {
     fn from(err: RpcError) -> Self {
-        match err {
-            RpcError::MethodNotFound => JsonRpcError::method_not_found(),
-            RpcError::InvalidParams => JsonRpcError::invalid_params("Invalid parameters"),
-            RpcError::NotImplemented => JsonRpcError::method_not_found(),
-            RpcError::NotFound(msg) => JsonRpcError::invalid_params(&msg),
+        let (code, message) = match err {
+            RpcError::MethodNotFound => (-32601, "Method not found".to_string()),
+            RpcError::InvalidParams => (-32602, "Invalid parameters".to_string()),
+            RpcError::NotImplemented => (-32601, "Method not found".to_string()),
+            RpcError::NotFound(msg) => (-32602, msg),
             RpcError::ServerError(msg) | RpcError::InternalError(msg) | RpcError::StorageError(msg) | RpcError::SubscriptionError(msg) => {
-                JsonRpcError::internal_error(&msg)
+                (-32603, msg)
             }
-        }
+        };
+        JsonRpcError::from_code(code, &message, None)
     }
+}
+
+// Helper functions for creating JSON-RPC errors
+pub fn invalid_params(msg: &str) -> JsonRpcError {
+    JsonRpcError::from(RpcError::NotFound(msg.to_string()))
+}
+
+pub fn method_not_found() -> JsonRpcError {
+    JsonRpcError::from(RpcError::MethodNotFound)
+}
+
+pub fn internal_error(msg: &str) -> JsonRpcError {
+    JsonRpcError::from(RpcError::InternalError(msg.to_string()))
 }

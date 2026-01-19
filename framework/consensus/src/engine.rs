@@ -4,7 +4,7 @@ use crate::{Finality, Result, ValidatorSet, ConsensusError, SlashingTracker, Sta
 use demiurge_core::{Block, Transaction};
 use demiurge_storage::Storage;
 use codec::{Encode, Decode};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use ed25519_dalek::{SigningKey, VerifyingKey, Signature, Signer, Verifier};
 use hex;
 use tracing::warn;
@@ -211,6 +211,7 @@ impl<S: Storage> ConsensusEngine<S> {
     ) -> Result<()> {
         // Collect signatures from validators
         let mut signed_validators = 0;
+        let mut signed_validator_accounts = std::collections::HashSet::new();
         let total_validators = self.validators.count();
 
         for sig in signatures {
@@ -227,6 +228,7 @@ impl<S: Storage> ConsensusEngine<S> {
                 }
                 
                 signed_validators += 1;
+                signed_validator_accounts.insert(sig.validator);
             }
         }
         
@@ -315,10 +317,7 @@ impl<S: Storage> ConsensusEngine<S> {
         let message = block.hash();
         
         // Parse signature
-        let signature = Signature::from_bytes(&proof.signature)
-            .map_err(|e| ConsensusError::BlockValidationFailed(
-                format!("Invalid signature format: {:?}", e)
-            ))?;
+        let signature = Signature::from_bytes(&proof.signature);
         
         // Verify signature
         public_key.verify(&message, &signature)
@@ -612,13 +611,15 @@ impl<S: Storage> ConsensusEngine<S> {
     ) -> Result<()> {
         let validator_info = self.validators
             .get_validator(&validator)
-            .ok_or(ConsensusError::ValidatorNotFound)?;
+            .ok_or(ConsensusError::ValidatorNotFound)?
+            .clone();
         
+        let current_era = self.current_era;
         let pool = self.get_or_create_staking_pool(validator, validator_info.commission);
-        pool.stake(nominator, amount, self.current_era)?;
+        pool.stake(nominator, amount, current_era)?;
         
         // Update validator's total stake (includes pool stake)
-        let mut updated_validator = validator_info.clone();
+        let mut updated_validator = validator_info;
         updated_validator.stake += amount; // Add to validator's stake
         self.validators.register_validator(updated_validator);
         

@@ -264,7 +264,7 @@ export function PasswordResetModal({ isOpen, onClose, onResetSuccess }: Password
               {isLoading ? 'Resetting...' : 'RESET PASSWORD'}
             </button>
           </form>
-        )}
+        ) : null}
       </div>
     </div>
   );
