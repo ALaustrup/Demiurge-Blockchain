@@ -37,7 +37,6 @@ pub enum RpcError {
 
 impl From<RpcError> for JsonRpcError {
     fn from(err: RpcError) -> Self {
-        use jsonrpsee::core::error::CallError;
         let (code, message) = match err {
             RpcError::MethodNotFound => (-32601, "Method not found".to_string()),
             RpcError::InvalidParams => (-32602, "Invalid parameters".to_string()),
@@ -47,11 +46,8 @@ impl From<RpcError> for JsonRpcError {
                 (-32603, msg)
             }
         };
-        JsonRpcError::Call(CallError::Custom {
-            code,
-            message,
-            data: None,
-        })
+        let error_obj = ErrorObject::owned(code, message, None::<()>);
+        JsonRpcError::Call(error_obj)
     }
 }
 
