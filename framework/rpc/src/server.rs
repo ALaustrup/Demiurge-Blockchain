@@ -65,7 +65,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     /// Register chain RPC methods
     fn register_chain_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // chain_getHealth
-        module.register_async_method("chain_getHealth", |_params, ctx, _exts| {
+        module.register_async_method("chain_getHealth", |_params, ctx: Arc<RpcMethods<S>>, _exts| {
             let ctx = ctx.clone();
             async move {
                 ctx.chain_get_health().await
@@ -74,7 +74,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getHealth: {}", e)))?;
 
         // chain_getBlockNumber
-        module.register_async_method("chain_getBlockNumber", |_params, ctx, _exts| {
+        module.register_async_method("chain_getBlockNumber", |_params, ctx: Arc<RpcMethods<S>>, _exts| {
             let ctx = ctx.clone();
             async move {
                 ctx.chain_get_block_number().await
@@ -93,7 +93,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getBlock: {}", e)))?;
 
         // chain_getLatestBlock
-        module.register_async_method("chain_getLatestBlock", |_params, ctx, _exts| {
+        module.register_async_method("chain_getLatestBlock", |_params, ctx: Arc<RpcMethods<S>>, _exts| {
             let ctx = ctx.clone();
             async move {
                 ctx.chain_get_latest_block().await
@@ -116,7 +116,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getTransaction: {}", e)))?;
 
         // chain_getTransactionHistory
-        module.register_async_method("chain_getTransactionHistory", |params, ctx, _exts| {
+        module.register_async_method("chain_getTransactionHistory", |params, ctx: Arc<RpcMethods<S>>, _exts| {
             let ctx = ctx.clone();
             async move {
                 let (address_str, limit): (String, Option<u64>) = params.parse().map_err(|e| RpcError::invalid_params(&format!("Invalid params: {}", e)))?;
@@ -150,7 +150,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         }).map_err(|e| RpcError::ServerError(format!("Failed to register balances_getBalance: {}", e)))?;
 
         // balances_transfer (placeholder - requires transaction signing)
-        module.register_async_method("balances_transfer", |_params, _ctx, _exts| {
+        module.register_async_method("balances_transfer", |_params, _ctx: Arc<RpcMethods<S>>, _exts| {
             async move {
                 Err::<String, _>(method_not_found())
             }
@@ -171,7 +171,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getCurrentEra: {}", e)))?;
 
         // consensus_getValidators
-        module.register_async_method("consensus_getValidators", |_params, ctx, _exts| {
+        module.register_async_method("consensus_getValidators", |_params, ctx: Arc<RpcMethods<S>>, _exts| {
             let ctx = ctx.clone();
             async move {
                 ctx.consensus_get_validators().await
@@ -194,7 +194,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getValidator: {}", e)))?;
 
         // consensus_getStakingPool
-        module.register_async_method("consensus_getStakingPool", |params, ctx, _exts| {
+        module.register_async_method("consensus_getStakingPool", |params, ctx: Arc<RpcMethods<S>>, _exts| {
             let ctx = ctx.clone();
             async move {
                 let validator_str: String = params.one().map_err(|e| RpcError::invalid_params(&format!("Invalid validator: {}", e)))?;
@@ -222,7 +222,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     /// Register energy RPC methods
     fn register_energy_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // energy_getEnergy
-        module.register_async_method("energy_getEnergy", |params, ctx, _exts| {
+        module.register_async_method("energy_getEnergy", |params, ctx: Arc<RpcMethods<S>>, _exts| {
             let ctx = ctx.clone();
             async move {
                 let address_str: String = params.one().map_err(|e| RpcError::invalid_params(&format!("Invalid address: {}", e)))?;
@@ -241,7 +241,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     /// Register session keys RPC methods
     fn register_session_keys_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // sessionKeys_getActiveKeys
-        module.register_async_method("sessionKeys_getActiveKeys", |params, ctx, _exts| {
+        module.register_async_method("sessionKeys_getActiveKeys", |params, ctx: Arc<RpcMethods<S>>, _exts| {
             let ctx = ctx.clone();
             async move {
                 let address_str: String = params.one().map_err(|e| RpcError::invalid_params(&format!("Invalid address: {}", e)))?;
