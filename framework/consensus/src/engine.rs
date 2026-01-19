@@ -4,8 +4,8 @@ use crate::{Finality, Result, ValidatorSet, ConsensusError, SlashingTracker, Sta
 use demiurge_core::{Block, Transaction};
 use demiurge_storage::Storage;
 use codec::{Encode, Decode};
-use std::collections::{HashMap, HashSet};
-use ed25519_dalek::{SigningKey, VerifyingKey, Signature, Signer, Verifier};
+use std::collections::HashMap;
+use ed25519_dalek::{SigningKey, Signature, Signer, Verifier};
 use hex;
 use tracing::warn;
 
@@ -234,18 +234,25 @@ impl<S: Storage> ConsensusEngine<S> {
         
         // Check for validators who should have signed but didn't (downtime)
         let block_number = block.header.block_number;
+        // Collect accounts to slash first to avoid borrow checker issues
+        let mut accounts_to_slash: Vec<([u8; 32], u64)> = Vec::new();
         for (account, validator) in self.validators.iter() {
             if validator.active && !signed_validator_accounts.contains(account) {
                 self.slashing.record_missed_block(&mut self.storage, *account, block_number);
                 
-                // Slash if exceeded threshold
+                // Check if should slash and collect for later
                 if self.slashing.should_slash_downtime(*account) {
                     let missed = self.slashing.get_missed_blocks(*account);
-                    warn!("Slashing validator {:?} for downtime: {} missed blocks", 
-                        hex::encode(account), missed);
-                    self.slashing.slash_downtime(&mut self.storage, &mut self.validators, *account, missed)?;
+                    accounts_to_slash.push((*account, missed));
                 }
             }
+        }
+        
+        // Now perform slashing outside the iterator
+        for (account, missed) in accounts_to_slash {
+            warn!("Slashing validator {:?} for downtime: {} missed blocks", 
+                hex::encode(account), missed);
+            self.slashing.slash_downtime(&mut self.storage, &mut self.validators, account, missed)?;
         }
 
         // Require 2/3+ agreement (BFT)
@@ -467,7 +474,7 @@ impl<S: Storage> ConsensusEngine<S> {
     fn distribute_era_rewards(&mut self) -> Result<()> {
         // Calculate total rewards for the era
         // Base reward per block * blocks in era + transaction fees
-        let blocks_in_era = self.era_length;
+        let blocks_in_era: u128 = self.era_length as u128;
         let base_reward_per_block = 1000u128; // 1000 CGT per block (configurable)
         let total_base_rewards = base_reward_per_block * blocks_in_era;
         
@@ -555,7 +562,6 @@ impl<S: Storage> ConsensusEngine<S> {
 
     /// Calculate state root from storage
     pub fn calculate_state_root(&self) -> Result<[u8; 32]> {
-        use demiurge_storage::MerkleTree;
         
         // Get all storage keys and values
         // Note: This is a simplified implementation
