@@ -490,7 +490,7 @@ pub struct EraInfo {
     pub validators: Vec<ValidatorInfo>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ValidatorInfo {
     pub account: String,
     pub stake: String,
@@ -499,7 +499,7 @@ pub struct ValidatorInfo {
     pub public_key: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct StakingPoolInfo {
     pub validator: String,
     pub total_stake: String,
