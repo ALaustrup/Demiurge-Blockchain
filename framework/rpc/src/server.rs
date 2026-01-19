@@ -35,11 +35,6 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         let methods_clone = methods.clone();
         self._methods = Some(methods);
         
-        let server = ServerBuilder::default()
-            .build(self.address)
-            .await
-            .map_err(|e| RpcError::ServerError(e.to_string()))?;
-
         let mut module = RpcModule::new(methods_clone);
         
         // Register chain methods
@@ -57,6 +52,13 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         // Register session keys methods
         Self::register_session_keys_methods(&mut module)?;
         
+        let server = ServerBuilder::default()
+            .build(self.address)
+            .await
+            .map_err(|e| RpcError::ServerError(e.to_string()))?;
+        
+        // Start the server - start() returns ServerHandle synchronously
+        // The server runs in the background automatically
         let handle = server.start(module);
         self.handle = Some(handle);
 
