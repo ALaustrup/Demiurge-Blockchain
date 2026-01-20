@@ -68,6 +68,7 @@ pub mod pallet {
         Permill,
     };
     use sp_std::prelude::*;
+    use codec::Decode;
     
     use crate::weights::WeightInfo;
 
@@ -175,18 +176,24 @@ pub mod pallet {
 
                 // Note: Actual minting would happen via Currency trait
                 // This is tracked for circulating supply
-                log::info!(
-                    "CGT Genesis: {:?} receives {} CGT",
-                    account,
-                    balance_u128 / CGT
-                );
+                #[cfg(feature = "std")]
+                {
+                    log::info!(
+                        "CGT Genesis: {:?} receives {} CGT",
+                        account,
+                        balance_u128 / CGT
+                    );
+                }
             }
 
             CirculatingSupply::<T>::put(total);
-            log::info!(
-                "CGT Genesis complete. Circulating supply: {} CGT",
-                total / CGT
-            );
+            #[cfg(feature = "std")]
+            {
+                log::info!(
+                    "CGT Genesis complete. Circulating supply: {} CGT",
+                    total / CGT
+                );
+            }
         }
     }
 
@@ -334,13 +341,18 @@ pub mod pallet {
         /// Get the treasury account ID
         /// Converts PalletId to AccountId using Substrate's standard account derivation
         /// 
-        /// # Safety
-        /// This function uses a fallback mechanism if AccountId decoding fails.
-        /// In normal operation with AccountId32, this should never happen.
+        /// Uses the standard Substrate derivation: "modl" prefix + PalletId bytes, then Blake2_256 hash
         pub fn treasury_account() -> T::AccountId {
-            // Use AccountIdConversion trait to convert PalletId to AccountId
-            use sp_runtime::traits::AccountIdConversion;
-            <PalletId as AccountIdConversion<T::AccountId>>::into_account_truncating(&PALLET_ID)
+            // Standard Substrate derivation: "modl" prefix + PalletId bytes
+            let mut encoded = b"modl".to_vec();
+            encoded.extend_from_slice(&PALLET_ID.0);
+            // Hash with Blake2_256 to get 32-byte account ID
+            // Use sp_core::hashing instead of sp_io (sp_io is runtime-only)
+            let hash = sp_core::hashing::blake2_256(&encoded);
+            // Decode hash to AccountId
+            // This should never fail for AccountId32 (32 bytes)
+            T::AccountId::decode(&mut &hash[..])
+                .expect("32-byte hash should always decode to AccountId32")
         }
 
         /// Calculate transfer fee (0.1% minimum 0.001 CGT)

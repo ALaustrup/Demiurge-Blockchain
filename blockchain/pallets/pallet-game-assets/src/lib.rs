@@ -20,15 +20,12 @@ pub use pallet::*;
 pub mod pallet {
     use frame_support::{
         pallet_prelude::*,
-        traits::{
-            Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons,
-        },
+        traits::{Currency, Get, ReservableCurrency},
         PalletId,
     };
     use frame_system::pallet_prelude::*;
     use sp_runtime::{
-        traits::{AccountIdConversion, CheckedAdd, CheckedMul, CheckedSub, Saturating, Zero},
-        Perbill,
+        traits::{Saturating, Zero},
     };
     use sp_std::prelude::*;
 

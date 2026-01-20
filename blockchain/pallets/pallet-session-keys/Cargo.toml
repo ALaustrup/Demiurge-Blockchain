@@ -37,6 +37,7 @@ std = [
 	"sp-core/std",
 	"sp-io/std",
 	"pallet-balances/std",
+	"pallet-qor-identity/std",
 ]
 runtime = ["sp-api"]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]

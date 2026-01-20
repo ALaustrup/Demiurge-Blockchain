@@ -70,7 +70,7 @@ pub use pallet::*;
 pub mod pallet {
     use frame_support::{
         pallet_prelude::*,
-        traits::{Currency, ExistenceRequirement, WithdrawReasons},
+        traits::{Currency, ExistenceRequirement},
     };
     use frame_system::pallet_prelude::*;
     use sp_runtime::traits::CheckedMul;
@@ -908,7 +908,8 @@ pub mod pallet {
                 
                 // Calculate new level (simple formula: level = sqrt(XP / 100))
                 let old_level = item.level;
-                let new_level = ((new_xp as f64 / 100.0).sqrt() as u32).max(1);
+                let xp_for_level = (new_xp / 100) as u32;
+                let new_level = Self::isqrt(xp_for_level).max(1);
                 item.level = new_level;
                 item.last_state_update = frame_system::Pallet::<T>::block_number();
                 
@@ -1504,6 +1505,20 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        /// Integer square root (for no_std compatibility)
+        fn isqrt(n: u32) -> u32 {
+            if n == 0 {
+                return 0;
+            }
+            let mut x = n;
+            let mut y = (x + 1) / 2;
+            while y < x {
+                x = y;
+                y = (x + n / x) / 2;
+            }
+            x
+        }
+
         /// Internal transfer logic (handles nested children atomically)
         fn do_transfer(
             item_uuid: &[u8; 32],

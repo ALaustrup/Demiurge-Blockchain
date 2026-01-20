@@ -21,7 +21,7 @@ pub mod pallet {
         traits::Get,
     };
     use frame_system::pallet_prelude::*;
-    use sp_runtime::traits::{Saturating, Zero};
+    use sp_runtime::traits::{Saturating, SaturatedConversion};
     use sp_std::prelude::*;
 
     /// Maximum length for energy type names
@@ -50,13 +50,13 @@ pub mod pallet {
     }
 
     /// Account energy state
-    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+    #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen, Default)]
     pub struct EnergyState {
         /// Current energy amount
         pub current: Balance,
         
-        /// Last block when energy was updated
-        pub last_updated_block: BlockNumber,
+        /// Last block when energy was updated (stored as u32)
+        pub last_updated_block: u32,
     }
 
     #[pallet::config]
@@ -85,7 +85,7 @@ pub mod pallet {
         Blake2_128Concat,
         u32, // energy_id
         Blake2_128Concat,
-        T::AccountId,
+        <T as frame_system::Config>::AccountId,
         EnergyState,
         ValueQuery,
     >;
@@ -106,7 +106,7 @@ pub mod pallet {
         /// Energy regenerated [energy_id, account, amount, new_total]
         EnergyRegenerated {
             energy_id: u32,
-            account: T::AccountId,
+            account: <T as frame_system::Config>::AccountId,
             amount: Balance,
             new_total: Balance,
         },
@@ -114,7 +114,7 @@ pub mod pallet {
         /// Energy consumed [energy_id, account, amount, new_total]
         EnergyConsumed {
             energy_id: u32,
-            account: T::AccountId,
+            account: <T as frame_system::Config>::AccountId,
             amount: Balance,
             new_total: Balance,
         },
@@ -200,16 +200,18 @@ pub mod pallet {
                 .ok_or(Error::<T>::EnergyTypeNotFound)?;
             
             let current_block = frame_system::Pallet::<T>::block_number();
+            let current_block_u32: u32 = current_block.saturated_into();
             
             // Get current state
             let mut state = EnergyStates::<T>::get(energy_id, &account);
             
             // Calculate blocks since last update
-            let blocks_passed = current_block.saturating_sub(state.last_updated_block);
+            let blocks_passed = current_block_u32.saturating_sub(state.last_updated_block);
             
             // Calculate regeneration amount
+            let blocks_passed_u128: u128 = blocks_passed.saturated_into();
             let regen_amount = energy_type.regen_per_block
-                .saturating_mul(blocks_passed.into());
+                .saturating_mul(blocks_passed_u128);
             
             // Apply regeneration (capped at max)
             let new_amount = (state.current + regen_amount)
@@ -217,9 +219,9 @@ pub mod pallet {
             
             let actual_regen = new_amount.saturating_sub(state.current);
             
-            if actual_regen > 0 {
+            if actual_regen > 0u128 {
                 state.current = new_amount;
-                state.last_updated_block = current_block;
+                state.last_updated_block = current_block_u32;
                 
                 EnergyStates::<T>::insert(energy_id, &account, &state);
                 
@@ -242,18 +244,20 @@ pub mod pallet {
             energy_id: u32,
             amount: Balance,
         ) -> DispatchResult {
-            let account = ensure_signed(origin)?;
+            let account = ensure_signed(origin.clone())?;
             
             let energy_type = EnergyTypes::<T>::get(energy_id)
                 .ok_or(Error::<T>::EnergyTypeNotFound)?;
             
             // Regenerate first
-            Self::regenerate_energy(origin.clone())?;
+            Self::regenerate_energy(origin, energy_id)?;
             
             // Get updated state
             let mut state = EnergyStates::<T>::get(energy_id, &account);
             
-            ensure!(state.current >= amount, Error::<T>::InsufficientEnergy);
+            let current_balance: Balance = state.current;
+            let amount_balance: Balance = amount;
+            ensure!(current_balance >= amount_balance, Error::<T>::InsufficientEnergy);
             
             // Consume energy (but not below floor)
             state.current = state.current
@@ -279,10 +283,10 @@ pub mod pallet {
             origin: OriginFor<T>,
             energy_id: u32,
         ) -> DispatchResult {
-            let account = ensure_signed(origin)?;
+            let account = ensure_signed(origin.clone())?;
             
             // Regenerate first
-            Self::regenerate_energy(origin)?;
+            Self::regenerate_energy(origin, energy_id)?;
             
             let state = EnergyStates::<T>::get(energy_id, &account);
             
@@ -294,26 +298,28 @@ pub mod pallet {
         /// Regenerate energy for a specific account (internal)
         pub fn regenerate_energy_for_account(
             energy_id: u32,
-            account: &T::AccountId,
+            account: &<T as frame_system::Config>::AccountId,
         ) -> Result<Balance, DispatchError> {
             let energy_type = EnergyTypes::<T>::get(energy_id)
                 .ok_or(Error::<T>::EnergyTypeNotFound)?;
             
             let current_block = frame_system::Pallet::<T>::block_number();
+            let current_block_u32: u32 = current_block.saturated_into();
             let mut state = EnergyStates::<T>::get(energy_id, account);
             
-            let blocks_passed = current_block.saturating_sub(state.last_updated_block);
+            let blocks_passed = current_block_u32.saturating_sub(state.last_updated_block);
+            let blocks_passed_u128: u128 = blocks_passed.into();
             let regen_amount = energy_type.regen_per_block
-                .saturating_mul(blocks_passed.into());
+                .saturating_mul(blocks_passed_u128);
             
             let new_amount = (state.current + regen_amount)
                 .min(energy_type.max_cap);
             
             let actual_regen = new_amount.saturating_sub(state.current);
             
-            if actual_regen > 0 {
+            if actual_regen > 0u128 {
                 state.current = new_amount;
-                state.last_updated_block = current_block;
+                state.last_updated_block = current_block_u32;
                 EnergyStates::<T>::insert(energy_id, account, &state);
             }
             

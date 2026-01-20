@@ -15,20 +15,20 @@ mod benchmarking;
 #[cfg(feature = "runtime")]
 pub mod runtime_api {
     use sp_api::decl_runtime_apis;
-    use sp_runtime::traits::Block as BlockT;
+    use sp_std::vec::Vec;
 
     decl_runtime_apis! {
         /// Runtime API for querying session keys
-        pub trait SessionKeysApi<Block: BlockT> {
+        pub trait SessionKeysApi {
             /// Get all active session keys for a primary account
             /// Returns a vector of (session_key, expiry_block) tuples
-            fn get_active_session_keys(primary_account: <Block as BlockT>::AccountId) -> Vec<(<Block as BlockT>::AccountId, <Block as BlockT>::BlockNumber)>;
+            fn get_active_session_keys(primary_account: sp_runtime::AccountId32) -> Vec<(sp_runtime::AccountId32, u32)>;
             
             /// Check if a session key is currently valid for a primary account
-            fn is_session_key_valid(primary_account: <Block as BlockT>::AccountId, session_key: <Block as BlockT>::AccountId) -> bool;
+            fn is_session_key_valid(primary_account: sp_runtime::AccountId32, session_key: sp_runtime::AccountId32) -> bool;
             
             /// Get the expiry block number for a session key
-            fn get_session_key_expiry(primary_account: <Block as BlockT>::AccountId, session_key: <Block as BlockT>::AccountId) -> Option<<Block as BlockT>::BlockNumber>;
+            fn get_session_key_expiry(primary_account: sp_runtime::AccountId32, session_key: sp_runtime::AccountId32) -> Option<u32>;
         }
     }
 }
@@ -37,7 +37,7 @@ pub mod runtime_api {
 pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
-    use sp_runtime::traits::{Saturating, Zero};
+    use sp_runtime::traits::Saturating;
     use sp_std::prelude::*;
 
     #[pallet::pallet]

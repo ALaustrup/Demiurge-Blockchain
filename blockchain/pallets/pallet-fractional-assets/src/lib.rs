@@ -35,7 +35,7 @@ pub mod pallet {
     #[scale_info(skip_type_params(T))]
     pub struct Share<T: Config> {
         /// Shareholder account
-        pub owner: T::AccountId,
+        pub owner: <T as frame_system::Config>::AccountId,
         
         /// Number of shares owned
         pub share_count: u32,
@@ -64,7 +64,7 @@ pub mod pallet {
         pub shares: BoundedVec<Share<T>, ConstU32<MAX_SHARES_PER_ASSET>>,
         
         /// Current user (if asset is in use)
-        pub current_user: Option<T::AccountId>,
+        pub current_user: Option<<T as frame_system::Config>::AccountId>,
         
         /// Block when current usage started
         pub usage_start_block: Option<BlockNumberFor<T>>,
@@ -81,7 +81,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         
         /// DRC-369 pallet for NFT ownership verification
-        type Drc369: pallet_drc369::Config<AccountId = Self::AccountId>;
+        type Drc369: pallet_drc369::Config<AccountId = <Self as frame_system::Config>::AccountId>;
     }
 
     #[pallet::pallet]
@@ -103,7 +103,7 @@ pub mod pallet {
     pub type AccountAssets<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
-        T::AccountId,
+        <T as frame_system::Config>::AccountId,
         BoundedVec<[u8; 32], ConstU32<MAX_ASSETS_PER_ACCOUNT>>,
         ValueQuery,
     >;
@@ -120,21 +120,21 @@ pub mod pallet {
         /// Shares purchased [base_uuid, buyer, share_count]
         SharesPurchased {
             base_uuid: [u8; 32],
-            buyer: T::AccountId,
+            buyer: <T as frame_system::Config>::AccountId,
             share_count: u32,
         },
         
         /// Asset access started [base_uuid, user, duration]
         AssetAccessStarted {
             base_uuid: [u8; 32],
-            user: T::AccountId,
+            user: <T as frame_system::Config>::AccountId,
             duration: BlockNumberFor<T>,
         },
         
         /// Asset access ended [base_uuid, user]
         AssetAccessEnded {
             base_uuid: [u8; 32],
-            user: T::AccountId,
+            user: <T as frame_system::Config>::AccountId,
         },
     }
 

@@ -18,15 +18,21 @@ pub use pallet::*;
 pub mod pallet {
     use frame_support::{
         pallet_prelude::*,
-        traits::{Currency, ExistenceRequirement, Get, PalletId},
+        traits::{Currency, ExistenceRequirement, Get},
+        PalletId,
     };
     use frame_system::pallet_prelude::*;
-    use sp_runtime::traits::{AccountIdConversion, CheckedMul, CheckedDiv, Saturating, Zero};
+    use sp_runtime::traits::{CheckedMul, CheckedDiv, Saturating, SaturatedConversion, Zero};
     use sp_std::prelude::*;
+    use codec::Decode;
 
-    /// Type alias for balance
+    /// Type alias for balance (native currency)
     pub type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+    
+    /// Type alias for game asset currency balance
+    pub type GameAssetBalanceOf<T> =
+        <<<T as Config>::GameAssets as pallet_game_assets::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
     /// Liquidity pair
     #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -39,7 +45,7 @@ pub mod pallet {
         pub native_reserve: BalanceOf<T>,
         
         /// Reserve of game currency
-        pub currency_reserve: BalanceOf<T>,
+        pub currency_reserve: GameAssetBalanceOf<T>,
         
         /// Total liquidity tokens
         pub total_liquidity: BalanceOf<T>,
@@ -96,7 +102,7 @@ pub mod pallet {
         PairCreated {
             currency_id: u32,
             native_amount: BalanceOf<T>,
-            currency_amount: BalanceOf<T>,
+            currency_amount: GameAssetBalanceOf<T>,
         },
         
         /// Liquidity added [currency_id, provider, native_amount, currency_amount, liquidity_tokens]
@@ -104,7 +110,7 @@ pub mod pallet {
             currency_id: u32,
             provider: T::AccountId,
             native_amount: BalanceOf<T>,
-            currency_amount: BalanceOf<T>,
+            currency_amount: GameAssetBalanceOf<T>,
             liquidity_tokens: BalanceOf<T>,
         },
         
@@ -113,7 +119,7 @@ pub mod pallet {
             currency_id: u32,
             provider: T::AccountId,
             native_amount: BalanceOf<T>,
-            currency_amount: BalanceOf<T>,
+            currency_amount: GameAssetBalanceOf<T>,
         },
         
         /// Swap executed [currency_id, from_token, to_token, amount_in, amount_out]
@@ -148,7 +154,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             currency_id: u32,
             initial_native: BalanceOf<T>,
-            initial_currency: BalanceOf<T>,
+            initial_currency: GameAssetBalanceOf<T>,
         ) -> DispatchResult {
             let provider = ensure_signed(origin)?;
             
@@ -182,12 +188,15 @@ pub mod pallet {
             });
             
             // Calculate initial liquidity tokens (sqrt(x * y))
-            let liquidity = initial_native
-                .checked_mul(&initial_currency)
+            let native_u128: u128 = initial_native.saturated_into();
+            let currency_u128: u128 = initial_currency.saturated_into();
+            let liquidity = native_u128
+                .checked_mul(currency_u128)
                 .and_then(|product| {
                     // Simplified: use geometric mean
                     // In production, use proper sqrt calculation
-                    Some((product / BalanceOf::<T>::from(2u32)).saturating_add(BalanceOf::<T>::from(1000u32)))
+                    let liquidity_u128 = (product / 2).saturating_add(1000);
+                    Some(liquidity_u128.saturated_into())
                 })
                 .ok_or(Error::<T>::InvalidAmounts)?;
             
@@ -226,7 +235,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             currency_id: u32,
             native_amount: BalanceOf<T>,
-            currency_amount: BalanceOf<T>,
+            currency_amount: GameAssetBalanceOf<T>,
         ) -> DispatchResult {
             let provider = ensure_signed(origin)?;
             
@@ -263,11 +272,14 @@ pub mod pallet {
             } else {
                 // First liquidity addition after pair creation
                 // Use geometric mean: sqrt(native * currency)
-                native_amount
-                    .checked_mul(&currency_amount)
+                let native_u128: u128 = native_amount.saturated_into();
+                let currency_u128: u128 = currency_amount.saturated_into();
+                native_u128
+                    .checked_mul(currency_u128)
                     .and_then(|product| {
                         // Simplified: use product / 2 as approximation
-                        Some(product / BalanceOf::<T>::from(2u32))
+                        let liquidity_u128 = product / 2;
+                        Some(liquidity_u128.saturated_into())
                     })
                     .unwrap_or_else(|| Zero::zero())
             };
@@ -302,7 +314,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             currency_id: u32,
             native_amount_in: BalanceOf<T>,
-            min_currency_out: BalanceOf<T>, // Slippage protection
+            min_currency_out: GameAssetBalanceOf<T>, // Slippage protection
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             
@@ -311,12 +323,19 @@ pub mod pallet {
             
             // Constant product formula: (x + dx) * (y - dy) = x * y
             // dy = (y * dx) / (x + dx)
-            let currency_out = pair.currency_reserve
-                .checked_mul(&native_amount_in)
+            // Convert native_amount_in to GameAssetBalanceOf for calculation
+            let native_amount_u128: u128 = native_amount_in.saturated_into();
+            let currency_reserve_u128: u128 = pair.currency_reserve.saturated_into();
+            let native_reserve_u128: u128 = pair.native_reserve.saturated_into();
+            
+            let currency_out_u128 = currency_reserve_u128
+                .checked_mul(native_amount_u128)
                 .and_then(|numerator| {
-                    numerator.checked_div(&(pair.native_reserve.saturating_add(native_amount_in)))
+                    numerator.checked_div(native_reserve_u128.checked_add(native_amount_u128)?)
                 })
                 .ok_or(Error::<T>::InsufficientLiquidity)?;
+            
+            let currency_out: GameAssetBalanceOf<T> = currency_out_u128.saturated_into();
             
             ensure!(currency_out >= min_currency_out, Error::<T>::InsufficientLiquidity);
             
@@ -350,7 +369,7 @@ pub mod pallet {
                 currency_id,
                 from_native: true,
                 amount_in: native_amount_in,
-                amount_out: currency_out,
+                amount_out: currency_out.saturated_into::<u128>().saturated_into(),
             });
             
             Ok(())
@@ -362,7 +381,7 @@ pub mod pallet {
         pub fn swap_currency_for_native(
             origin: OriginFor<T>,
             currency_id: u32,
-            currency_amount_in: BalanceOf<T>,
+            currency_amount_in: GameAssetBalanceOf<T>,
             min_native_out: BalanceOf<T>, // Slippage protection
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
@@ -371,12 +390,19 @@ pub mod pallet {
                 .ok_or(Error::<T>::PairNotFound)?;
             
             // Constant product formula
-            let native_out = pair.native_reserve
-                .checked_mul(&currency_amount_in)
+            // Convert currency_amount_in to u128 for calculation
+            let currency_amount_u128: u128 = currency_amount_in.saturated_into();
+            let native_reserve_u128: u128 = pair.native_reserve.saturated_into();
+            let currency_reserve_u128: u128 = pair.currency_reserve.saturated_into();
+            
+            let native_out_u128 = native_reserve_u128
+                .checked_mul(currency_amount_u128)
                 .and_then(|numerator| {
-                    numerator.checked_div(&(pair.currency_reserve.saturating_add(currency_amount_in)))
+                    numerator.checked_div(currency_reserve_u128.checked_add(currency_amount_u128)?)
                 })
                 .ok_or(Error::<T>::InsufficientLiquidity)?;
+            
+            let native_out: BalanceOf<T> = native_out_u128.saturated_into();
             
             ensure!(native_out >= min_native_out, Error::<T>::InsufficientLiquidity);
             
@@ -409,7 +435,7 @@ pub mod pallet {
             Self::deposit_event(Event::SwapExecuted {
                 currency_id,
                 from_native: false,
-                amount_in: currency_amount_in,
+                amount_in: currency_amount_in.saturated_into::<u128>().saturated_into(),
                 amount_out: native_out,
             });
             
@@ -419,8 +445,16 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         /// Get the pallet account ID
-        fn account_id() -> T::AccountId {
-            T::PalletId::get().into_account_truncating()
+        fn account_id() -> <T as frame_system::Config>::AccountId {
+            // Standard Substrate derivation: "modl" prefix + PalletId bytes
+            let pallet_id = T::PalletId::get();
+            let mut encoded = b"modl".to_vec();
+            encoded.extend_from_slice(&pallet_id.0);
+            // Hash with Blake2_256 to get 32-byte account ID
+            let hash = sp_core::hashing::blake2_256(&encoded);
+            // Decode hash to AccountId
+            <T as frame_system::Config>::AccountId::decode(&mut &hash[..])
+                .expect("32-byte hash should always decode to AccountId32")
         }
     }
 }
