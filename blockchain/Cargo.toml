@@ -28,6 +28,9 @@ repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
 # NOTE: Local substrate paths DO NOT EXIST - use crates.io versions instead
 [patch.crates-io]
 # All dependencies now use crates.io versions - no local substrate fork available
+# Patch sc-network to fix enum variant index collision (Consensus & RemoteCallResponse both index 6)
+# Using git fix from Substrate v39 branch
+sc-network = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0", package = "sc-network" }
 
 # Patch bandersnatch_vrfs to use local stub instead of broken git dependency
 # This prevents Cargo from trying to fetch the broken fflonk git repo
