@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  demiurge-node:
+    image: parity/substrate:latest
+    container_name: demiurge-blockchain-node
+    ports:
+      - "19944:9944"  # WebSocket RPC (mapped from container 9944 to host 19944)
+      - "19933:9933"  # HTTP RPC (mapped from container 9933 to host 19933)
+      - "30333:30333"  # P2P
+      - "9615:9615"  # Metrics
+    volumes:
+      - demiurge-chain-data:/data
+    environment:
+      RUST_LOG: substrate=info,sc_network=debug
+    command: >
+      --chain dev
+      --name "Demiurge-Node"
+      --rpc-external
+      --rpc-cors all
+      --base-path /data
+    restart: unless-stopped
+    networks:
+      - demiurge
+
+volumes:
+  demiurge-chain-data:
+    driver: local
+
+networks:
+  demiurge:
+    driver: bridge
