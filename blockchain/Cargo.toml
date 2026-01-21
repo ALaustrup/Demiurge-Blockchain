@@ -28,8 +28,8 @@ repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
 # NOTE: Local substrate paths DO NOT EXIST - use crates.io versions instead
 [patch.crates-io]
 # All dependencies now use crates.io versions - no local substrate fork available
-# Patch sc-network: force 0.40.0 everywhere to avoid 0.38.0 enum variant bug
-sc-network = { version = "0.40.0" }
+# Patch sc-network: use git main branch which has enum variant fix
+sc-network = { git = "https://github.com/paritytech/substrate.git", package = "sc-network" }
 
 # Patch bandersnatch_vrfs to use local stub instead of broken git dependency
 # This prevents Cargo from trying to fetch the broken fflonk git repo
