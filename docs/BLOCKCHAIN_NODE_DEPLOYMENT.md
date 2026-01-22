@@ -44,51 +44,83 @@ curl -X POST http://localhost:19933 \
 
 ## Building Custom Demiurge Runtime
 
-To deploy the custom Demiurge runtime with all 11 pallets, you need to:
+Deploy the custom Demiurge runtime with all 11 pallets and sc-network patches applied automatically.
 
-### 1. Resolve Compilation Issues
+### Quick Build (Recommended)
 
-The Demiurge blockchain has an sc-network 0.38.0 enum variant collision issue. This can be resolved with:
-
-```bash
-# Option A: Patch sc-network in cargo registry (on build server)
-for version in 0.38.0 0.39.0 0.40.0; do
-  FILE="~/.cargo/registry/src/index.crates.io-*/sc-network-$version/src/protocol/message.rs"
-  # Add explicit codec indices to prevent auto-numbering conflicts
-  sed -i 's/#\[codec(index = 6)\]/#[codec(index = 5)]/' "$FILE"
-  # ... add remaining indices
-done
-
-# Option B: Use Docker multi-stage build with patches
-docker build -f blockchain/Dockerfile -t demiurge-node:custom .
-```
-
-### 2. Build the Custom Node
+**On the build server (pleroma):**
 
 ```bash
-cd blockchain
-cargo build --release --bin demiurge-node
+# Copy build script to server
+scp scripts/build-on-server.sh pleroma:/root/demiurge/scripts/
+
+# Execute build (30-60 minutes)
+ssh pleroma "bash /root/demiurge/scripts/build-on-server.sh"
+
+# Output:
+# - Custom Docker image: localhost:5000/demiurge-node:latest
+# - Genesis WASM (hex): /root/demiurge/genesis.hex
+# - Binary: /root/demiurge/blockchain/target/release/demiurge-node
 ```
 
-### 3. Create Docker Image
+### Build Process (Automated)
 
-```dockerfile
-# Dockerfile.custom
-FROM ubuntu:22.04 as runtime
-RUN apt-get update && apt-get install -y ca-certificates libssl3
-COPY --from=builder /build/blockchain/target/release/demiurge-node /usr/local/bin/
-ENTRYPOINT ["/usr/local/bin/demiurge-node"]
+The `build-on-server.sh` script:
+
+1. **Patches sc-network** - Adds explicit codec indices to prevent enum collisions
+   - Versions: 0.38.0, 0.39.0, 0.40.0, 0.41.0
+   - Fixes: "Both `Consensus` and `RemoteCallResponse` have the index `6`" error
+
+2. **Compiles Demiurge node** - Full release build with all 11 pallets
+   - Binary: ~150MB (`target/release/demiurge-node`)
+   - Time: 30-60 minutes on server hardware
+
+3. **Exports genesis WASM** - Required for custom chain spec
+   - Output: Hex-encoded genesis runtime code
+   - File: `/root/demiurge/genesis.hex`
+
+4. **Creates Docker image** - Multi-stage, optimized runtime image
+   - Image: `localhost:5000/demiurge-node:latest`
+   - Size: ~200MB (Ubuntu 22.04 + binary)
+   - Entrypoint: demiurge-node with default flags
+
+### Deploy Custom Image
+
+After build completes:
+
+```bash
+# Update docker-compose to use custom image
+sed -i 's|image: parity/substrate:latest|image: localhost:5000/demiurge-node:latest|' \
+  docker-compose.substrate-node.yml
+
+# Deploy custom image
+scp docker-compose.substrate-node.yml pleroma:~/demiurge/
+
+# Restart with new image
+ssh pleroma "cd ~/demiurge && docker compose down && docker compose up -d"
+
+# Verify
+ssh pleroma "docker logs demiurge-blockchain-node | tail -20 | grep -E '(Role|Substrate)'"
 ```
 
-### 4. Deploy with Custom Image
+### Activate Custom Chain Spec
 
-Update `docker-compose.substrate-node.yml`:
+Once genesis WASM is encoded:
 
-```yaml
-services:
-  demiurge-node:
-    image: demiurge-node:custom  # Use custom build
-    # ... rest of config
+```bash
+# Copy genesis hex from server
+scp pleroma:/root/demiurge/genesis.hex ./
+
+# Update chain-spec-demiurge.json with genesis code
+# (Replace "code": "0x" with hex content)
+
+# Update docker-compose command
+sed -i 's|--chain dev|--chain /chain-spec.json|' docker-compose.substrate-node.yml
+
+# Deploy
+scp chain-spec-demiurge.json pleroma:~/demiurge/
+scp docker-compose.substrate-node.yml pleroma:~/demiurge/
+ssh pleroma "cd ~/demiurge && docker compose restart"
 ```
 
 ## Pallets Included
