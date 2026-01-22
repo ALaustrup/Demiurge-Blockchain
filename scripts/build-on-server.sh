@@ -22,37 +22,39 @@ echo ""
 
 # Step 1: Verify Rust installation
 echo -e "${YELLOW}[1/6]${NC} Verifying Rust installation..."
-RUST_VERSION=$(/root/.cargo/bin/cargo --version)
+RUST_VERSION=$(~/.cargo/bin/cargo --version)
 echo "  ✅ $RUST_VERSION"
-RUSTC_VERSION=$(/root/.cargo/bin/rustc --version)
+RUSTC_VERSION=$(~/.cargo/bin/rustc --version)
 echo "  ✅ $RUSTC_VERSION"
 
 # Step 2: Navigate to blockchain directory
 echo -e "${YELLOW}[2/6]${NC} Navigating to blockchain directory..."
-cd /root/demiurge/blockchain || { echo "❌ Failed to navigate to blockchain"; exit 1; }
+cd ~/demiurge/blockchain || { echo "❌ Failed to navigate to blockchain"; exit 1; }
 echo "  ✅ In: $(pwd)"
 
 # Step 3: Apply sc-network patches
 echo -e "${YELLOW}[3/6]${NC} Applying sc-network enum patches..."
 for version in 0.38.0 0.39.0 0.40.0 0.41.0; do
-    file="/root/.cargo/registry/src/github.com-*/sc-network-$version/src/protocol/message.rs"
-    if ls $file 1> /dev/null 2>&1; then
+    file="~/.cargo/registry/src/github.com-*/sc-network-$version/src/protocol/message.rs"
+    # Expand tilde for globbing
+    expanded_file=$(ls $file 2>/dev/null | head -1)
+    if [ -n "$expanded_file" ]; then
         echo "  Patching sc-network $version..."
-        # Assign explicit codec indices to prevent auto-numbering conflicts
-        sed -i 's/Status(Status<Hash, Number>),/#[codec(index = 0)]\n        Status(Status<Hash, Number>),/' "$file" || true
-        sed -i 's/BlockRequest(BlockRequest<Hash, Number>),/#[codec(index = 1)]\n        BlockRequest(BlockRequest<Hash, Number>),/' "$file" || true
-        sed -i 's/BlockResponse(BlockResponse<Header, Hash, Extrinsic>),/#[codec(index = 2)]\n        BlockResponse(BlockResponse<Header, Hash, Extrinsic>),/' "$file" || true
-        sed -i 's/BlockAnnounce(BlockAnnounce<Header>),/#[codec(index = 3)]\n        BlockAnnounce(BlockAnnounce<Header>),/' "$file" || true
-        sed -i 's/#\[codec(index = 6)\]/#[codec(index = 5)]/' "$file" || true
-        sed -i 's/RemoteCallRequest(RemoteCallRequest<Hash>),/#[codec(index = 7)]\n        RemoteCallRequest(RemoteCallRequest<Hash>),/' "$file" || true
-        sed -i 's/RemoteCallResponse(RemoteCallResponse),/#[codec(index = 8)]\n        RemoteCallResponse(RemoteCallResponse),/' "$file" || true
-        sed -i 's/RemoteReadRequest(RemoteReadRequest<Hash>),/#[codec(index = 9)]\n        RemoteReadRequest(RemoteReadRequest<Hash>),/' "$file" || true
-        sed -i 's/RemoteReadResponse(RemoteReadResponse),/#[codec(index = 10)]\n        RemoteReadResponse(RemoteReadResponse),/' "$file" || true
-        sed -i 's/RemoteHeaderRequest(RemoteHeaderRequest<Number>),/#[codec(index = 11)]\n        RemoteHeaderRequest(RemoteHeaderRequest<Number>),/' "$file" || true
-        sed -i 's/RemoteHeaderResponse(RemoteHeaderResponse<Header>),/#[codec(index = 12)]\n        RemoteHeaderResponse(RemoteHeaderResponse<Header>),/' "$file" || true
-        sed -i 's/RemoteChangesRequest(RemoteChangesRequest<Hash>),/#[codec(index = 13)]\n        RemoteChangesRequest(RemoteChangesRequest<Hash>),/' "$file" || true
-        sed -i 's/RemoteChangesResponse(RemoteChangesResponse<Number, Hash>),/#[codec(index = 14)]\n        RemoteChangesResponse(RemoteChangesResponse<Number, Hash>),/' "$file" || true
-        sed -i 's/RemoteReadChildRequest(RemoteReadChildRequest<Hash>),/#[codec(index = 15)]\n        RemoteReadChildRequest(RemoteReadChildRequest<Hash>),/' "$file" || true
+        # Apply patches (all continue on error)
+        sed -i 's/Status(Status<Hash, Number>),/#[codec(index = 0)]\n        Status(Status<Hash, Number>),/' "$expanded_file" || true
+        sed -i 's/BlockRequest(BlockRequest<Hash, Number>),/#[codec(index = 1)]\n        BlockRequest(BlockRequest<Hash, Number>),/' "$expanded_file" || true
+        sed -i 's/BlockResponse(BlockResponse<Header, Hash, Extrinsic>),/#[codec(index = 2)]\n        BlockResponse(BlockResponse<Header, Hash, Extrinsic>),/' "$expanded_file" || true
+        sed -i 's/BlockAnnounce(BlockAnnounce<Header>),/#[codec(index = 3)]\n        BlockAnnounce(BlockAnnounce<Header>),/' "$expanded_file" || true
+        sed -i 's/#\[codec(index = 6)\]/#[codec(index = 5)]/' "$expanded_file" || true
+        sed -i 's/RemoteCallRequest(RemoteCallRequest<Hash>),/#[codec(index = 7)]\n        RemoteCallRequest(RemoteCallRequest<Hash>),/' "$expanded_file" || true
+        sed -i 's/RemoteCallResponse(RemoteCallResponse),/#[codec(index = 8)]\n        RemoteCallResponse(RemoteCallResponse),/' "$expanded_file" || true
+        sed -i 's/RemoteReadRequest(RemoteReadRequest<Hash>),/#[codec(index = 9)]\n        RemoteReadRequest(RemoteReadRequest<Hash>),/' "$expanded_file" || true
+        sed -i 's/RemoteReadResponse(RemoteReadResponse),/#[codec(index = 10)]\n        RemoteReadResponse(RemoteReadResponse),/' "$expanded_file" || true
+        sed -i 's/RemoteHeaderRequest(RemoteHeaderRequest<Number>),/#[codec(index = 11)]\n        RemoteHeaderRequest(RemoteHeaderRequest<Number>),/' "$expanded_file" || true
+        sed -i 's/RemoteHeaderResponse(RemoteHeaderResponse<Header>),/#[codec(index = 12)]\n        RemoteHeaderResponse(RemoteHeaderResponse<Header>),/' "$expanded_file" || true
+        sed -i 's/RemoteChangesRequest(RemoteChangesRequest<Hash>),/#[codec(index = 13)]\n        RemoteChangesRequest(RemoteChangesRequest<Hash>),/' "$expanded_file" || true
+        sed -i 's/RemoteChangesResponse(RemoteChangesResponse<Number, Hash>),/#[codec(index = 14)]\n        RemoteChangesResponse(RemoteChangesResponse<Number, Hash>),/' "$expanded_file" || true
+        sed -i 's/RemoteReadChildRequest(RemoteReadChildRequest<Hash>),/#[codec(index = 15)]\n        RemoteReadChildRequest(RemoteReadChildRequest<Hash>),/' "$expanded_file" || true
         echo "    ✅ Patched sc-network $version"
     fi
 done
@@ -63,7 +65,7 @@ echo -e "${YELLOW}[4/6]${NC} Building Demiurge node (this may take 30-60 minutes
 echo "  Starting cargo build..."
 rm -rf target/release || true
 
-/root/.cargo/bin/cargo build --release --bin demiurge-node 2>&1 | tee /tmp/build.log
+~/.cargo/bin/cargo build --release --bin demiurge-node 2>&1 | tee /tmp/build.log
 
 if [ ! -f "target/release/demiurge-node" ]; then
     echo -e "${RED}❌ Build failed: binary not found${NC}"
@@ -78,7 +80,7 @@ echo -e "  ✅ Binary built successfully: ${GREEN}$BINARY_SIZE${NC}"
 # Step 5: Export genesis WASM
 echo -e "${YELLOW}[5/6]${NC} Exporting genesis WASM..."
 mkdir -p /tmp/demiurge-build
-cd /root/demiurge/blockchain
+cd ~/demiurge/blockchain
 ./target/release/demiurge-node export-genesis-wasm \
     --chain dev \
     > /tmp/demiurge-build/genesis.wasm 2>/dev/null || true
@@ -90,14 +92,14 @@ if [ -f "/tmp/demiurge-build/genesis.wasm" ]; then
     echo -e "  ✅ Genesis WASM exported: ${GREEN}$WASM_SIZE${NC}"
     echo -e "     Hex file: $(wc -c < /tmp/demiurge-build/genesis.hex) bytes"
     # Copy back to demiurge directory
-    cp /tmp/demiurge-build/genesis.hex /root/demiurge/genesis.hex
+    cp /tmp/demiurge-build/genesis.hex ~/demiurge/genesis.hex
 else
     echo -e "  ⚠️  WASM export not available in this build (may require runtime integration)"
 fi
 
 # Step 6: Create Docker image
 echo -e "${YELLOW}[6/6]${NC} Creating Docker image..."
-cd /root/demiurge/blockchain
+cd ~/demiurge/blockchain
 
 cat > Dockerfile.custom << 'EOF'
 FROM ubuntu:22.04 as runtime
