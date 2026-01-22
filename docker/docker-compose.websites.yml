@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # demiurge.cloud - AI Codex Website
+  ai-website:
+    build:
+      context: ../../ai-website
+      dockerfile: Dockerfile
+    container_name: demiurge-ai-website
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_RPC_URL=https://rpc.demiurge.cloud
+      - NEXT_PUBLIC_API_URL=https://api.demiurge.cloud
+    ports:
+      - "3000:3000"
+    networks:
+      - demiurge
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # demiurge.guru - Marketing Site
+  marketing-site:
+    build:
+      context: ../../apps/marketing-site
+      dockerfile: Dockerfile
+    container_name: demiurge-marketing-site
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_RPC_URL=https://rpc.demiurge.cloud
+      - NEXT_PUBLIC_DEMIURGE_RPC_URL=https://rpc.demiurge.cloud
+      - NEXT_PUBLIC_API_URL=https://api.demiurge.cloud
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "3001:3000"
+    networks:
+      - demiurge
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy & Load Balancer
+  nginx:
+    image: nginx:latest
+    container_name: demiurge-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.websites.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt/live/demiurge.cloud:/etc/nginx/ssl/demiurge.cloud:ro
+      - /etc/letsencrypt/live/demiurge.guru:/etc/nginx/ssl/demiurge.guru:ro
+      - ./ssl-params.conf:/etc/nginx/ssl-params.conf:ro
+    depends_on:
+      - ai-website
+      - marketing-site
+    networks:
+      - demiurge
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Backend (if needed)
+  # api:
+  #   image: localhost:5000/demiurge-api:latest
+  #   container_name: demiurge-api
+  #   restart: unless-stopped
+  #   environment:
+  #     - RPC_URL=http://demiurge-blockchain-node:9933
+  #   ports:
+  #     - "3002:3000"
+  #   networks:
+  #     - demiurge
+
+networks:
+  demiurge:
+    driver: bridge
