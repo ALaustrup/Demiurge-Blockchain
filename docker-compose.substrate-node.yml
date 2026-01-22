@@ -7,21 +7,52 @@ services:
     ports:
       - "19944:9944"  # WebSocket RPC (mapped from container 9944 to host 19944)
       - "19933:9933"  # HTTP RPC (mapped from container 9933 to host 19933)
-      - "30333:30333"  # P2P
-      - "9615:9615"  # Metrics
+      - "30333:30333"  # P2P networking
+      - "9615:9615"  # Prometheus metrics
     volumes:
       - demiurge-chain-data:/data
+      - ./chain-spec-demiurge.json:/chain-spec.json:ro
     environment:
-      RUST_LOG: substrate=info,sc_network=debug
+      RUST_LOG: substrate=info,sc_network=debug,sc_rpc=debug
     command: >
       --chain dev
       --name "Demiurge-Node"
-      --rpc-external
+      --validator
+      --unsafe-rpc-external
       --rpc-cors all
+      --rpc-methods=unsafe
       --base-path /data
+      --prometheus-external
     restart: unless-stopped
+    # healthcheck disabled temporarily for debugging
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:9933/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
     networks:
       - demiurge
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+  # RPC Health Monitor
+  rpc-monitor:
+    image: curlimages/curl:latest
+    container_name: demiurge-rpc-monitor
+    # depends_on commented out - removed healthcheck dependency
+    # depends_on:
+    #   demiurge-node:
+    #     condition: service_healthy
+    volumes:
+      - ./scripts/monitor-rpc.sh:/monitor.sh:ro
+    command: sh -c "while true; do sh /monitor.sh; sleep 60; done"
+    networks:
+      - demiurge
+    restart: unless-stopped
 
 volumes:
   demiurge-chain-data:

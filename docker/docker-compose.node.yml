@@ -1,0 +1,66 @@
+# Docker Compose override for Blockchain Node
+# Run alongside other services once `docker build -t demiurge-node:latest` completes
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.node.yml up -d
+#
+# Or if you only want the node:
+#   docker compose -f docker-compose.node.yml up -d demiurge-node
+
+version: '3.8'
+
+services:
+  demiurge-node:
+    image: demiurge-node:latest
+    container_name: demiurge-node
+    restart: unless-stopped
+    
+    # Node configuration
+    command: 
+      - --dev
+      - --rpc-cors=all
+      - --rpc-external
+      - --rpc-methods=Unsafe
+      - --ws-external
+      - --ws-max-connections=1000
+      - --prometheus-external
+      - --node-key=test://0
+      - --validator
+    
+    # Ports: WebSocket RPC (9944), HTTP RPC (9933), P2P (30333), Prometheus (9615)
+    ports:
+      - "9944:9944"  # WebSocket RPC
+      - "9933:9933"  # HTTP RPC
+      - "30333:30333" # P2P
+      - "9615:9615"  # Prometheus metrics
+    
+    # Volumes for persistent data
+    volumes:
+      - demiurge-node-data:/data
+    
+    # Environment
+    environment:
+      RUST_BACKTRACE: "1"
+      RUST_LOG: "info,demiurge_node=debug"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9933/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Network
+    networks:
+      - demiurge-network
+
+networks:
+  demiurge-network:
+    driver: bridge
+    name: demiurge-network
+
+volumes:
+  demiurge-node-data:
+    driver: local
+    name: demiurge-node-data
