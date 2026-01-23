@@ -32,6 +32,16 @@ repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
 # to Substrate v39.0.0 (Polkadot v1.0 compatible)
 #
 [patch.crates-io]
+# Patch sc-network versions individually with codec index fixes
+#
+# Note: Cargo's patch mechanism patches by name->version mapping.
+# Since all three versions have the same name and different versions,
+# we need to create separate patch entries using explicit paths.
+#
+# For now, just patch 0.38.0 which is the primary version we require
+sc-network = { path = "patches/sc-network-0.38.0-fixed" }
+# Patch sp-io 37.0.0 to fix #[no_mangle] panic function issue  
+sp-io = { path = "patches/sp-io-37.0.0" }
 # All dependencies now use crates.io versions - no local substrate fork available
 # Patch bandersnatch_vrfs to use local stub instead of broken git dependency
 # This prevents Cargo from trying to fetch the broken fflonk git repo
