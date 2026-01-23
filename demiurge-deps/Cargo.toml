@@ -1,0 +1,31 @@
+[workspace]
+members = [
+    "demiurge-substrate",
+    "demiurge-network",
+    "demiurge-consensus",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Alaustrup <alaustrup@demiurge.io>"]
+license = "MIT"
+repository = "https://github.com/Demiurge-Blockchain/demiurge-deps"
+
+# Pinned versions for all dependencies
+[workspace.dependencies]
+frame-executive = { version = "39.0.0", default-features = false }
+frame-support = { version = "39.0.0", default-features = false }
+frame-system = { version = "39.0.0", default-features = false }
+sp-api = { version = "39.0.0", default-features = false }
+sp-core = { version = "39.0.0", default-features = false }
+sp-runtime = { version = "39.0.0", default-features = false }
+sp-consensus = { version = "0.39.1" }
+sp-consensus-aura = { version = "0.39.0" }
+sp-consensus-grandpa = { version = "0.39.0" }
+sc-consensus = { version = "0.39.1" }
+sc-consensus-aura = { version = "0.39.0" }
+sc-consensus-grandpa = { version = "0.39.0" }
+parity-scale-codec = { package = "parity-scale-codec", version = "3.6.5", features = ["derive"] }
+scale-info = { version = "2.11.1", features = ["derive"] }

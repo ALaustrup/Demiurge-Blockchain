@@ -1,0 +1,39 @@
+[package]
+name = "demiurge-substrate"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Demiurge Substrate dependencies re-export"
+
+# This package simply re-exports Substrate crates for a unified import point
+# All dependencies come from the workspace configuration in the parent Cargo.toml
+
+[dependencies]
+# Substrate frame dependencies - all from workspace
+frame-executive = { workspace = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+
+# Substrate primitives - all from workspace
+sp-api = { workspace = true }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+
+# Codec utilities
+parity-scale-codec = { workspace = true }
+scale-info = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+    "frame-executive/std",
+    "frame-support/std",
+    "frame-system/std",
+    "sp-api/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+]
