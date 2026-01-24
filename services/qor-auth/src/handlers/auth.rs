@@ -4,7 +4,6 @@ use axum::{
     extract::State,
     http::StatusCode,
     Json,
-    routing::post,
 };
 use chrono::{Duration, Utc};
 use serde_json::{json, Value};
@@ -13,7 +12,7 @@ use std::sync::Arc;
 use crate::error::{AppError, AppResult};
 use crate::models::{
     ForgotPasswordRequest, LoginRequest, RegisterRequest, ResetPasswordWithBackupRequest,
-    ResetPasswordWithTokenRequest, TokenPair, User,
+    ResetPasswordWithTokenRequest, TokenPair,
 };
 use crate::services::{auth_service::AuthService, session_service::SessionService};
 use crate::state::AppState;
@@ -86,7 +85,7 @@ pub async fn register(
     };
 
     // Insert user
-    let user_id = sqlx::query_scalar::<_, uuid::Uuid>(
+    let _user_id = sqlx::query_scalar::<_, uuid::Uuid>(
         r#"
         INSERT INTO users (
             email, username, discriminator, password_hash, 
@@ -158,7 +157,7 @@ pub async fn login(
                     format!("Username '{}' not found. Would you like to sign up?", req.identifier)
                 ));
             }
-            return Err(AppError::Unauthorized("Invalid credentials".into()));
+            return Err(AppError::InvalidCredentials);
         }
     };
 
@@ -187,7 +186,7 @@ pub async fn login(
             )
             .await?;
 
-        return Err(AppError::Unauthorized("Invalid credentials".into()));
+        return Err(AppError::InvalidCredentials);
     }
 
     // Reset login attempts on successful login
@@ -195,7 +194,7 @@ pub async fn login(
 
     // Create session
     let device_id = req.device_id.unwrap_or_else(|| "unknown".to_string());
-    let (session, tokens) = session_service
+    let (_session, tokens) = session_service
         .create_session(
             user.id,
             &user.qor_id(),
@@ -244,7 +243,7 @@ pub async fn refresh_token(
 
 /// Logout and invalidate session
 pub async fn logout(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> AppResult<StatusCode> {
     // TODO: Extract session from token in middleware
     // For now, this is a placeholder
@@ -371,7 +370,7 @@ pub async fn reset_password_with_backup(
 
     // Verify backup code
     if user.backup_code.as_ref() != Some(&req.backup_code) {
-        return Err(AppError::Unauthorized("Invalid backup code".into()));
+        return Err(AppError::InvalidCredentials);
     }
 
     // Hash new password

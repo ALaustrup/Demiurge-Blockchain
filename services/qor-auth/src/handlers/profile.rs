@@ -8,6 +8,7 @@ use axum::{
 use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
+use anyhow;
 use sha2::{Sha256, Digest};
 use hex;
 use base64::engine::general_purpose;
@@ -194,21 +195,20 @@ pub async fn link_wallet(
     // For now, we'll use a placeholder user_id
     // In production, extract from auth middleware
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")
-        .map_err(|_| AppError::InternalError("Invalid user ID".to_string()))?;
+        .map_err(|e| AppError::InternalError(anyhow::anyhow!("Invalid user ID: {}", e)))?;
 
     // Update user's on_chain_address in database
-    sqlx::query!(
+    sqlx::query(
         r#"
         UPDATE users
         SET on_chain_address = $1, updated_at = NOW()
         WHERE id = $2
         "#,
-        address,
-        user_id
     )
+    .bind(address)
+    .bind(user_id)
     .execute(&state.db)
-    .await
-    .map_err(|e| AppError::DatabaseError(format!("Failed to update address: {}", e)))?;
+    .await?;
 
     Ok(Json(json!({
         "message": "Wallet linked successfully",
