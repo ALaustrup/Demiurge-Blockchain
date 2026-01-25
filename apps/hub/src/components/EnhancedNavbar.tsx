@@ -153,8 +153,22 @@ export function EnhancedNavbar() {
 
           {/* Right: Navigation + User */}
           <div className="flex gap-4 items-center ml-auto">
-            {/* Visible Navigation Links */}
+            {/* Visible Navigation Links - Portal first, then main features */}
             <div className="hidden md:flex items-center gap-3">
+              <Link 
+                href="/portal" 
+                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-magenta transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
+              >
+                Portal
+              </Link>
+              {qorId && (
+                <Link 
+                  href="/dashboard" 
+                  className="font-grunge-alt text-sm uppercase tracking-wider text-neon-cyan hover:text-neon-cyan transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative border border-neon-cyan/30"
+                >
+                  Dashboard
+                </Link>
+              )}
               <Link 
                 href="/games" 
                 className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-cyan transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
@@ -162,10 +176,10 @@ export function EnhancedNavbar() {
                 Games
               </Link>
               <Link 
-                href="/portal" 
-                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-magenta transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
+                href="/scattertxt" 
+                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-green transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
               >
-                Portal
+                ScatterTXT
               </Link>
               <Link 
                 href="/wallet" 

@@ -108,24 +108,29 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
     window.addEventListener('keydown', handleKeyPress);
 
     const handleLoad = () => {
+      // Always set loading to false after a short delay - game is ready
+      // HUD injection is optional enhancement, not required for game to work
+      setTimeout(() => setLoading(false), 500);
+      
       try {
         const iframeWindow = iframe.contentWindow;
         if (!iframeWindow) return;
 
-        // Inject HUD script
+        // Try to inject HUD script (optional - game works without it)
         const script = iframeWindow.document.createElement('script');
         script.src = '/inject-hud.js';
         script.onload = () => {
-          setLoading(false);
+          console.log('HUD script injected successfully');
         };
         script.onerror = () => {
-          setError('Failed to load HUD script');
-          setLoading(false);
+          // HUD failed to load - this is OK, game still works
+          console.warn('HUD script failed to load - game will work without HUD overlay');
         };
         iframeWindow.document.head.appendChild(script);
       } catch (err) {
         // Cross-origin restrictions - this is expected for external games
-        setLoading(false);
+        // Game still works, just without HUD integration
+        console.warn('Could not inject HUD script (cross-origin):', err);
       }
     };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, lazy, Suspense, ReactNode } from 'react';
-import { qorAuth, type User } from '@demiurge/qor-sdk';
+import { qorAuth, type User, calculateLevel, calculateXpProgress, getTierInfo } from '@demiurge/qor-sdk';
 import { QorIdAvatar } from './QorIdAvatar';
 
 // Lazy load AvatarUploadModal to avoid import issues when not logged in
@@ -17,6 +17,7 @@ export function QorIdHeaderWrapper() {
   const [showAvatarUpload, setShowAvatarUpload] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userXp, setUserXp] = useState(0); // TODO: Fetch from API
 
   useEffect(() => {
     async function loadUser() {
@@ -92,11 +93,32 @@ export function QorIdHeaderWrapper() {
             className="fixed inset-0 z-40" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-full mt-2 glass-panel p-4 rounded-lg min-w-[200px] z-50">
+          <div className="absolute right-0 top-full mt-2 glass-panel p-4 rounded-lg min-w-[220px] z-50">
             <div className="space-y-2">
-              <div className="text-sm text-demiurge-cyan font-bold pb-2 border-b border-demiurge-cyan/20">
-                {user.qor_id}
+              {/* User Info with Level */}
+              <div className="pb-2 border-b border-demiurge-cyan/20">
+                <div className="text-sm text-demiurge-cyan font-bold">
+                  {user.qor_id}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs bg-neon-cyan/20 text-neon-cyan px-2 py-0.5 rounded-full">
+                    Lv.{calculateLevel(userXp)}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {calculateXpProgress(userXp).currentXp} XP
+                  </span>
+                </div>
               </div>
+              
+              {/* Dashboard - Primary Link */}
+              <a
+                href="/dashboard"
+                className="block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left text-neon-cyan font-semibold"
+                onClick={() => setIsOpen(false)}
+              >
+                Dashboard
+              </a>
+              
               <a
                 href="/profile"
                 className="block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left"
@@ -113,6 +135,17 @@ export function QorIdHeaderWrapper() {
               >
                 {user.avatar_url ? 'Change Avatar' : 'Upload Avatar'}
               </button>
+              
+              {/* Email - On-Chain Email Inbox */}
+              <a
+                href="/email"
+                className="block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left flex items-center justify-between"
+                onClick={() => setIsOpen(false)}
+              >
+                <span>Email</span>
+                <span className="text-xs text-gray-500">Coming Soon</span>
+              </a>
+              
               <a
                 href="/nft-portal"
                 className="block w-full glass-panel py-2 px-3 rounded hover:chroma-glow transition-all text-left"

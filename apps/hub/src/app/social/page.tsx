@@ -1,20 +1,33 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { qorAuth } from '@demiurge/qor-sdk';
+import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 
 export default function SocialPage() {
   const router = useRouter();
+  const { user, loading, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!qorAuth.isAuthenticated()) {
+    // Redirect to login if not authenticated (after loading completes)
+    if (!loading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [router]);
+  }, [loading, isAuthenticated, router]);
 
-  if (!qorAuth.isAuthenticated()) {
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <main className="min-h-screen p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-cyan mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
     return null; // Will redirect
   }
 
@@ -31,12 +44,12 @@ export default function SocialPage() {
           
           <div className="mt-8 space-y-4">
             <h2 className="text-2xl font-bold text-demiurge-cyan mb-6">
-              CONNECT WITH QOR ID
+              Welcome, {user?.qor_id}!
             </h2>
             
             <div className="text-demiurge-cyan">
-              <p className="text-lg">You are connected!</p>
-              <p className="text-sm text-gray-400 mt-2">Social features coming soon...</p>
+              <p className="text-lg">You are connected to VYB Social!</p>
+              <p className="text-sm text-gray-400 mt-2">Full social features coming soon...</p>
             </div>
           </div>
         </div>

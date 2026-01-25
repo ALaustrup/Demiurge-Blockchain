@@ -77,7 +77,26 @@ export default function PlayGamePage() {
     );
   }
   
-  const gameUrl = `/games/${gameId}/${gameMetadata.entryPoint || 'index.html'}`;
+  // Handle different entry point types:
+  // - Route-based (starts with /): Use as-is (e.g., /scatter3d)
+  // - File-based: Construct full path (e.g., /games/galaga-creator/index.html)
+  const entryPoint = gameMetadata.entryPoint || 'index.html';
+  const isRouteBased = entryPoint.startsWith('/');
+  const gameUrl = isRouteBased ? entryPoint : `/games/${gameId}/${entryPoint}`;
+  
+  // For route-based games, redirect instead of iframe
+  if (isRouteBased) {
+    if (typeof window !== 'undefined') {
+      window.location.href = gameUrl;
+    }
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black">
+        <div className="glass-panel p-8 rounded-lg">
+          <div className="text-demiurge-cyan text-xl">Launching {gameMetadata.title}...</div>
+        </div>
+      </div>
+    );
+  }
   
   return <GameWrapper gameId={gameId} gameUrl={gameUrl} />;
 }

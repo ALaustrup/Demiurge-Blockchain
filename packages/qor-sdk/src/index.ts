@@ -36,6 +36,8 @@ export interface User {
   created_at?: string;
   updated_at?: string;
   avatar_url?: string | null;
+  display_name?: string;
+  bio?: string;
   on_chain?: {
     address: string;
     cgt_balance?: string;
@@ -258,6 +260,44 @@ export class QorAuthClient {
 
   isAuthenticated(): boolean {
     return this.getToken() !== null;
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(data: { display_name?: string; bio?: string }): Promise<User> {
+    try {
+      const response = await this.client.put<User>('/profile', data);
+      return response.data;
+    } catch (error: any) {
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        throw new Error('QOR Auth service is not available.');
+      }
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Change user PIN
+   */
+  async changePin(currentPin: string, newPin: string): Promise<void> {
+    try {
+      await this.client.post('/profile/change-pin', {
+        current_pin: currentPin,
+        new_pin: newPin,
+      });
+    } catch (error: any) {
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        throw new Error('QOR Auth service is not available.');
+      }
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
   }
 
   async checkUsername(username: string): Promise<{ available: boolean; username: string }> {

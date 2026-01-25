@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { qorAuth } from '@demiurge/qor-sdk';
+import { useAuth } from '@/contexts/AuthContext';
 import { useBlockchain } from '@/contexts/BlockchainContext';
 import { blockchainClient } from '@/lib/blockchain';
 import { getOrCreateAddressForQorId, formatQorId } from '@/lib/qor-wallet';
@@ -14,37 +15,34 @@ import { WalletSelector } from '@/components/wallet/WalletSelector';
 import { EnergyDisplay } from '@/components/energy/EnergyDisplay';
 
 export default function WalletPage() {
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
   const { getBalance, isConnected } = useBlockchain();
   const [balance, setBalance] = useState('0');
   const [address, setAddress] = useState<string | null>(null);
   const [qorId, setQorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setIsAuthenticated(qorAuth.isAuthenticated());
-  }, []);
-
-  useEffect(() => {
-    loadWallet();
-  }, [isConnected, isAuthenticated]);
+    if (!authLoading) {
+      loadWallet();
+    }
+  }, [isConnected, isAuthenticated, authLoading]);
 
   const loadWallet = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      const profile = await qorAuth.getProfile();
-      setQorId(profile.qor_id);
+      setQorId(user.qor_id);
 
       // Get or create blockchain address for QOR ID
-      const userAddress = await getOrCreateAddressForQorId(profile, false);
+      const userAddress = await getOrCreateAddressForQorId(user, false);
       setAddress(userAddress);
 
       // Get balance (uses mock if blockchain not connected)
@@ -90,6 +88,18 @@ export default function WalletPage() {
       console.error('Failed to copy address:', error);
     }
   };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <main className="min-h-screen p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-cyan mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading wallet...</p>
+        </div>
+      </main>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

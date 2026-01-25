@@ -165,28 +165,8 @@ function initializeRegistry() {
     },
   });
 
-  // Register Scatter3D Engine (Demo)
-  gameRegistry.register({
-    id: 'scatter3d',
-    title: 'Scatter3D Engine',
-    description: 'High-Fidelity ASCII Raymarching Engine. Render 3D worlds entirely out of text characters. The "Matrix" meets "Dwarf Fortress". Requires QOR ID authentication and minimum stake.',
-    thumbnail: '/games/scatter3d/thumbnail.png', // Placeholder - create actual thumbnail
-    entryPoint: '/scatter3d', // Route to the page
-    version: '1.0.0-alpha',
-    author: 'Astra Matrix',
-    tags: ['engine', '3d', 'ascii', 'raymarching', 'experimental', 'stake-required'],
-    minLevel: 1,
-    cgtPool: 0,
-    activeUsers: 0,
-    // Scatter3D is an engine demo, not a game with CGT earning
-    cgtEarning: {},
-    // DRC-369 NFT support (for future NFT rendering)
-    nftSupport: {
-      enabled: true,
-      assetTypes: ['3d_model', 'voxel_asset'],
-      exclusiveAssets: [],
-    },
-  });
+  // Note: ScatterTXT engine has its own dedicated page at /scattertxt
+  // It's not registered as a game since it's an engine, not a game
 }
 
 // Initialize on module load

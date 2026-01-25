@@ -122,3 +122,91 @@ export function calculateXPMultiplier(ownedNFTs: number): number {
 export function applyXPMultiplier(baseXP: number, multiplier: number): number {
   return Math.floor(baseXP * multiplier);
 }
+
+// ============================================================================
+// CONVENIENCE FUNCTIONS (used by dashboard components)
+// ============================================================================
+
+/**
+ * XP Sources with numeric values
+ */
+export const XP_SOURCES = {
+  TUTORIAL_COMPLETE: 100,
+  WALLET_LINKED: 50,
+  FIRST_GAME_PLAYED: 150,
+  GAME_WIN: 25,
+  CGT_STAKED: 10,
+  SOCIAL_FOLLOWER: 5,
+  SOCIAL_POST: 2,
+  DRC369_MINT: 200,
+  ASCENSION_FEAT: 1000,
+  DAILY_LOGIN: 100,
+  DAILY_GAME: 200,
+  DAILY_WIN: 500,
+  DAILY_SOCIAL: 50,
+} as const;
+
+/**
+ * Calculate level from total XP (convenience alias)
+ */
+export function calculateLevel(totalXp: number): number {
+  return calculateLevelFromXP(totalXp);
+}
+
+/**
+ * Calculate XP progress within current level
+ */
+export function calculateXpProgress(totalXp: number): {
+  currentXp: number;
+  requiredXp: number;
+  percentage: number;
+} {
+  const info = getLevelInfo(totalXp);
+  return {
+    currentXp: info.currentXP,
+    requiredXp: info.xpRequired,
+    percentage: Math.round(info.xpProgress * 100),
+  };
+}
+
+/**
+ * Tier information with display names
+ */
+export interface TierInfo {
+  tier: 'awakening' | 'disciple' | 'creator-god';
+  name: string;
+  minLevel: number;
+  maxLevel: number;
+  color: string;
+}
+
+/**
+ * Get tier information for a level
+ */
+export function getTierInfo(level: number): TierInfo {
+  if (level <= 10) {
+    return {
+      tier: 'awakening',
+      name: 'The Awakening',
+      minLevel: 1,
+      maxLevel: 10,
+      color: 'neon-cyan',
+    };
+  } else if (level <= 50) {
+    return {
+      tier: 'disciple',
+      name: 'The Disciple',
+      minLevel: 11,
+      maxLevel: 50,
+      color: 'neon-magenta',
+    };
+  } else {
+    return {
+      tier: 'creator-god',
+      name: 'The Creator God',
+      minLevel: 51,
+      maxLevel: 999,
+      color: 'neon-gold',
+    };
+  }
+}
