@@ -107,13 +107,23 @@ pub async fn register(
     .fetch_one(&state.db)
     .await?;
 
-    // TODO: Send verification email if email provided
-    // For now, just return the token in response (in production, send email)
-    let response = if req.email.is_some() {
+    // Send verification email if email provided
+    let response = if let Some(ref email) = req.email {
+        // Send verification email (async, don't block registration on email sending)
+        let email_service = state.email_service.clone();
+        let email_clone = email.clone();
+        let username_clone = username_lower.clone();
+        let token_clone = email_verification_token.clone().unwrap_or_default();
+        
+        tokio::spawn(async move {
+            if let Err(e) = email_service.send_verification_email(&email_clone, &username_clone, &token_clone).await {
+                tracing::error!("Failed to send verification email to {}: {}", email_clone, e);
+            }
+        });
+        
         json!({
             "qor_id": format!("{}#{:04}", username_lower, discriminator),
             "email_verified": false,
-            "email_verification_token": email_verification_token, // TODO: Remove in production, send email instead
             "message": "Please check your email to verify your account"
         })
     } else {
@@ -327,11 +337,20 @@ pub async fn forgot_password(
             .execute(&state.db)
             .await?;
 
-            // TODO: Send email with reset link
-            // For now, return token (remove in production)
+            // Send password reset email
+            let email_service = state.email_service.clone();
+            let email = user.email.clone().unwrap_or_default();
+            let username = user.username.clone();
+            let token_clone = token.clone();
+            
+            tokio::spawn(async move {
+                if let Err(e) = email_service.send_password_reset_email(&email, &username, &token_clone).await {
+                    tracing::error!("Failed to send password reset email to {}: {}", email, e);
+                }
+            });
+            
             return Ok(Json(json!({
                 "message": "If an account exists, a reset link will be sent",
-                "reset_token": token, // TODO: Remove in production, send email instead
                 "requires_backup_code": false
             })));
         } else {

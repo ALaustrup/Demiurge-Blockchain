@@ -70,6 +70,9 @@ metrics = "0.24"
 # Health Checks
 tokio-graceful-shutdown = "0.15"
 
+# Email
+lettre = { version = "0.11", features = ["tokio1-native-tls", "builder", "hostname", "smtp-transport"] }
+
 [dev-dependencies]
 tokio-test = "0.4"
 rstest = "0.23"

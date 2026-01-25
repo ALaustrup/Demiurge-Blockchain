@@ -22,3 +22,12 @@ max_login_attempts = 5
 lockout_duration_secs = 900
 max_sessions = 10
 password_min_length = 12
+
+# Email configuration (uses environment variables)
+# SMTP_HOST - SMTP server hostname (default: smtp.gmail.com)
+# SMTP_PORT - SMTP port (default: 587)
+# SMTP_USERNAME - SMTP username/email
+# SMTP_PASSWORD - SMTP password or app password
+# SMTP_FROM_EMAIL - Sender email address (default: noreply@demiurge.cloud)
+# SMTP_FROM_NAME - Sender name (default: Demiurge Blockchain)
+# BASE_URL - Base URL for verification links (default: https://demiurge.cloud)

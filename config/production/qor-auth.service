@@ -13,6 +13,15 @@ Environment="RUN_ENV=production"
 Environment="RUST_LOG=info,qor_auth=debug"
 Environment="RUST_BACKTRACE=1"
 
+# Email configuration - Edit these values for production
+Environment="SMTP_HOST=smtp.gmail.com"
+Environment="SMTP_PORT=587"
+Environment="SMTP_FROM_EMAIL=noreply@demiurge.cloud"
+Environment="SMTP_FROM_NAME=Demiurge Blockchain"
+Environment="BASE_URL=https://demiurge.cloud"
+# SMTP credentials should be in EnvironmentFile for security
+EnvironmentFile=-/data/Demiurge-Blockchain/config/production/.secrets
+
 ExecStart=/data/Demiurge-Blockchain/services/qor-auth/target/release/qor-auth
 
 Restart=always

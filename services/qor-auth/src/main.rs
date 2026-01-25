@@ -81,8 +81,18 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("✅ Connected to Redis");
 
+    // Initialize email service
+    let email_config = services::EmailConfig::default();
+    let email_service = services::EmailService::new(email_config);
+    
+    if email_service.is_configured() {
+        tracing::info!("✅ Email service configured");
+    } else {
+        tracing::warn!("⚠️  Email service not configured - emails will be logged only");
+    }
+
     // Build application state
-    let state = Arc::new(AppState::new(config.clone(), db_pool, redis_pool));
+    let state = Arc::new(AppState::new(config.clone(), db_pool, redis_pool, email_service));
 
     // Build router
     let app = Router::new()
