@@ -12,11 +12,16 @@
  * using the ScatterRenderer component.
  */
 
-import { Suspense } from 'react';
+import { Suspense, ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { DemiurgeGate } from '@/components/scatter3d/DemiurgeGate';
 import ScatterRenderer from '@/components/scatter3d/ScatterRenderer';
 import { Scatter3DScene } from '@/components/scatter3d/Scatter3DScene';
+
+// Wrapper to fix React 19 types compatibility with Suspense
+function SuspenseWrapper({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
+  return <Suspense fallback={fallback}>{children}</Suspense>;
+}
 
 function LoadingFallback() {
   return (
@@ -48,7 +53,7 @@ export default function Scatter3DPage() {
         </div>
 
         {/* 3D Canvas with ASCII Renderer */}
-        <Suspense fallback={<LoadingFallback />}>
+        <SuspenseWrapper fallback={<LoadingFallback />}>
           <Canvas
             camera={{ position: [5, 5, 5], fov: 75 }}
             gl={{ antialias: false, alpha: false }}
@@ -67,7 +72,7 @@ export default function Scatter3DPage() {
             {/* 3D Scene */}
             <Scatter3DScene />
           </Canvas>
-        </Suspense>
+        </SuspenseWrapper>
       </div>
     </DemiurgeGate>
   );

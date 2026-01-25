@@ -1,6 +1,6 @@
 //! Anonymous voting with zero-knowledge proofs
 
-use crate::{ProofGenerator, Result, ZkError};
+use crate::Result;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
@@ -21,10 +21,10 @@ pub struct AnonymousVote;
 impl AnonymousVote {
     /// Create an anonymous vote
     pub fn create(
-        proposal_id: u64,
-        vote: bool, // true = yes, false = no
-        voter: [u8; 32],
-        secret: [u8; 32],
+        _proposal_id: u64,
+        _vote: bool, // true = yes, false = no
+        _voter: [u8; 32],
+        _secret: [u8; 32],
     ) -> Result<AnonymousVoteProof> {
         // TODO: Generate ZK proof
         // Prove: voter is eligible, vote is valid, without revealing identity
@@ -36,7 +36,7 @@ impl AnonymousVote {
     }
 
     /// Verify an anonymous vote proof
-    pub fn verify(proof: &AnonymousVoteProof, proposal_id: u64) -> Result<bool> {
+    pub fn verify(_proof: &AnonymousVoteProof, _proposal_id: u64) -> Result<bool> {
         // TODO: Verify ZK proof
         // Verify: voter is eligible, vote is valid
         Ok(true)

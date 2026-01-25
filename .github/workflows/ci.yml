@@ -62,10 +62,11 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Install Substrate Dependencies
+      - name: Install Build Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev protobuf-compiler
+          # Note: Legacy Substrate dependencies removed - using custom framework
 
       - name: Cache Cargo Registry
         uses: actions/cache@v4

@@ -1,6 +1,6 @@
 //! Peer discovery mechanism
 
-use crate::{NetworkError, Result};
+use crate::Result;
 use libp2p::PeerId;
 use std::collections::HashSet;
 

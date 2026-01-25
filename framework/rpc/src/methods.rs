@@ -3,9 +3,8 @@
 use crate::RpcError;
 use demiurge_core::{Block, Transaction, Runtime};
 use demiurge_storage::Storage;
-use demiurge_consensus::{ConsensusEngine, ValidatorSet, Validator};
+use demiurge_consensus::ConsensusEngine;
 use demiurge_module_energy::EnergyModule;
-use demiurge_module_session_keys::SessionKeysModule;
 use codec::{Decode, Encode};
 use std::sync::Arc;
 use std::result::Result;
@@ -179,7 +178,7 @@ impl<S: Storage> RpcMethods<S> {
     }
 
     /// Transfer tokens
-    pub async fn balances_transfer(&self, from: [u8; 32], to: [u8; 32], amount: String, _signature: String) -> Result<String, RpcError> {
+    pub async fn balances_transfer(&self, _from: [u8; 32], _to: [u8; 32], _amount: String, _signature: String) -> Result<String, RpcError> {
         // TODO: Verify signature and execute transaction
         // For now, return placeholder
         Ok("0x0000000000000000000000000000000000000000000000000000000000000000".to_string())
@@ -247,7 +246,7 @@ impl<S: Storage> RpcMethods<S> {
     /// Get validator by account
     pub async fn consensus_get_validator(&self, account_hex: String) -> Result<Option<ValidatorInfo>, RpcError> {
         let account = hex::decode(account_hex)
-            .map_err(|e| RpcError::InvalidParams)?
+            .map_err(|_e| RpcError::InvalidParams)?
             .try_into()
             .map_err(|_| RpcError::InvalidParams)?;
         
@@ -273,7 +272,7 @@ impl<S: Storage> RpcMethods<S> {
     /// Get staking pool for validator
     pub async fn consensus_get_staking_pool(&self, validator_hex: String) -> Result<Option<StakingPoolInfo>, RpcError> {
         let validator_account: [u8; 32] = hex::decode(validator_hex)
-            .map_err(|e| RpcError::InvalidParams)?
+            .map_err(|_e| RpcError::InvalidParams)?
             .try_into()
             .map_err(|_| RpcError::InvalidParams)?;
         
@@ -306,15 +305,15 @@ impl<S: Storage> RpcMethods<S> {
 
     /// Nominate validator
     pub async fn consensus_nominate_validator(&self, nominator_hex: String, validator_hex: String, amount: String, _signature: String) -> Result<String, RpcError> {
-        let nominator: [u8; 32] = hex::decode(nominator_hex)
-            .map_err(|e| RpcError::InvalidParams)?
+        let _nominator: [u8; 32] = hex::decode(nominator_hex)
+            .map_err(|_e| RpcError::InvalidParams)?
             .try_into()
             .map_err(|_| RpcError::InvalidParams)?;
-        let validator: [u8; 32] = hex::decode(validator_hex)
-            .map_err(|e| RpcError::InvalidParams)?
+        let _validator: [u8; 32] = hex::decode(validator_hex)
+            .map_err(|_e| RpcError::InvalidParams)?
             .try_into()
             .map_err(|_| RpcError::InvalidParams)?;
-        let amount_u128 = amount.parse::<u128>()
+        let _amount_u128 = amount.parse::<u128>()
             .map_err(|_| RpcError::InvalidParams)?;
         
         // TODO: Verify signature and execute transaction
@@ -360,7 +359,7 @@ impl<S: Storage> RpcMethods<S> {
             .unwrap_or(0);
         
         // Get current block
-        let current_block = self.get_block_number().await?;
+        let _current_block = self.get_block_number().await?;
         
         Ok(EnergyInfo {
             current: energy,
@@ -374,13 +373,13 @@ impl<S: Storage> RpcMethods<S> {
 
     /// Get active session keys for account
     pub async fn session_keys_get_active_keys(&self, account_hex: String) -> Result<Vec<SessionKeyInfo>, RpcError> {
-        let account: [u8; 32] = hex::decode(account_hex)
-            .map_err(|e| RpcError::InvalidParams)?
+        let _account: [u8; 32] = hex::decode(account_hex)
+            .map_err(|_e| RpcError::InvalidParams)?
             .try_into()
             .map_err(|_| RpcError::InvalidParams)?;
         
         // Get current block
-        let current_block = self.get_block_number().await?;
+        let _current_block = self.get_block_number().await?;
         
         // Query session keys from storage
         // TODO: Implement proper session keys query
@@ -389,7 +388,7 @@ impl<S: Storage> RpcMethods<S> {
     }
 
     /// Authorize session key
-    pub async fn session_keys_authorize(&self, primary_account_hex: String, session_key_hex: String, duration: u32, _signature: String) -> Result<String, RpcError> {
+    pub async fn session_keys_authorize(&self, _primary_account_hex: String, _session_key_hex: String, _duration: u32, _signature: String) -> Result<String, RpcError> {
         // TODO: Verify signature and execute transaction
         // For now, return placeholder
         Ok("0x0000000000000000000000000000000000000000000000000000000000000000".to_string())

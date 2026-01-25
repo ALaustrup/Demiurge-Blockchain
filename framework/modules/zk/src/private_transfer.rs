@@ -1,6 +1,6 @@
 //! Private transaction transfers
 
-use crate::{ProofGenerator, Result, ZkError};
+use crate::Result;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
@@ -23,10 +23,10 @@ pub struct PrivateTransfer;
 impl PrivateTransfer {
     /// Create a private transfer
     pub fn create(
-        sender: [u8; 32],
-        recipient: [u8; 32],
-        amount: u128,
-        secret: [u8; 32],
+        _sender: [u8; 32],
+        _recipient: [u8; 32],
+        _amount: u128,
+        _secret: [u8; 32],
     ) -> Result<PrivateTransferProof> {
         // TODO: Generate ZK proof
         // For now, placeholder
@@ -39,7 +39,7 @@ impl PrivateTransfer {
     }
 
     /// Verify a private transfer proof
-    pub fn verify(proof: &PrivateTransferProof) -> Result<bool> {
+    pub fn verify(_proof: &PrivateTransferProof) -> Result<bool> {
         // TODO: Verify ZK proof
         // For now, placeholder
         Ok(true)

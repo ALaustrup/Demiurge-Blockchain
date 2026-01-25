@@ -1,6 +1,5 @@
 //! DRC-369 NFT implementation
 
-use crate::{Drc369Error, Result};
 use demiurge_modules::traits::Module;
 use demiurge_storage::Storage;
 use codec::{Decode, Encode};
@@ -21,29 +20,29 @@ impl Module for Drc369Module {
     fn execute(
         &self,
         call: Vec<u8>,
-        storage: &mut dyn Storage,
+        _storage: &mut dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         let call_data: NftCall = Decode::decode(&mut &call[..])
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
 
         match call_data {
-            NftCall::Mint { owner, metadata } => {
+            NftCall::Mint { owner: _, metadata: _ } => {
                 // TODO: Implement mint logic
                 Ok(())
             }
-            NftCall::Transfer { from, to, nft_id } => {
+            NftCall::Transfer { from: _, to: _, nft_id: _ } => {
                 // TODO: Implement transfer logic
                 Ok(())
             }
-            NftCall::UpdateState { nft_id, state } => {
+            NftCall::UpdateState { nft_id: _, state: _ } => {
                 // TODO: Implement state update
                 Ok(())
             }
-            NftCall::SetSoulbound { nft_id, soulbound } => {
+            NftCall::SetSoulbound { nft_id: _, soulbound: _ } => {
                 // TODO: Implement soulbound setting
                 Ok(())
             }
-            NftCall::AddResource { nft_id, resource } => {
+            NftCall::AddResource { nft_id: _, resource: _ } => {
                 // TODO: Implement resource addition
                 Ok(())
             }

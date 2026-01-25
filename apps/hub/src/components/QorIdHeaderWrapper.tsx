@@ -1,11 +1,16 @@
 'use client';
 
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, ReactNode } from 'react';
 import { qorAuth, type User } from '@demiurge/qor-sdk';
 import { QorIdAvatar } from './QorIdAvatar';
 
 // Lazy load AvatarUploadModal to avoid import issues when not logged in
 const AvatarUploadModal = lazy(() => import('./avatar/AvatarUploadModal').then(m => ({ default: m.AvatarUploadModal })));
+
+// Wrapper to fix React 19 types compatibility with Suspense
+function SuspenseWrapper({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
+  return <Suspense fallback={fallback}>{children}</Suspense>;
+}
 
 export function QorIdHeaderWrapper() {
   const [isOpen, setIsOpen] = useState(false);
@@ -144,14 +149,14 @@ export function QorIdHeaderWrapper() {
 
       {/* Avatar Upload Modal */}
       {user && (
-        <Suspense fallback={null}>
+        <SuspenseWrapper fallback={null}>
           <AvatarUploadModal
             isOpen={showAvatarUpload}
             onClose={() => setShowAvatarUpload(false)}
             onSuccess={handleAvatarUploadSuccess}
             user={user}
           />
-        </Suspense>
+        </SuspenseWrapper>
       )}
     </div>
   );

@@ -71,12 +71,15 @@ framework/
 
 ```
 Demiurge-Blockchain/
-├── framework/         # Custom blockchain framework 🆕
+├── framework/         # Custom blockchain framework ✅ (Substrate-free)
 ├── apps/              # Web platform (Next.js)
 ├── packages/          # Shared packages (SDKs, UI)
 ├── services/          # Backend services (QOR auth)
-├── archive/           # Archived code (old Substrate blockchain)
-└── docs/              # Documentation
+├── archive/           # Archived legacy code
+│   ├── substrate-blockchain/  # Legacy Substrate blockchain
+│   ├── substrate-fork/        # Substrate fork (if exists)
+│   └── substrate-deps/        # Substrate dependency wrapper
+└── docs/              # Documentation (organized by system)
 ```
 
 ---

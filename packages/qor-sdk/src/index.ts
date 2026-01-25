@@ -108,7 +108,7 @@ export class QorAuthClient {
   }
 
   async login(identifier: string, password: string): Promise<LoginResponse> {
-    const response = await this.client.post<LoginResponse>('/api/v1/auth/login', {
+    const response = await this.client.post<LoginResponse>('/auth/login', {
       identifier, // Can be email or username
       password,
     });
@@ -122,7 +122,7 @@ export class QorAuthClient {
 
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     try {
-      const response = await this.client.post<RegisterResponse>('/api/v1/auth/register', {
+      const response = await this.client.post<RegisterResponse>('/auth/register', {
         email: data.email || undefined, // Optional
         username: data.username,
         password: data.password,
@@ -147,7 +147,7 @@ export class QorAuthClient {
 
   async forgotPassword(identifier: string): Promise<{ requires_backup_code?: boolean; reset_token?: string; message: string }> {
     try {
-      const response = await this.client.post<{ requires_backup_code?: boolean; reset_token?: string; message: string }>('/api/v1/auth/forgot-password', {
+      const response = await this.client.post<{ requires_backup_code?: boolean; reset_token?: string; message: string }>('/auth/forgot-password', {
         identifier,
       });
       return response.data;
@@ -164,7 +164,7 @@ export class QorAuthClient {
 
   async resetPasswordWithBackup(username: string, backupCode: string, newPassword: string): Promise<void> {
     try {
-      await this.client.post('/api/v1/auth/reset-password-backup', {
+      await this.client.post('/auth/reset-password-backup', {
         username,
         backup_code: backupCode,
         new_password: newPassword,
@@ -179,7 +179,7 @@ export class QorAuthClient {
 
   async resetPasswordWithToken(token: string, newPassword: string): Promise<void> {
     try {
-      await this.client.post('/api/v1/auth/reset-password', {
+      await this.client.post('/auth/reset-password', {
         token,
         new_password: newPassword,
       });
@@ -193,7 +193,7 @@ export class QorAuthClient {
 
   async verifyEmail(token: string): Promise<void> {
     try {
-      await this.client.post('/api/v1/auth/verify-email', { token });
+      await this.client.post('/auth/verify-email', { token });
     } catch (error: any) {
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
@@ -204,7 +204,7 @@ export class QorAuthClient {
 
   async getProfile(): Promise<User> {
     try {
-      const response = await this.client.get<User>('/api/v1/profile');
+      const response = await this.client.get<User>('/profile');
       return response.data;
     } catch (error: any) {
       // Handle network errors gracefully
@@ -216,7 +216,7 @@ export class QorAuthClient {
   }
 
   async refreshToken(refreshToken: string): Promise<LoginResponse> {
-    const response = await this.client.post<LoginResponse>('/api/v1/auth/refresh', {
+    const response = await this.client.post<LoginResponse>('/auth/refresh', {
       refresh_token: refreshToken,
     });
     
@@ -229,7 +229,7 @@ export class QorAuthClient {
 
   async logout(): Promise<void> {
     try {
-      await this.client.post('/api/v1/auth/logout');
+      await this.client.post('/auth/logout');
     } finally {
       this.clearToken();
     }
@@ -259,7 +259,7 @@ export class QorAuthClient {
 
   async checkUsername(username: string): Promise<{ available: boolean; username: string }> {
     try {
-      const response = await this.client.post<{ available: boolean; username: string }>('/api/v1/auth/check-username', {
+      const response = await this.client.post<{ available: boolean; username: string }>('/auth/check-username', {
         username,
       });
       return response.data;
@@ -286,7 +286,7 @@ export class QorAuthClient {
       formData.append('qor_id', qorId);
 
       const response = await this.client.post<{ avatar_url: string; asset_uuid?: string }>(
-        '/api/v1/profile/avatar',
+        '/profile/avatar',
         formData,
         {
           headers: {

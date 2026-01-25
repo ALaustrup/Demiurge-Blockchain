@@ -1,0 +1,24 @@
+[server]
+host = "0.0.0.0"
+port = 8080
+environment = "production"
+
+[database]
+url = "postgres://demiurge:demiurge_secure_password@localhost:5432/qor_auth"
+max_connections = 20
+
+[redis]
+url = "redis://localhost:6379"
+
+[jwt]
+access_secret = "Xk9mP2qR7vT4wY8zA3bC6dE1fG5hI0jK2lM9nO4pQ6rS8tU3vW5xY7zA1bC4dE8fG2hI6jK0lM3n"
+refresh_secret = "L2mN5oP8qR1sT4uV7wX0yZ3aB6cD9eF2gH5iJ8kL1mN4oP7qR0sT3uV6wX9yZ2aB5cD8eF1gH4iJ"
+access_expiry_secs = 900
+refresh_expiry_secs = 2592000
+issuer = "qor-auth.demiurge.cloud"
+
+[security]
+max_login_attempts = 5
+lockout_duration_secs = 900
+max_sessions = 10
+password_min_length = 12

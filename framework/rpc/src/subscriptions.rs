@@ -51,7 +51,7 @@ impl SubscriptionManager {
     }
 
     /// Notify block subscribers
-    pub fn notify_block(&self, block: &Block) {
+    pub fn notify_block(&self, _block: &Block) {
         // TODO: Send block to all subscribers via WebSocket
     }
 

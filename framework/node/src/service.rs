@@ -3,10 +3,10 @@
 use crate::NodeConfig;
 use demiurge_core::{Runtime, Block, Transaction};
 use demiurge_storage::StorageBackend;
-use demiurge_consensus::{ConsensusEngine, ValidatorSet, Validator, BlockProof, BlockSignature};
+use demiurge_consensus::{ConsensusEngine, Validator, BlockProof};
 use demiurge_rpc::{RpcServer, RpcMethods};
 use anyhow::Result;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
@@ -172,7 +172,7 @@ impl NodeService {
     /// Block production loop
     async fn block_production_loop(
         consensus: Arc<Mutex<ConsensusEngine<StorageBackend>>>,
-        runtime: Arc<Mutex<Runtime<StorageBackend>>>,
+        _runtime: Arc<Mutex<Runtime<StorageBackend>>>,
         block_time: Duration,
     ) {
         loop {
@@ -180,7 +180,7 @@ impl NodeService {
             sleep(block_time).await;
             
             // Get consensus lock
-            let mut consensus_guard = match consensus.try_lock() {
+            let consensus_guard = match consensus.try_lock() {
                 Ok(guard) => guard,
                 Err(_) => {
                     warn!("Failed to acquire consensus lock, skipping block production");

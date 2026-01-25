@@ -1,7 +1,7 @@
 //! Module registry - manages all loaded modules
 
 use std::collections::HashMap;
-use crate::traits::{Module, ModuleError};
+use crate::traits::Module;
 use demiurge_storage::Storage;
 use thiserror::Error;
 
@@ -24,10 +24,10 @@ impl ModuleRegistry {
     pub fn execute(
         &self,
         module_name: &str,
-        call: Vec<u8>,
-        storage: &mut dyn Storage,
+        _call: Vec<u8>,
+        _storage: &mut dyn Storage,
     ) -> Result<(), RegistryError> {
-        let module = self.modules
+        let _module = self.modules
             .get(module_name)
             .ok_or_else(|| RegistryError::ModuleNotFound(module_name.to_string()))?;
 

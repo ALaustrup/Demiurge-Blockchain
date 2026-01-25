@@ -3,8 +3,9 @@
 //! The full node implementation - ties everything together.
 //! The flame burns eternal. The code serves the will.
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use demiurge_node::{NodeConfig, NodeService};
+use ed25519_dalek::{SigningKey, VerifyingKey};
 use tracing::info;
 
 /// Demiurge Blockchain Node
@@ -12,6 +13,9 @@ use tracing::info;
 #[command(name = "demiurge-node")]
 #[command(about = "Demiurge Blockchain Full Node", long_about = None)]
 struct Args {
+    #[command(subcommand)]
+    command: Option<Commands>,
+
     /// Data directory
     #[arg(short, long, default_value = "./data")]
     data_dir: String,
@@ -37,12 +41,36 @@ struct Args {
     p2p: bool,
 }
 
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Generate a new validator key pair
+    GenerateKey {
+        /// Output file for the private key (default: stdout as JSON)
+        #[arg(short, long)]
+        output: Option<String>,
+    },
+    /// Show key info from a key file
+    ShowKey {
+        /// Key file path
+        #[arg(short, long)]
+        file: String,
+    },
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Initialize tracing
-    tracing_subscriber::fmt::init();
-
     let args = Args::parse();
+
+    // Handle subcommands
+    if let Some(command) = args.command {
+        return match command {
+            Commands::GenerateKey { output } => generate_key(output),
+            Commands::ShowKey { file } => show_key(&file),
+        };
+    }
+
+    // Initialize tracing for node mode
+    tracing_subscriber::fmt::init();
 
     info!("🔥 Demiurge Node Starting...");
     info!("The flame burns eternal. The code serves the will.");
@@ -59,6 +87,8 @@ async fn main() -> anyhow::Result<()> {
         enable_rpc: args.rpc,
         enable_p2p: args.p2p,
         bootstrap_peers: vec![],
+        genesis_file: None,
+        validator_key_file: None,
     };
 
     // Create and start node service
@@ -78,6 +108,52 @@ async fn main() -> anyhow::Result<()> {
     info!("Shutting down...");
     node.stop().await?;
     info!("✅ Node stopped gracefully");
+    
+    Ok(())
+}
+
+/// Generate a new Ed25519 validator key pair
+fn generate_key(output: Option<String>) -> anyhow::Result<()> {
+    use rand::rngs::OsRng;
+    
+    // Generate key pair
+    let signing_key = SigningKey::generate(&mut OsRng);
+    let verifying_key: VerifyingKey = (&signing_key).into();
+    
+    // Create key JSON
+    let key_json = serde_json::json!({
+        "private_key": hex::encode(signing_key.to_bytes()),
+        "public_key": hex::encode(verifying_key.to_bytes()),
+        "address": hex::encode(verifying_key.to_bytes()),
+        "key_type": "ed25519",
+        "version": 1
+    });
+    
+    let key_str = serde_json::to_string_pretty(&key_json)?;
+    
+    match output {
+        Some(path) => {
+            std::fs::write(&path, &key_str)?;
+            eprintln!("✅ Validator key saved to: {}", path);
+            eprintln!("Public key (address): {}", hex::encode(verifying_key.to_bytes()));
+        }
+        None => {
+            println!("{}", key_str);
+        }
+    }
+    
+    Ok(())
+}
+
+/// Show key info from a key file
+fn show_key(file: &str) -> anyhow::Result<()> {
+    let contents = std::fs::read_to_string(file)?;
+    let key: serde_json::Value = serde_json::from_str(&contents)?;
+    
+    println!("Key File: {}", file);
+    println!("Key Type: {}", key.get("key_type").and_then(|v| v.as_str()).unwrap_or("unknown"));
+    println!("Public Key: {}", key.get("public_key").and_then(|v| v.as_str()).unwrap_or("unknown"));
+    println!("Address: {}", key.get("address").and_then(|v| v.as_str()).unwrap_or("unknown"));
     
     Ok(())
 }

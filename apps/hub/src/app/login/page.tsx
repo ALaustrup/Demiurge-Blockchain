@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { QorIdAuthFlow } from '@/components/auth/QorIdAuthFlow';
 
@@ -34,10 +34,15 @@ function LoginContent() {
   );
 }
 
+// Wrapper to fix React 19 types compatibility with Suspense
+function SuspenseWrapper({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
+  return <Suspense fallback={fallback}>{children}</Suspense>;
+}
+
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <SuspenseWrapper fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
       <LoginContent />
-    </Suspense>
+    </SuspenseWrapper>
   );
 }

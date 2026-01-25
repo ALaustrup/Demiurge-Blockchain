@@ -6,7 +6,6 @@ use demiurge_storage::Storage;
 use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
     RpcModule,
-    core::Error as JsonRpcError,
     types::ErrorObjectOwned,
 };
 use std::net::SocketAddr;
@@ -71,13 +70,13 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
     /// Register chain RPC methods
     fn register_chain_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
         // chain_getHealth
-        module.register_async_method("chain_getHealth", |params, ctx| async move {
+        module.register_async_method("chain_getHealth", |_params, ctx| async move {
             ctx.chain_get_health().await
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getHealth: {}", e)))?;
 
         // chain_getBlockNumber
-        module.register_async_method("chain_getBlockNumber", |params, ctx| async move {
+        module.register_async_method("chain_getBlockNumber", |_params, ctx| async move {
             ctx.chain_get_block_number().await
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register chain_getBlockNumber: {}", e)))?;

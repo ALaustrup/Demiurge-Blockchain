@@ -21,9 +21,9 @@
     "remark-gfm": "^4.0.0",
     "zod": "^3.22.0",
     "zustand": "^4.4.0",
-    "openai": "^4.20.0",
-    "ai": "^3.0.0",
-    "@ai-sdk/openai": "^0.0.0",
+    "openai": "^4.100.0",
+    "ai": "^6.0.0",
+    "@ai-sdk/openai": "^3.0.0",
     "rehype-highlight": "^7.0.0",
     "date-fns": "^3.0.0"
   },

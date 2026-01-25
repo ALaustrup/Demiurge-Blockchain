@@ -1,0 +1,29 @@
+[Unit]
+Description=QOR Auth - Identity & Authentication Service
+Documentation=https://github.com/Alaustrup/Demiurge-Blockchain
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/data/Demiurge-Blockchain/services/qor-auth
+Environment="RUN_ENV=production"
+Environment="RUST_LOG=info,qor_auth=debug"
+Environment="RUST_BACKTRACE=1"
+
+ExecStart=/data/Demiurge-Blockchain/services/qor-auth/target/release/qor-auth
+
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/data/Demiurge-Blockchain
+
+[Install]
+WantedBy=multi-user.target

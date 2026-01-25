@@ -1,6 +1,6 @@
 //! Private NFT transfers
 
-use crate::{ProofGenerator, Result, ZkError};
+use crate::Result;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
@@ -23,10 +23,10 @@ pub struct PrivateNftTransfer;
 impl PrivateNftTransfer {
     /// Create a private NFT transfer
     pub fn create(
-        nft_id: [u8; 32],
-        sender: [u8; 32],
-        recipient: [u8; 32],
-        secret: [u8; 32],
+        _nft_id: [u8; 32],
+        _sender: [u8; 32],
+        _recipient: [u8; 32],
+        _secret: [u8; 32],
     ) -> Result<PrivateNftTransferProof> {
         // TODO: Generate ZK proof
         // Prove: sender owns NFT, transfer is valid, without revealing identities
@@ -39,7 +39,7 @@ impl PrivateNftTransfer {
     }
 
     /// Verify a private NFT transfer proof
-    pub fn verify(proof: &PrivateNftTransferProof) -> Result<bool> {
+    pub fn verify(_proof: &PrivateNftTransferProof) -> Result<bool> {
         // TODO: Verify ZK proof
         // Verify: sender owns NFT, transfer is valid
         Ok(true)

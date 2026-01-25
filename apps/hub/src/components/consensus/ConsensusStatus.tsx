@@ -22,7 +22,10 @@ export function ConsensusStatus() {
   const loadStatus = async () => {
     try {
       const data = await demiurgeRpc.getConsensusStatus();
-      setStatus(data);
+      // Validate data structure before setting
+      if (data && typeof data.blockNumber === 'number') {
+        setStatus(data);
+      }
     } catch (err: any) {
       // Silently handle network/RPC errors (blockchain may not be running)
       // Don't log network errors - they're expected when blockchain is offline
@@ -65,7 +68,7 @@ export function ConsensusStatus() {
       <div className="h-4 w-px bg-gray-600"></div>
       <div className="flex items-center gap-1">
         <span className="text-gray-400">Block</span>
-        <span className="font-bold text-white font-mono">{status.blockNumber.toLocaleString()}</span>
+        <span className="font-bold text-white font-mono">{(status.blockNumber ?? 0).toLocaleString()}</span>
       </div>
       <div className="h-4 w-px bg-gray-600"></div>
       <div className="flex items-center gap-1">

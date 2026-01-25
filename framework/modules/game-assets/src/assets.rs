@@ -1,6 +1,5 @@
 //! Game assets implementation
 
-use crate::{GameAssetsError, Result};
 use demiurge_modules::traits::Module;
 use demiurge_storage::Storage;
 use codec::{Decode, Encode};
@@ -21,25 +20,25 @@ impl Module for GameAssetsModule {
     fn execute(
         &self,
         call: Vec<u8>,
-        storage: &mut dyn Storage,
+        _storage: &mut dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         let call_data: AssetCall = Decode::decode(&mut &call[..])
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
 
         match call_data {
-            AssetCall::CreateAsset { game_id, asset_type } => {
+            AssetCall::CreateAsset { game_id: _, asset_type: _ } => {
                 // TODO: Create asset type
                 Ok(())
             }
-            AssetCall::Mint { game_id, asset_type, to, amount } => {
+            AssetCall::Mint { game_id: _, asset_type: _, to: _, amount: _ } => {
                 // TODO: Mint assets
                 Ok(())
             }
-            AssetCall::Transfer { game_id, asset_type, from, to, amount } => {
+            AssetCall::Transfer { game_id: _, asset_type: _, from: _, to: _, amount: _ } => {
                 // TODO: Transfer assets (feeless)
                 Ok(())
             }
-            AssetCall::Burn { game_id, asset_type, from, amount } => {
+            AssetCall::Burn { game_id: _, asset_type: _, from: _, amount: _ } => {
                 // TODO: Burn assets
                 Ok(())
             }

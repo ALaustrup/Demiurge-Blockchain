@@ -48,8 +48,8 @@ impl Module for EnergyModule {
 
     fn on_initialize(
         &mut self,
-        block_number: u64,
-        storage: &mut dyn Storage,
+        _block_number: u64,
+        _storage: &mut dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         // Note: Regenerating energy for all accounts on each block is expensive
         // In production, we'd use a lazy regeneration approach (regenerate on access)

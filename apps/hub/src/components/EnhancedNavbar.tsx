@@ -72,9 +72,9 @@ export function EnhancedNavbar() {
             getEnergy(userAddress).catch(() => null),
             getBlockNumber().catch(() => 0),
           ]);
-          setBalance(bal);
+          setBalance(bal ?? '0');
           setEnergy(energyData);
-          setBlockNumber(block);
+          setBlockNumber(block ?? 0);
         } catch (err) {
           console.error('Failed to load chain data:', err);
         }
@@ -145,7 +145,7 @@ export function EnhancedNavbar() {
               <div className="flex items-center gap-3 glass-panel px-4 py-2 rounded-lg hover-glow">
                 <div className="text-xs text-gray-400 uppercase tracking-wider">Block</div>
                 <div className="text-sm font-bold text-neon-purple font-mono">
-                  {blockNumber.toLocaleString()}
+                  {(blockNumber ?? 0).toLocaleString()}
                 </div>
               </div>
             </div>

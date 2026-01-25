@@ -1,6 +1,6 @@
 //! Transaction pool
 
-use crate::{NetworkError, Result};
+use crate::Result;
 use demiurge_core::Transaction;
 use codec::Encode;
 use std::collections::{HashMap, VecDeque};

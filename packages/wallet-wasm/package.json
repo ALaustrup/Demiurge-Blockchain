@@ -8,7 +8,8 @@
     "build": "wasm-pack build --target web --out-dir dist",
     "build:node": "wasm-pack build --target nodejs --out-dir dist-node",
     "build:bundler": "wasm-pack build --target bundler --out-dir dist-bundler",
-    "test": "wasm-pack test --headless --firefox"
+    "test": "wasm-pack test --headless --firefox",
+    "check-wasm-pack": "wasm-pack --version || echo 'wasm-pack not found. Install via: cargo install wasm-pack'"
   },
   "keywords": [
     "wallet",
@@ -23,12 +24,17 @@
     "type": "git",
     "url": "https://github.com/Alaustrup/Demiurge-Blockchain"
   },
-  "devDependencies": {
-    "wasm-pack": "^0.12.0"
-  },
+  "devDependencies": {},
   "files": [
     "dist",
     "dist-node",
     "dist-bundler"
-  ]
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "engineStrict": true,
+  "os": ["darwin", "linux", "win32"],
+  "cpu": ["x64", "arm64"],
+  "readme": "Requires wasm-pack to be installed globally via: cargo install wasm-pack"
 }

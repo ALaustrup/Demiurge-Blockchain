@@ -17,8 +17,9 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
-# RPC dependencies - enable HTTP server support
-jsonrpsee = { version = "0.20", features = ["server", "server-core", "macros", "jsonrpsee-types", "http-server", "ws-server"] }
+# RPC dependencies - enable HTTP and WebSocket server support
+# The "server" feature includes all server transports (HTTP and WebSocket)
+jsonrpsee = { version = "0.20", features = ["server", "macros"] }
 hex = "0.4"
 
 # Internal dependencies

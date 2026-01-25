@@ -1,0 +1,34 @@
+[Unit]
+Description=Demiurge Blockchain Node
+Documentation=https://github.com/Alaustrup/Demiurge-Blockchain
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/data/Demiurge-Blockchain/framework
+Environment="RUST_LOG=info"
+Environment="RUST_BACKTRACE=1"
+
+ExecStart=/data/Demiurge-Blockchain/framework/target/release/demiurge-node \
+    --data-dir /data/demiurge-chain \
+    --rpc-addr 0.0.0.0:9944 \
+    --p2p-addr 0.0.0.0:30333 \
+    --block-time 2000 \
+    --rpc \
+    --p2p
+
+Restart=always
+RestartSec=10
+LimitNOFILE=65535
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/data/demiurge-chain /data/Demiurge-Blockchain
+
+[Install]
+WantedBy=multi-user.target

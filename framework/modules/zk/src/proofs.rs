@@ -56,7 +56,7 @@ impl SnarkProofVerifier {
 }
 
 impl ProofVerifier for SnarkProofVerifier {
-    fn verify(&self, proof: &[u8], statement: &[u8]) -> Result<bool> {
+    fn verify(&self, proof: &[u8], _statement: &[u8]) -> Result<bool> {
         // TODO: Implement SNARK proof verification
         // For now, basic validation
         if proof.is_empty() {
@@ -97,7 +97,7 @@ impl StarkProofVerifier {
 }
 
 impl ProofVerifier for StarkProofVerifier {
-    fn verify(&self, proof: &[u8], statement: &[u8]) -> Result<bool> {
+    fn verify(&self, proof: &[u8], _statement: &[u8]) -> Result<bool> {
         // TODO: Implement STARK proof verification
         if proof.is_empty() {
             return Err(ZkError::InvalidProofFormat);
