@@ -3,7 +3,7 @@
 # Demiurge Email Setup Script (Bash)
 # =============================================================================
 # This script helps configure SMTP credentials for email verification
-# Run: ./scripts/setup-email.sh
+# Run: ./scripts/setup-email.sh re_your_api_key
 # =============================================================================
 
 set -e
@@ -21,16 +21,16 @@ echo -e "  Demiurge Email Configuration Setup"
 echo -e "========================================${NC}"
 echo ""
 
-# Get SendGrid API Key
+# Get Resend API Key
 if [ -z "$1" ]; then
-    echo -e "${YELLOW}Enter your SendGrid API Key:${NC}"
-    read -s SENDGRID_API_KEY
+    echo -e "${YELLOW}Enter your Resend API Key (starts with re_):${NC}"
+    read -s RESEND_API_KEY
 else
-    SENDGRID_API_KEY="$1"
+    RESEND_API_KEY="$1"
 fi
 
-if [ -z "$SENDGRID_API_KEY" ] || [ ${#SENDGRID_API_KEY} -lt 20 ]; then
-    echo -e "${RED}ERROR: Invalid API key. SendGrid API keys start with 'SG.'${NC}"
+if [ -z "$RESEND_API_KEY" ] || [[ ! "$RESEND_API_KEY" == re_* ]]; then
+    echo -e "${RED}ERROR: Invalid API key. Resend API keys start with 're_'${NC}"
     exit 1
 fi
 
@@ -47,11 +47,11 @@ cat > "$SECRETS_PATH" << EOF
 # Generated: $(date -Iseconds)
 # SECURITY: Never commit this file to git!
 
-# SMTP Configuration (SendGrid)
-SMTP_HOST=smtp.sendgrid.net
+# SMTP Configuration (Resend)
+SMTP_HOST=smtp.resend.com
 SMTP_PORT=587
-SMTP_USERNAME=apikey
-SMTP_PASSWORD=$SENDGRID_API_KEY
+SMTP_USERNAME=resend
+SMTP_PASSWORD=$RESEND_API_KEY
 SMTP_FROM_EMAIL=$FROM_EMAIL
 SMTP_FROM_NAME=$FROM_NAME
 BASE_URL=https://demiurge.cloud

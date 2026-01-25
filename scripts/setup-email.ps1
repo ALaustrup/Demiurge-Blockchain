@@ -2,11 +2,11 @@
 # Demiurge Email Setup Script (Windows PowerShell)
 # =============================================================================
 # This script helps configure SMTP credentials for email verification
-# Run: .\scripts\setup-email.ps1
+# Run: .\scripts\setup-email.ps1 -ResendApiKey "re_your_key"
 # =============================================================================
 
 param(
-    [string]$SendGridApiKey,
+    [string]$ResendApiKey,
     [string]$FromEmail = "noreply@demiurge.cloud",
     [string]$FromName = "Demiurge Blockchain"
 )
@@ -20,13 +20,13 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Check for API key
-if (-not $SendGridApiKey) {
-    Write-Host "Enter your SendGrid API Key:" -ForegroundColor Yellow
-    $SendGridApiKey = Read-Host -AsSecureString | ConvertFrom-SecureString -AsPlainText
+if (-not $ResendApiKey) {
+    Write-Host "Enter your Resend API Key (starts with re_):" -ForegroundColor Yellow
+    $ResendApiKey = Read-Host
 }
 
-if (-not $SendGridApiKey -or $SendGridApiKey.Length -lt 20) {
-    Write-Host "ERROR: Invalid API key. SendGrid API keys start with 'SG.'" -ForegroundColor Red
+if (-not $ResendApiKey -or -not $ResendApiKey.StartsWith("re_")) {
+    Write-Host "ERROR: Invalid API key. Resend API keys start with 're_'" -ForegroundColor Red
     exit 1
 }
 
@@ -36,11 +36,11 @@ $secretsContent = @"
 # Generated: $(Get-Date -Format "yyyy-MM-ddTHH:mm:ss")
 # SECURITY: Never commit this file to git!
 
-# SMTP Configuration (SendGrid)
-SMTP_HOST=smtp.sendgrid.net
+# SMTP Configuration (Resend)
+SMTP_HOST=smtp.resend.com
 SMTP_PORT=587
-SMTP_USERNAME=apikey
-SMTP_PASSWORD=$SendGridApiKey
+SMTP_USERNAME=resend
+SMTP_PASSWORD=$ResendApiKey
 SMTP_FROM_EMAIL=$FromEmail
 SMTP_FROM_NAME=$FromName
 BASE_URL=https://demiurge.cloud
