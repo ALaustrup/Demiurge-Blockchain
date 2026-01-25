@@ -256,7 +256,7 @@ impl NodeService {
     /// Block production loop
     async fn block_production_loop(
         consensus: Arc<Mutex<ConsensusEngine<StorageBackend>>>,
-        runtime: Arc<Mutex<Runtime<StorageBackend>>>,
+        _runtime: Arc<Mutex<Runtime<StorageBackend>>>,
         block_time: Duration,
         validator_account: [u8; 32],
     ) {
@@ -285,24 +285,9 @@ impl NodeService {
                         
                         match consensus_guard.propose_block(transactions, validator_account) {
                             Ok((block, _proof)) => {
-                                // Execute block in runtime
-                                let state_root = {
-                                    match runtime.try_lock() {
-                                        Ok(mut runtime_guard) => {
-                                            match runtime_guard.execute_block(block.clone()) {
-                                                Ok(root) => root,
-                                                Err(e) => {
-                                                    warn!("Failed to execute block: {:?}", e);
-                                                    continue;
-                                                }
-                                            }
-                                        }
-                                        Err(_) => {
-                                            warn!("Failed to acquire runtime lock");
-                                            continue;
-                                        }
-                                    }
-                                };
+                                // For now, use block hash as state root
+                                // TODO: Properly execute transactions in runtime when storage sharing is fixed
+                                let state_root = block.header.extrinsics_root;
                                 
                                 // Update block with state root and store
                                 let mut final_block = block.clone();
