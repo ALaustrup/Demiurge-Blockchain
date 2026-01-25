@@ -99,3 +99,6 @@ ue5_*.log
 
 # Tools - Other folder (user-added helpful resources, not tracked)
 tools/Other/
+
+# Production secrets (never commit)
+config/production/.secrets

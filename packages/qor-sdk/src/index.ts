@@ -134,12 +134,15 @@ export class QorAuthClient {
       if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
         throw new Error('QOR Auth service is not available. Please ensure the service is running on port 8080.');
       }
-      // Handle API errors
+      // Handle API errors - the error format is { error: { code, message } }
+      const apiError = error.response?.data?.error;
+      if (apiError) {
+        // Extract message from error object
+        const message = typeof apiError === 'string' ? apiError : apiError.message || apiError.code || 'Registration failed';
+        throw new Error(message);
+      }
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
-      }
-      if (error.response?.data?.error) {
-        throw new Error(error.response.data.error);
       }
       throw error;
     }
