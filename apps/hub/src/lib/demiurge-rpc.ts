@@ -162,7 +162,20 @@ export class DemiurgeRpcClient {
     blockTime: number;
     finality: number;
   }> {
-    return this.request('chain_getHealth');
+    const raw = await this.request<{
+      connected: boolean;
+      block_number: number;
+      block_time: number;
+      finality: number;
+    }>('chain_getHealth');
+    
+    // Transform snake_case to camelCase
+    return {
+      connected: raw.connected,
+      blockNumber: raw.block_number,
+      blockTime: raw.block_time,
+      finality: raw.finality,
+    };
   }
 
   /**
@@ -209,35 +222,121 @@ export class DemiurgeRpcClient {
    * Get energy for an account
    */
   async getEnergy(address: string): Promise<EnergyInfo> {
-    return this.request('energy_getEnergy', [address]);
+    const raw = await this.request<{
+      current: number;
+      max: number;
+      regeneration_rate: number;
+      last_update: number;
+    }>('energy_getEnergy', [address]);
+    
+    return {
+      current: raw.current,
+      max: raw.max,
+      regenerationRate: raw.regeneration_rate,
+      lastUpdate: raw.last_update,
+    };
   }
 
   /**
    * Get current era information
    */
   async getCurrentEra(): Promise<EraInfo> {
-    return this.request('consensus_getCurrentEra');
+    const raw = await this.request<{
+      era: number;
+      block_number: number;
+      total_rewards: string;
+      transaction_fees: string;
+      validators: Array<{
+        account: string;
+        stake: string;
+        commission: number;
+        active: boolean;
+        public_key: string;
+      }>;
+    }>('consensus_getCurrentEra');
+    
+    return {
+      era: raw.era,
+      blockNumber: raw.block_number,
+      totalRewards: raw.total_rewards,
+      transactionFees: raw.transaction_fees,
+      validators: raw.validators.map(v => ({
+        account: v.account,
+        stake: v.stake,
+        commission: v.commission,
+        active: v.active,
+        publicKey: v.public_key,
+      })),
+    };
   }
 
   /**
    * Get validator set
    */
   async getValidators(): Promise<ValidatorInfo[]> {
-    return this.request('consensus_getValidators');
+    const raw = await this.request<Array<{
+      account: string;
+      stake: string;
+      commission: number;
+      active: boolean;
+      public_key: string;
+    }>>('consensus_getValidators');
+    
+    return raw.map(v => ({
+      account: v.account,
+      stake: v.stake,
+      commission: v.commission,
+      active: v.active,
+      publicKey: v.public_key,
+    }));
   }
 
   /**
    * Get validator by account
    */
   async getValidator(account: string): Promise<ValidatorInfo | null> {
-    return this.request('consensus_getValidator', [account]);
+    const raw = await this.request<{
+      account: string;
+      stake: string;
+      commission: number;
+      active: boolean;
+      public_key: string;
+    } | null>('consensus_getValidator', [account]);
+    
+    if (!raw) return null;
+    
+    return {
+      account: raw.account,
+      stake: raw.stake,
+      commission: raw.commission,
+      active: raw.active,
+      publicKey: raw.public_key,
+    };
   }
 
   /**
    * Get staking pool for a validator
    */
   async getStakingPool(validator: string): Promise<StakingPoolInfo | null> {
-    return this.request('consensus_getStakingPool', [validator]);
+    const raw = await this.request<{
+      validator: string;
+      total_stake: string;
+      nominators: Array<{
+        account: string;
+        stake: string;
+        era: number;
+      }>;
+      commission: number;
+    } | null>('consensus_getStakingPool', [validator]);
+    
+    if (!raw) return null;
+    
+    return {
+      validator: raw.validator,
+      totalStake: raw.total_stake,
+      nominators: raw.nominators,
+      commission: raw.commission,
+    };
   }
 
   /**
@@ -308,7 +407,22 @@ export class DemiurgeRpcClient {
    * Get consensus status
    */
   async getConsensusStatus(): Promise<ConsensusStatus> {
-    return this.request('consensus_getStatus');
+    const raw = await this.request<{
+      current_era: number;
+      block_number: number;
+      validators: number;
+      total_stake: string;
+      transaction_fees: string;
+    }>('consensus_getStatus');
+    
+    // Transform snake_case to camelCase
+    return {
+      currentEra: raw.current_era,
+      blockNumber: raw.block_number,
+      validators: raw.validators,
+      totalStake: raw.total_stake,
+      transactionFees: raw.transaction_fees,
+    };
   }
 }
 
