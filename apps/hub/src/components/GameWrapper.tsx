@@ -466,9 +466,18 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
         ref={iframeRef}
         src={gameUrl}
         className={`w-full h-full border-0 ${isPaused ? 'pointer-events-none' : ''}`}
-        allow="fullscreen"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+        allow="fullscreen; keyboard-map"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock"
         style={{ opacity: isPaused ? 0.5 : 1 }}
+        tabIndex={0}
+        onLoad={() => {
+          // Auto-focus iframe for keyboard input
+          iframeRef.current?.focus();
+        }}
+        onClick={() => {
+          // Focus iframe when clicked
+          iframeRef.current?.focus();
+        }}
       />
     </div>
   );

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Data Forge: CGT Miner</title>
+    <title>Cyber Forge Miner - Demiurge</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -16,14 +16,43 @@
       }
     </script>
     <style>
-      html, body { margin: 0; padding: 0; background-color: black; }
+      html, body { 
+        margin: 0; 
+        padding: 0; 
+        background-color: black;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      #game-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
     </style>
   </head>
   <body>
+    <div id="game-container"></div>
+    
+    <!-- Demiurge HUD Injection -->
+    <script>
+      (function() {
+        const script = document.createElement('script');
+        script.src = '/inject-hud.js';
+        script.onerror = function() {
+          console.warn('HUD injection not available - running standalone');
+          window.DemiurgeHUD = {
+            init: function() {},
+            update: function() {},
+            showTransaction: function() {},
+            isAvailable: false
+          };
+        };
+        document.head.appendChild(script);
+      })();
+    </script>
     <script type="module" src="main.js"></script>
-    <script src="https://storage.googleapis.com/rosebud_staticfiles/ChatManager.js"></script>
-    <script src="https://storage.googleapis.com/rosebud_staticfiles/ImageGenerator.js"></script>
-    <script src="https://storage.googleapis.com/rosebud_staticfiles/ProgressLogger.js"></script>
-    <script src="https://storage.googleapis.com/rosebud_staticfiles/OGP.js"></script>
   </body>
 </html>

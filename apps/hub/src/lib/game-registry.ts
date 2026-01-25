@@ -4,6 +4,18 @@
  * Manages game metadata and registration for the Demiurge ecosystem
  */
 
+// Game categories for organization
+export type GameCategory = 'miner' | 'drc369' | 'casual' | 'multiplayer' | 'adventure';
+
+// Supported game engines
+export type GameEngine = 'phaser' | 'scattertxt' | 'rosebud' | 'unity-webgl' | 'unreal-webgl' | 'custom';
+
+// Reward types
+export interface GameReward {
+  type: 'cgt' | 'sparks' | 'nft' | 'xp';
+  description: string;
+}
+
 export interface GameMetadata {
   id: string;
   title: string;
@@ -13,6 +25,10 @@ export interface GameMetadata {
   version: string;
   author?: string;
   tags?: string[];
+  category: GameCategory; // Primary category
+  engine: GameEngine; // Game engine used
+  engineVersion?: string;
+  rewards?: GameReward[]; // Types of rewards available
   cgtPool?: number; // Current CGT pool (updated dynamically)
   activeUsers?: number; // Current active users (updated dynamically)
   minLevel?: number; // Minimum QOR ID level required
@@ -99,6 +115,37 @@ class GameRegistry {
         game.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery))
     );
   }
+
+  /**
+   * Get games by category
+   */
+  getByCategory(category: GameCategory): GameMetadata[] {
+    return this.getAll().filter((game) => game.category === category);
+  }
+
+  /**
+   * Get games by engine
+   */
+  getByEngine(engine: GameEngine): GameMetadata[] {
+    return this.getAll().filter((game) => game.engine === engine);
+  }
+
+  /**
+   * Get all categories with counts
+   */
+  getCategoryCounts(): Record<GameCategory, number> {
+    const counts: Record<GameCategory, number> = {
+      miner: 0,
+      drc369: 0,
+      casual: 0,
+      multiplayer: 0,
+      adventure: 0,
+    };
+    this.getAll().forEach((game) => {
+      counts[game.category]++;
+    });
+    return counts;
+  }
 }
 
 // Export singleton instance
@@ -115,7 +162,15 @@ function initializeRegistry() {
     entryPoint: 'index.html',
     version: '1.0.0',
     author: 'Astra Matrix',
+    category: 'drc369',
+    engine: 'phaser',
+    engineVersion: '3.70.0',
     tags: ['action', 'arcade', 'shooter', 'space', 'cgt-earning', 'nft-support'],
+    rewards: [
+      { type: 'cgt', description: 'Earn CGT by defeating enemies and bosses' },
+      { type: 'nft', description: 'Collect DRC-369 ship skins' },
+      { type: 'xp', description: 'Gain XP to level up your QOR ID' },
+    ],
     minLevel: 1,
     cgtPool: 0,
     activeUsers: 0,
@@ -148,7 +203,15 @@ function initializeRegistry() {
     entryPoint: 'index.html',
     version: '1.0.0',
     author: 'Astra Matrix',
+    category: 'miner',
+    engine: 'phaser',
+    engineVersion: '3.70.0',
     tags: ['clicker', 'mining', 'puzzle', 'cyber', 'cgt-earning'],
+    rewards: [
+      { type: 'cgt', description: 'Mine CGT through computational work' },
+      { type: 'sparks', description: 'Earn Sparks for high combos' },
+      { type: 'xp', description: 'Gain XP from mining sessions' },
+    ],
     minLevel: 1,
     cgtPool: 0,
     activeUsers: 0,

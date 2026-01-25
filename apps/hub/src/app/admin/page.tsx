@@ -145,7 +145,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen p-8 pt-28">
+    <main className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-demiurge-gold via-demiurge-violet to-demiurge-cyan bg-clip-text text-transparent">
           Admin Portal

@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{get, post, delete},
     extract::{Request, State},
     middleware::{Next, from_fn, from_fn_with_state},
 };
@@ -112,6 +112,9 @@ async fn main() -> anyhow::Result<()> {
         // Admin endpoints (protected - God-level)
         .nest("/api/v1/admin", admin_routes())
         
+        // Music player endpoints
+        .nest("/api/v1/music", music_routes())
+        
         // Middleware - inject state into extensions for nested routes
         .layer(from_fn_with_state(
             state.clone(),
@@ -189,6 +192,24 @@ fn admin_routes() -> Router<Arc<AppState>> {
         .route("/stats", get(handlers::admin::get_stats))
         .route("/audit", get(handlers::admin::get_audit_log))
         .layer(from_fn(crate::middleware::auth::require_god))
+}
+
+/// Music player routes (mixed public/protected)
+fn music_routes() -> Router<Arc<AppState>> {
+    Router::new()
+        // Public endpoints
+        .route("/tracks", get(handlers::music::list_tracks))
+        .route("/tracks/{id}", get(handlers::music::get_track))
+        .route("/tracks/{id}/play", post(handlers::music::record_play))
+        .route("/playlists", get(handlers::music::list_playlists))
+        .route("/playlists/global", get(handlers::music::get_global_playlist))
+        .route("/playlists/{id}/tracks", get(handlers::music::get_playlist_tracks))
+        // Protected endpoints (require auth)
+        .route("/tracks/upload", post(handlers::music::upload_track))
+        .route("/tracks/{id}/like", post(handlers::music::like_track))
+        .route("/playlists/create", post(handlers::music::create_playlist))
+        .route("/playlists/{id}/add", post(handlers::music::add_to_playlist))
+        .route("/playlists/{playlist_id}/remove/{track_id}", delete(handlers::music::remove_from_playlist))
 }
 
 /// Graceful shutdown signal handler

@@ -26,11 +26,25 @@ export function QorIdHeaderWrapper() {
           const profile = await qorAuth.getProfile();
           setUser(profile);
         } catch (error: any) {
-          // Handle network errors gracefully
+          // Handle network errors gracefully - create a fallback user from token
           if (error.message?.includes('not available') || error.code === 'ERR_NETWORK') {
             console.warn('QOR Auth service not available - running in offline mode');
           } else {
             console.error('Failed to load user profile:', error);
+          }
+          // Create a fallback user so avatar still shows
+          try {
+            const tokenData = qorAuth.getTokenData();
+            if (tokenData?.qor_id) {
+              setUser({
+                id: tokenData.user_id || 'offline',
+                qor_id: tokenData.qor_id,
+                email: '',
+                role: (tokenData.role as 'user' | 'moderator' | 'admin' | 'god') || 'user',
+              });
+            }
+          } catch (e) {
+            console.warn('Could not decode token for fallback user');
           }
         }
       }

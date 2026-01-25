@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Game Title</title>
+    <title>Pixel Starship Genesis - Demiurge</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -27,6 +27,13 @@
       #game-container {
         width: 100%;
         height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #game-container canvas {
+        max-width: 100%;
+        max-height: 100%;
       }
     </style>
   </head>
@@ -35,11 +42,24 @@
     <div id="game-container"></div>
     
     <!-- Demiurge HUD Injection - Enables blockchain integration -->
-    <script src="/inject-hud.js"></script>
+    <script>
+      // Try to load HUD from parent context or fallback gracefully
+      (function() {
+        const script = document.createElement('script');
+        script.src = '/inject-hud.js';
+        script.onerror = function() {
+          console.warn('HUD injection script not available - running in standalone mode');
+          // Create a mock DemiurgeHUD for standalone mode
+          window.DemiurgeHUD = {
+            init: function() { console.log('DemiurgeHUD: Standalone mode'); },
+            update: function() {},
+            showTransaction: function() {},
+            isAvailable: false
+          };
+        };
+        document.head.appendChild(script);
+      })();
+    </script>
     <script type="module" src="main.js"></script>
-    <script src="https://storage.googleapis.com/rosebud_staticfiles/ChatManager.js"></script>
-    <script src="https://storage.googleapis.com/rosebud_staticfiles/ImageGenerator.js"></script>
-    <script src="https://storage.googleapis.com/rosebud_staticfiles/ProgressLogger.js"></script>
-    <script src="https://storage.googleapis.com/rosebud_staticfiles/OGP.js"></script>
   </body>
 </html>

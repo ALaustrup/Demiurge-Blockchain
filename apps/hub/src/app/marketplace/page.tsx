@@ -57,7 +57,7 @@ export default function MarketplacePage() {
   });
 
   return (
-    <main className="min-h-screen p-8 pt-28">
+    <main className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-demiurge-cyan via-demiurge-violet to-demiurge-gold bg-clip-text text-transparent">
           Marketplace

@@ -3,9 +3,11 @@ import { Orbitron, Rajdhani, Space_Grotesk } from 'next/font/google'
 import { PersistentHUD } from '@demiurge/ui-shared'
 import { BlockchainProvider } from '@/contexts/BlockchainContext'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { MusicProvider } from '@/contexts/MusicContext'
 import { WalletDropdownWrapper } from '@/components/WalletDropdownWrapper'
 import { QorIdHeaderWrapper } from '@/components/QorIdHeaderWrapper'
 import { EnhancedNavbar } from '@/components/EnhancedNavbar'
+import { MusicPlayer } from '@/components/music/MusicPlayer'
 import { VYBChat } from '@/components/VYBChat'
 import './globals.css'
 
@@ -48,18 +50,21 @@ export default function RootLayout({
       <body className={`${spaceGrotesk.className} font-body`}>
         <AuthProvider>
           <BlockchainProvider>
-            {/* Animated background with liquid neon glow */}
-            <div className="fixed inset-0 -z-10 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#0f0f1a] to-[#050510]"></div>
-              <div className="liquid-glow"></div>
-              <div className="neon-grid"></div>
-            </div>
-            
-            <EnhancedNavbar />
-            <div className="relative z-10">
-              {children}
-            </div>
-            <VYBChat />
+            <MusicProvider>
+              {/* Animated background with liquid neon glow */}
+              <div className="fixed inset-0 -z-10 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#0f0f1a] to-[#050510]"></div>
+                <div className="liquid-glow"></div>
+                <div className="neon-grid"></div>
+              </div>
+              
+              <EnhancedNavbar />
+              <div className="relative z-10 pt-20 pb-16">
+                {children}
+              </div>
+              <MusicPlayer />
+              <VYBChat />
+            </MusicProvider>
           </BlockchainProvider>
         </AuthProvider>
       </body>

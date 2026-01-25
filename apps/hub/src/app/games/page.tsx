@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { GameMetadata } from '@/lib/game-registry';
+import { GameMetadata, GameCategory } from '@/lib/game-registry';
+
+// Category display configuration
+const CATEGORY_CONFIG: Record<GameCategory, { label: string; icon: string; color: string }> = {
+  miner: { label: 'Miner Games', icon: '⛏️', color: 'text-yellow-400' },
+  drc369: { label: 'NFT Games', icon: '🎮', color: 'text-purple-400' },
+  casual: { label: 'Casual', icon: '🎲', color: 'text-green-400' },
+  multiplayer: { label: 'Multiplayer', icon: '👥', color: 'text-blue-400' },
+  adventure: { label: 'Adventure', icon: '🗡️', color: 'text-red-400' },
+};
 
 export default function GamesPage() {
   const [games, setGames] = useState<GameMetadata[]>([]);
@@ -10,6 +19,7 @@ export default function GamesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<GameCategory | null>(null);
 
   useEffect(() => {
     fetchGames();
@@ -17,7 +27,7 @@ export default function GamesPage() {
 
   useEffect(() => {
     filterGames();
-  }, [games, searchQuery, selectedTag]);
+  }, [games, searchQuery, selectedTag, selectedCategory]);
 
   const fetchGames = async () => {
     try {
@@ -37,6 +47,11 @@ export default function GamesPage() {
 
   const filterGames = () => {
     let filtered = [...games];
+
+    // Filter by category
+    if (selectedCategory) {
+      filtered = filtered.filter((game) => game.category === selectedCategory);
+    }
 
     // Filter by search query
     if (searchQuery) {
@@ -64,6 +79,18 @@ export default function GamesPage() {
     new Set(games.flatMap((game) => game.tags || []))
   ).sort();
 
+  // Get category counts
+  const categoryCounts = games.reduce((acc, game) => {
+    const cat = game.category || 'casual';
+    acc[cat] = (acc[cat] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Get unique categories that have games
+  const activeCategories = Object.keys(CATEGORY_CONFIG).filter(
+    (cat) => categoryCounts[cat] > 0
+  ) as GameCategory[];
+
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
@@ -74,6 +101,40 @@ export default function GamesPage() {
           <p className="text-xl text-gray-300">
             Discover and play games in the Demiurge ecosystem
           </p>
+        </div>
+
+        {/* Category Tabs */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={`px-6 py-3 rounded-xl text-lg font-bold transition-all flex items-center gap-2 ${
+              selectedCategory === null
+                ? 'bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-black shadow-lg shadow-demiurge-cyan/30'
+                : 'glass-panel hover:chroma-glow text-white'
+            }`}
+          >
+            <span>🎯</span>
+            <span>All Games</span>
+            <span className="text-xs opacity-70">({games.length})</span>
+          </button>
+          {activeCategories.map((category) => {
+            const config = CATEGORY_CONFIG[category];
+            return (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(selectedCategory === category ? null : category)}
+                className={`px-6 py-3 rounded-xl text-lg font-bold transition-all flex items-center gap-2 ${
+                  selectedCategory === category
+                    ? 'bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-black shadow-lg shadow-demiurge-cyan/30'
+                    : 'glass-panel hover:chroma-glow text-white'
+                }`}
+              >
+                <span>{config.icon}</span>
+                <span>{config.label}</span>
+                <span className="text-xs opacity-70">({categoryCounts[category] || 0})</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Search and Filter Bar */}
@@ -98,9 +159,9 @@ export default function GamesPage() {
                       : 'glass-panel hover:chroma-glow'
                   }`}
                 >
-                  All
+                  All Tags
                 </button>
-                {allTags.map((tag) => (
+                {allTags.slice(0, 8).map((tag) => (
                   <button
                     key={tag}
                     onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
@@ -119,6 +180,7 @@ export default function GamesPage() {
           {filteredGames.length !== games.length && (
             <div className="mt-4 text-sm text-gray-400">
               Showing {filteredGames.length} of {games.length} games
+              {selectedCategory && ` in ${CATEGORY_CONFIG[selectedCategory].label}`}
             </div>
           )}
         </div>
@@ -175,10 +237,32 @@ export default function GamesPage() {
                   <span className="text-demiurge-cyan">
                     {(game.cgtPool || 0).toLocaleString()} CGT
                   </span>
-                  <span className="text-demiurge-violet">
-                    {game.tags?.includes('multiplayer') ? 'Multiplayer' : 'Single Player'}
-                  </span>
+                  {game.category && CATEGORY_CONFIG[game.category] && (
+                    <span className={`${CATEGORY_CONFIG[game.category].color} flex items-center gap-1`}>
+                      <span>{CATEGORY_CONFIG[game.category].icon}</span>
+                      <span>{CATEGORY_CONFIG[game.category].label}</span>
+                    </span>
+                  )}
                 </div>
+                {/* Rewards */}
+                {game.rewards && game.rewards.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {game.rewards.map((reward, idx) => (
+                      <span
+                        key={idx}
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          reward.type === 'cgt' ? 'bg-yellow-500/20 text-yellow-400' :
+                          reward.type === 'nft' ? 'bg-purple-500/20 text-purple-400' :
+                          reward.type === 'sparks' ? 'bg-orange-500/20 text-orange-400' :
+                          'bg-blue-500/20 text-blue-400'
+                        }`}
+                        title={reward.description}
+                      >
+                        {reward.type.toUpperCase()}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {game.tags && game.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-4">
                     {game.tags.slice(0, 3).map((tag) => (

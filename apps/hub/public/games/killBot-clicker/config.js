@@ -176,8 +176,8 @@ export const GAME_CONFIG = {
         }
     ],
     ASSETS: {
-        BACKGROUND: 'https://rosebud.ai/assets/data_forge_bg.webp?0BiM',
-        MINING_CORE: 'https://rosebud.ai/assets/mining_core.webp?1hns'
+        BACKGROUND: 'assets/data_forge_bg.webp',
+        MINING_CORE: 'assets/mining_core.webp'
     },
     EVENTS: {
         BREACH: {

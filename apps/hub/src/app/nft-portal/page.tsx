@@ -15,7 +15,7 @@ export default function NFTPortalPage() {
   const [minting, setMinting] = useState(false);
 
   return (
-    <main className="min-h-screen p-8 pt-24 page-enter">
+    <main className="min-h-screen p-8 page-enter">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4 ancient-text">

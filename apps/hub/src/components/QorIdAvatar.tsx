@@ -43,9 +43,11 @@ export function QorIdAvatar({ user }: QorIdAvatarProps) {
 
   // Generate random colors for the avatar based on QOR ID
   const generateColors = (qorId: string) => {
+    // Use a default hash if qorId is empty/undefined
+    const id = qorId || 'default-avatar';
     let hash = 0;
-    for (let i = 0; i < qorId.length; i++) {
-      hash = qorId.charCodeAt(i) + ((hash << 5) - hash);
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
     }
     
     const hue1 = (hash % 360);
@@ -57,7 +59,7 @@ export function QorIdAvatar({ user }: QorIdAvatarProps) {
     };
   };
 
-  const colors = generateColors(user.qor_id);
+  const colors = generateColors(user.qor_id || '');
 
   // If user has uploaded avatar, show the image
   if (hasUploadedAvatar) {

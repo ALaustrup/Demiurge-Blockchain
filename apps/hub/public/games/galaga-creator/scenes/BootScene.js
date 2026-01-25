@@ -13,17 +13,21 @@ export class BootScene extends Phaser.Scene {
             progress.fillRect(0, 540, 1920 * value, 20);
         });
 
-        this.load.image('player', 'https://rosebud.ai/assets/player_ship.webp?Lybs');
-        this.load.image('ship_skin_red', 'https://rosebud.ai/assets/ship_skin_red.webp?bMnV');
-        this.load.image('ship_skin_gold', 'https://rosebud.ai/assets/ship_skin_gold.webp?kN2N');
-        this.load.image('ship_skin_void', 'https://rosebud.ai/assets/ship_skin_void.webp?w7qc');
-        this.load.image('enemy_bee', 'https://rosebud.ai/assets/enemy_bee.webp?QHjV');
-        this.load.image('enemy_butterfly', 'https://rosebud.ai/assets/enemy_butterfly.webp?l3fx');
-        this.load.image('enemy_boss', 'https://rosebud.ai/assets/enemy_boss.webp?RSuY');
-        this.load.image('coin', 'https://rosebud.ai/assets/gold_coin.webp?Fy77');
-        this.load.image('background', 'https://rosebud.ai/assets/space_background.webp?0RIu');
+        // Load assets from local folder
+        this.load.image('player', 'assets/player_ship.webp');
+        this.load.image('ship_skin_red', 'assets/ship_skin_red.webp');
+        this.load.image('ship_skin_gold', 'assets/ship_skin_gold.webp');
+        this.load.image('ship_skin_void', 'assets/ship_skin_void.webp');
+        this.load.image('enemy_bee', 'assets/enemy_bee.webp');
+        this.load.image('enemy_butterfly', 'assets/enemy_butterfly.webp');
+        this.load.image('enemy_boss', 'assets/enemy_boss.webp');
+        this.load.image('coin', 'assets/gold_coin.webp');
+        this.load.image('background', 'assets/space_background.webp');
         
-        // Simple shapes for bullets if needed, but let's use graphics
+        // Handle load errors gracefully
+        this.load.on('loaderror', (file) => {
+            console.warn('Failed to load asset:', file.key, file.src);
+        });
     }
 
     create() {

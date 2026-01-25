@@ -109,6 +109,36 @@ export class QorAuthClient {
     }
   }
 
+  /**
+   * Decode JWT token to get user data (without verification)
+   * Useful for offline mode when API is unavailable
+   */
+  getTokenData(): { qor_id: string; user_id: string; role: string; exp: number } | null {
+    const token = this.getToken();
+    if (!token) return null;
+    
+    try {
+      // JWT format: header.payload.signature
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      
+      // Decode base64url payload
+      const payload = parts[1];
+      const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      const data = JSON.parse(decoded);
+      
+      return {
+        qor_id: data.qor_id || data.sub,
+        user_id: data.user_id || data.sub,
+        role: data.role || 'user',
+        exp: data.exp || 0,
+      };
+    } catch (e) {
+      console.warn('Failed to decode token:', e);
+      return null;
+    }
+  }
+
   async login(identifier: string, password: string): Promise<LoginResponse> {
     const response = await this.client.post<LoginResponse>('/auth/login', {
       identifier, // Can be email or username
