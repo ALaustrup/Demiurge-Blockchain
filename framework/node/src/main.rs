@@ -4,9 +4,10 @@
 //! The flame burns eternal. The code serves the will.
 
 use clap::{Parser, Subcommand};
-use demiurge_node::{NodeConfig, NodeService};
+use demiurge_node::{NodeConfig, NodeService, GenesisConfig};
 use ed25519_dalek::{SigningKey, VerifyingKey};
 use tracing::info;
+use std::path::PathBuf;
 
 /// Demiurge Blockchain Node
 #[derive(Parser, Debug)]
@@ -39,6 +40,14 @@ struct Args {
     /// Enable P2P networking
     #[arg(long, default_value = "true")]
     p2p: bool,
+
+    /// Genesis configuration file (JSON)
+    #[arg(long)]
+    genesis: Option<String>,
+
+    /// Validator key file (JSON) - enables validator mode
+    #[arg(long)]
+    validator_key: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -77,6 +86,20 @@ async fn main() -> anyhow::Result<()> {
 
     // Create node configuration
     let data_dir = args.data_dir.clone();
+    let genesis_file = args.genesis.as_ref().map(PathBuf::from);
+    let validator_key_file = args.validator_key.as_ref().map(PathBuf::from);
+    
+    // Log genesis and validator configuration
+    if let Some(ref genesis_path) = genesis_file {
+        info!("Genesis file: {:?}", genesis_path);
+    }
+    if let Some(ref validator_key_path) = validator_key_file {
+        info!("Validator key file: {:?}", validator_key_path);
+        info!("Running in VALIDATOR mode");
+    } else {
+        info!("Running in OBSERVER mode (no validator key)");
+    }
+    
     let config = NodeConfig {
         data_dir: data_dir.clone().into(),
         rpc_addr: args.rpc_addr.parse()
@@ -87,12 +110,52 @@ async fn main() -> anyhow::Result<()> {
         enable_rpc: args.rpc,
         enable_p2p: args.p2p,
         bootstrap_peers: vec![],
-        genesis_file: None,
-        validator_key_file: None,
+        genesis_file: genesis_file.clone(),
+        validator_key_file: validator_key_file.clone(),
     };
 
     // Create and start node service
     let mut node = NodeService::new(config)?;
+    
+    // Load genesis configuration if provided
+    if let Some(ref genesis_path) = genesis_file {
+        let genesis_config = GenesisConfig::load_from_file(genesis_path)?;
+        info!("Loaded genesis config: chain_id={}, validators={}", 
+            genesis_config.chain_id, genesis_config.validators.len());
+        node.load_genesis(genesis_config)?;
+    }
+    
+    // Load validator key and register as validator if provided
+    if let Some(ref validator_key_path) = validator_key_file {
+        let key_contents = std::fs::read_to_string(validator_key_path)?;
+        let key_json: serde_json::Value = serde_json::from_str(&key_contents)?;
+        
+        let private_key_hex = key_json.get("private_key")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Invalid validator key file: missing private_key"))?;
+        let address_hex = key_json.get("address")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Invalid validator key file: missing address"))?;
+        
+        // Parse signing key
+        let private_key_bytes = hex::decode(private_key_hex)?;
+        let signing_key = SigningKey::from_bytes(
+            private_key_bytes.as_slice().try_into()
+                .map_err(|_| anyhow::anyhow!("Invalid private key length"))?
+        );
+        
+        // Parse address
+        let address: [u8; 32] = hex::decode(address_hex)?
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Invalid address length"))?;
+        
+        info!("Registering as validator: {}", address_hex);
+        
+        // Default stake for genesis validator (1 billion units)
+        let default_stake: u128 = 1_000_000_000;
+        node.register_validator(address, signing_key, default_stake)?;
+    }
+    
     node.start().await?;
 
     info!("🚀 Demiurge Node is running!");
