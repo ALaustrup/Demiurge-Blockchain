@@ -1,0 +1,82 @@
+#!/bin/bash
+# =============================================================================
+# Demiurge Email Setup Script (Bash)
+# =============================================================================
+# This script helps configure SMTP credentials for email verification
+# Run: ./scripts/setup-email.sh
+# =============================================================================
+
+set -e
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+echo ""
+echo -e "${CYAN}========================================"
+echo -e "  Demiurge Email Configuration Setup"
+echo -e "========================================${NC}"
+echo ""
+
+# Get SendGrid API Key
+if [ -z "$1" ]; then
+    echo -e "${YELLOW}Enter your SendGrid API Key:${NC}"
+    read -s SENDGRID_API_KEY
+else
+    SENDGRID_API_KEY="$1"
+fi
+
+if [ -z "$SENDGRID_API_KEY" ] || [ ${#SENDGRID_API_KEY} -lt 20 ]; then
+    echo -e "${RED}ERROR: Invalid API key. SendGrid API keys start with 'SG.'${NC}"
+    exit 1
+fi
+
+# Optional: custom from email
+FROM_EMAIL="${2:-noreply@demiurge.cloud}"
+FROM_NAME="${3:-Demiurge Blockchain}"
+
+# Create secrets file
+SECRETS_PATH="config/production/.secrets"
+mkdir -p "$(dirname "$SECRETS_PATH")"
+
+cat > "$SECRETS_PATH" << EOF
+# Demiurge Production Secrets
+# Generated: $(date -Iseconds)
+# SECURITY: Never commit this file to git!
+
+# SMTP Configuration (SendGrid)
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USERNAME=apikey
+SMTP_PASSWORD=$SENDGRID_API_KEY
+SMTP_FROM_EMAIL=$FROM_EMAIL
+SMTP_FROM_NAME=$FROM_NAME
+BASE_URL=https://demiurge.cloud
+EOF
+
+chmod 600 "$SECRETS_PATH"
+echo -e "${GREEN}Created local secrets file: $SECRETS_PATH${NC}"
+
+echo ""
+echo -e "${CYAN}========================================"
+echo -e "  Next Steps - Deploy to Server"
+echo -e "========================================${NC}"
+echo ""
+echo -e "${YELLOW}Option 1: Quick deploy (if SSH keys are set up):${NC}"
+echo "  scp $SECRETS_PATH ubuntu@51.210.209.112:/data/Demiurge-Blockchain/config/production/"
+echo ""
+echo -e "${YELLOW}Option 2: Manual (copy the file via your preferred method)${NC}"
+echo ""
+echo -e "${YELLOW}Then on the server, run:${NC}"
+echo "  cd /data/Demiurge-Blockchain"
+echo "  git pull origin main"
+echo "  cd services/qor-auth"
+echo "  cargo build --release"
+echo "  sudo systemctl restart qor-auth"
+echo "  sudo journalctl -u qor-auth -f"
+echo ""
+echo -e "${GREEN}The logs should show: 'Email service configured'${NC}"
+echo ""
