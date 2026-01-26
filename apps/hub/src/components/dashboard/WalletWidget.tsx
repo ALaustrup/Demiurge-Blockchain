@@ -156,7 +156,7 @@ export function WalletWidget() {
         {/* Energy Display */}
         {address && (
           <div className="pt-4 border-t border-white/5">
-            <EnergyDisplay address={address} compact />
+            <EnergyDisplay address={address} />
           </div>
         )}
       </div>
