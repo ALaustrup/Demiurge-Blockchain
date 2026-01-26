@@ -102,3 +102,12 @@ tools/Other/
 
 # Production secrets (never commit)
 config/production/.secrets
+
+# Production secrets - NEVER commit these
+config/production/secrets/postgres_password
+config/production/secrets/jwt_secret
+config/production/secrets/session_secret
+
+# Validator keys - NEVER commit these
+*.key
+!*.key.example

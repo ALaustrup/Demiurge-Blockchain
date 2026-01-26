@@ -48,13 +48,25 @@ export default function DashboardPage() {
     <main className="min-h-screen p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Welcome Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Welcome back, <span className="text-neon-cyan">{user?.qor_id}</span>
+        <div className="mb-8 relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-demiurge-cyan/10 via-transparent to-demiurge-violet/10 rounded-2xl blur-3xl -z-10" />
+          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-4">
+            Welcome back, <span className="gradient-text">{user?.qor_id}</span>
+            <span className="holo-badge">Level {Math.floor(userXp / 500) + 1}</span>
           </h1>
           <p className="text-gray-400">
-            Your on-chain dashboard for the Demiurge ecosystem
+            Your on-chain command center for the Demiurge ecosystem
           </p>
+          {/* XP Progress Bar */}
+          <div className="mt-4 max-w-md">
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span>XP Progress</span>
+              <span>{userXp % 500}/500 XP to next level</span>
+            </div>
+            <div className="progress-bar">
+              <div className="progress-bar-fill" style={{ width: `${(userXp % 500) / 5}%` }} />
+            </div>
+          </div>
         </div>
 
         {/* Quick Actions Bar */}
@@ -115,26 +127,38 @@ export default function DashboardPage() {
         </div>
 
         {/* Bottom Section - Recent Activity */}
-        <div className="mt-8 glass-panel rounded-xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4">Recent Activity</h3>
+        <div className="mt-8 futuristic-card p-6 scan-line-overlay">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-demiurge-cyan animate-pulse" />
+              Recent Activity
+            </h3>
+            <Link href="/analytics" className="text-sm text-demiurge-cyan hover:underline">
+              View All →
+            </Link>
+          </div>
           <div className="space-y-3">
             {/* Mock activity items */}
             {[
-              { icon: '🎮', text: 'Played Pixel Starship Genesis', time: '2 hours ago', reward: '+50 Sparks' },
-              { icon: '💰', text: 'Received 10 CGT from staking rewards', time: '5 hours ago', reward: null },
-              { icon: '✅', text: 'Completed daily login task', time: '8 hours ago', reward: '+100 Sparks' },
-              { icon: '🆙', text: 'Reached Level 5!', time: '1 day ago', reward: '+500 Sparks bonus' },
+              { icon: '🎮', text: 'Played Pixel Starship Genesis', time: '2 hours ago', reward: '+50 Sparks', color: 'from-cyan-500/20' },
+              { icon: '💰', text: 'Received 10 CGT from staking rewards', time: '5 hours ago', reward: null, color: 'from-green-500/20' },
+              { icon: '✅', text: 'Completed daily login task', time: '8 hours ago', reward: '+100 Sparks', color: 'from-violet-500/20' },
+              { icon: '🆙', text: 'Reached Level 5!', time: '1 day ago', reward: '+500 Sparks bonus', color: 'from-yellow-500/20' },
             ].map((activity, i) => (
-              <div key={i} className="flex items-center justify-between glass-panel p-3 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{activity.icon}</span>
+              <div 
+                key={i} 
+                className={`flex items-center justify-between p-4 rounded-lg bg-gradient-to-r ${activity.color} to-transparent border border-white/5 hover:border-demiurge-cyan/30 transition-all cascade-item`}
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
+                <div className="flex items-center gap-4">
+                  <span className="text-2xl w-10 h-10 flex items-center justify-center rounded-lg bg-black/30">{activity.icon}</span>
                   <div>
-                    <div className="text-white">{activity.text}</div>
+                    <div className="text-white font-medium">{activity.text}</div>
                     <div className="text-xs text-gray-500">{activity.time}</div>
                   </div>
                 </div>
                 {activity.reward && (
-                  <span className="text-sm text-neon-green font-semibold">{activity.reward}</span>
+                  <span className="text-sm text-neon-green font-bold bg-green-500/10 px-3 py-1 rounded-full">{activity.reward}</span>
                 )}
               </div>
             ))}

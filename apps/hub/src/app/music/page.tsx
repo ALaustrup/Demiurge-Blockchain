@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useMusic, MusicTrack, Playlist } from '@/contexts/MusicContext';
 import { qorAuth } from '@demiurge/qor-sdk';
 
-const API_BASE = process.env.NEXT_PUBLIC_QOR_AUTH_URL || 'https://demiurge.cloud/api/v1';
+const API_BASE = '/api';
 
 const GENRES = ['Electronic', 'Ambient', 'Synthwave', 'Lo-Fi', 'Chiptune', 'Orchestral', 'Rock', 'Other'];
 
@@ -37,15 +37,16 @@ export default function MusicPage() {
     try {
       setLoading(true);
       const url = selectedGenre 
-        ? `${API_BASE}/music/tracks?genre=${encodeURIComponent(selectedGenre)}`
-        : `${API_BASE}/music/tracks`;
+        ? `${API_BASE}/music?genre=${encodeURIComponent(selectedGenre)}`
+        : `${API_BASE}/music`;
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setTracks(data);
+        setTracks(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('Failed to fetch tracks:', err);
+      setTracks([]);
     } finally {
       setLoading(false);
     }
@@ -56,10 +57,11 @@ export default function MusicPage() {
       const response = await fetch(`${API_BASE}/music/playlists`);
       if (response.ok) {
         const data = await response.json();
-        setPlaylists(data);
+        setPlaylists(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('Failed to fetch playlists:', err);
+      setPlaylists([]);
     }
   };
 

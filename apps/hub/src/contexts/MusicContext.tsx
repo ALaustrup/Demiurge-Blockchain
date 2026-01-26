@@ -60,7 +60,8 @@ interface MusicContextValue {
 
 const MusicContext = createContext<MusicContextValue | undefined>(undefined);
 
-const API_BASE = process.env.NEXT_PUBLIC_QOR_AUTH_URL || 'https://demiurge.cloud/api/v1';
+// Use local API routes that proxy to qor-auth
+const API_BASE = '/api';
 
 export function MusicProvider({ children }: { children: ReactNode }) {
   const [currentTrack, setCurrentTrack] = useState<MusicTrack | null>(null);
@@ -113,10 +114,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const loadGlobalPlaylist = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE}/music/playlists/global`);
+      const response = await fetch(`${API_BASE}/music/global`);
       if (response.ok) {
         const tracks = await response.json();
-        setPlaylist(tracks);
+        setPlaylist(Array.isArray(tracks) ? tracks : []);
         if (tracks.length > 0 && !currentTrack) {
           setCurrentTrack(tracks[0]);
         }
@@ -144,12 +145,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       audioRef.current.src = track.file_url;
       currentIndexRef.current = playlist.findIndex(t => t.id === track.id);
       
-      // Record play
-      try {
-        await fetch(`${API_BASE}/music/tracks/${track.id}/play`, { method: 'POST' });
-      } catch (e) {
-        // Ignore errors
-      }
+      // Record play (non-blocking)
+      fetch(`${API_BASE}/music/tracks/${track.id}/play`, { method: 'POST' }).catch(() => {});
     }
     
     try {
@@ -226,7 +223,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       throw new Error('Must be logged in to upload tracks');
     }
 
-    const response = await fetch(`${API_BASE}/music/tracks/upload`, {
+    const response = await fetch(`${API_BASE}/music/upload`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -236,7 +233,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to upload track');
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to upload track');
     }
 
     const track = await response.json();

@@ -94,13 +94,23 @@ export default function GamesPage() {
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-demiurge-cyan via-demiurge-violet to-demiurge-gold bg-clip-text text-transparent">
-            Game Directory
-          </h1>
-          <p className="text-xl text-gray-300">
-            Discover and play games in the Demiurge ecosystem
-          </p>
+        {/* Header with Submit Button */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-6">
+          <div>
+            <h1 className="text-5xl font-bold mb-4 gradient-text">
+              Game Directory
+            </h1>
+            <p className="text-xl text-gray-300">
+              Discover and play games in the Demiurge ecosystem
+            </p>
+          </div>
+          <Link 
+            href="/games/submit"
+            className="btn-primary inline-flex items-center gap-2 whitespace-nowrap"
+          >
+            <span className="text-lg">+</span>
+            Submit Your Game
+          </Link>
         </div>
 
         {/* Category Tabs */}
@@ -209,36 +219,39 @@ export default function GamesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredGames.map((game) => (
+            {filteredGames.map((game, index) => (
               <Link
                 key={game.id}
                 href={`/play/${game.id}`}
-                className="glass-panel p-6 rounded-lg hover:scale-105 transition-transform cursor-pointer group"
+                className="futuristic-card p-6 cursor-pointer group cascade-item scan-line-overlay"
+                style={{ animationDelay: `${index * 0.05}s` }}
               >
-                <div className="aspect-video bg-gradient-to-br from-demiurge-cyan/20 to-demiurge-violet/20 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                <div className="aspect-video bg-gradient-to-br from-demiurge-cyan/20 to-demiurge-violet/20 rounded-lg mb-4 flex items-center justify-center overflow-hidden relative">
                   {game.thumbnail && game.thumbnail !== `/games/${game.id}/thumb.jpg` ? (
                     <img
                       src={game.thumbnail}
                       alt={game.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}
                     />
                   ) : (
-                    <span className="text-gray-400">No Thumbnail</span>
+                    <div className="text-5xl opacity-50">🎮</div>
                   )}
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
+                    <span className="text-white font-bold uppercase tracking-wider text-sm">Play Now</span>
+                  </div>
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-white group-hover:text-demiurge-cyan transition-colors">
                   {game.title}
                 </h3>
                 <p className="text-gray-400 mb-4 text-sm line-clamp-2">{game.description}</p>
                 <div className="flex justify-between items-center mb-4 text-xs">
-                  <span className="text-demiurge-cyan">
-                    {(game.cgtPool || 0).toLocaleString()} CGT
-                  </span>
+                  <span className="stat-value text-base">{(game.cgtPool || 0).toLocaleString()}</span>
                   {game.category && CATEGORY_CONFIG[game.category] && (
-                    <span className={`${CATEGORY_CONFIG[game.category].color} flex items-center gap-1`}>
+                    <span className={`holo-badge ${CATEGORY_CONFIG[game.category].color} flex items-center gap-1`}>
                       <span>{CATEGORY_CONFIG[game.category].icon}</span>
                       <span>{CATEGORY_CONFIG[game.category].label}</span>
                     </span>
@@ -250,11 +263,11 @@ export default function GamesPage() {
                     {game.rewards.map((reward, idx) => (
                       <span
                         key={idx}
-                        className={`text-xs px-2 py-0.5 rounded ${
-                          reward.type === 'cgt' ? 'bg-yellow-500/20 text-yellow-400' :
-                          reward.type === 'nft' ? 'bg-purple-500/20 text-purple-400' :
-                          reward.type === 'sparks' ? 'bg-orange-500/20 text-orange-400' :
-                          'bg-blue-500/20 text-blue-400'
+                        className={`text-xs px-2 py-0.5 rounded-full border ${
+                          reward.type === 'cgt' ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400' :
+                          reward.type === 'nft' ? 'border-purple-500/50 bg-purple-500/10 text-purple-400' :
+                          reward.type === 'sparks' ? 'border-orange-500/50 bg-orange-500/10 text-orange-400' :
+                          'border-blue-500/50 bg-blue-500/10 text-blue-400'
                         }`}
                         title={reward.description}
                       >
@@ -268,7 +281,7 @@ export default function GamesPage() {
                     {game.tags.slice(0, 3).map((tag) => (
                       <span
                         key={tag}
-                        className="text-xs px-2 py-1 bg-demiurge-cyan/20 text-demiurge-cyan rounded"
+                        className="text-xs px-2 py-1 bg-demiurge-cyan/10 border border-demiurge-cyan/30 text-demiurge-cyan rounded-full"
                       >
                         {tag}
                       </span>
@@ -281,9 +294,12 @@ export default function GamesPage() {
                   </div>
                 )}
                 {game.author && (
-                  <div className="text-xs text-gray-500 mb-2">created by {game.author}</div>
+                  <div className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                    <span className="w-4 h-4 rounded-full bg-gradient-to-r from-demiurge-cyan to-demiurge-violet" />
+                    {game.author}
+                  </div>
                 )}
-                <div className="w-full glass-panel py-2 rounded text-center group-hover:chroma-glow transition-all font-bold uppercase text-demiurge-cyan">
+                <div className="w-full btn-secondary py-2 rounded text-center transition-all font-bold uppercase text-sm">
                   Play →
                 </div>
               </Link>
