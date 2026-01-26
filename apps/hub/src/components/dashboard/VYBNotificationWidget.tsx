@@ -23,10 +23,10 @@ export function VYBNotificationWidget() {
       const items: NotificationItem[] = notifications.slice(0, 5).map(n => ({
         id: n.id,
         type: n.type as any,
-        from: n.actorName || 'Unknown',
-        preview: n.preview,
-        timestamp: new Date(n.timestamp),
-        read: n.read,
+        from: n.title || 'System',
+        preview: n.message,
+        timestamp: n.createdAt instanceof Date ? n.createdAt : new Date(n.createdAt),
+        read: n.isRead,
       }));
       setRecentNotifications(items);
     }
