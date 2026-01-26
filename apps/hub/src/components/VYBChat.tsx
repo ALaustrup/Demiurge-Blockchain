@@ -69,11 +69,13 @@ export function VYBChat() {
       try {
         const profile = await qorAuth.getProfile();
         setCurrentUser(profile.qor_id || 'Anonymous');
-        if (profile.wallet_address) {
-          setCurrentUserAddress(profile.wallet_address);
+        // Generate wallet address from user ID (simplified for MVP)
+        if (profile.id) {
+          const walletAddress = `0x${profile.id.slice(0, 40).padEnd(40, '0')}`;
+          setCurrentUserAddress(walletAddress);
           // Load CGT balance
           try {
-            const balance = await demiurgeRpc.getBalance(profile.wallet_address);
+            const balance = await demiurgeRpc.getBalance(walletAddress);
             setCgtBalance(balance);
           } catch {
             setCgtBalance('0');
