@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useVYB } from '@/contexts/VYBContext';
 import { vybService } from '@/lib/vyb/service';
 import type { Conversation, Message } from '@/lib/vyb/types';
+import { VoiceRoom } from './VoiceRoom';
 
 export function Messages() {
-  const { conversations, unreadMessageCount, refreshConversations } = useVYB();
+  const { conversations, unreadMessageCount, refreshConversations, profile } = useVYB();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -14,6 +15,10 @@ export function Messages() {
   const [showTipModal, setShowTipModal] = useState(false);
   const [tipAmount, setTipAmount] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Voice call state
+  const [isVoiceCallActive, setIsVoiceCallActive] = useState(false);
+  const [incomingCall, setIncomingCall] = useState<{ from: string; roomId: string } | null>(null);
 
   useEffect(() => {
     if (selectedConversation) {
@@ -179,6 +184,19 @@ export function Messages() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Voice Call Button */}
+                <button 
+                  onClick={() => setIsVoiceCallActive(true)}
+                  className={`glass-panel p-2 rounded-lg transition-colors ${
+                    isVoiceCallActive 
+                      ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan' 
+                      : 'hover:border-neon-cyan/50'
+                  }`}
+                  title={isVoiceCallActive ? 'Voice call active' : 'Start voice call'}
+                  disabled={isVoiceCallActive}
+                >
+                  🎙️
+                </button>
                 <button 
                   onClick={() => setShowTipModal(true)}
                   className="glass-panel p-2 rounded-lg hover:border-green-500/50 transition-colors"
@@ -191,6 +209,17 @@ export function Messages() {
                 </button>
               </div>
             </div>
+            
+            {/* Voice Call Panel */}
+            {isVoiceCallActive && selectedConversation && profile && (
+              <div className="border-b border-gray-800">
+                <VoiceRoom
+                  roomId={`voice_${selectedConversation.id}`}
+                  userId={profile.id}
+                  onClose={() => setIsVoiceCallActive(false)}
+                />
+              </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">

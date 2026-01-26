@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useVoiceOptional } from '@/contexts/VoiceContext';
 import { qorAuth } from '@demiurge/qor-sdk';
 import Link from 'next/link';
+import { PermissionButton } from '@/components/voice';
 
-type SettingsTab = 'account' | 'security' | 'email' | 'notifications';
+type SettingsTab = 'account' | 'security' | 'email' | 'notifications' | 'voice';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -95,9 +97,35 @@ export default function SettingsPage() {
   const tabs: { id: SettingsTab; label: string; icon: string }[] = [
     { id: 'account', label: 'Account', icon: '👤' },
     { id: 'security', label: 'Security', icon: '🔐' },
+    { id: 'voice', label: 'Voice', icon: '🎙️' },
     { id: 'email', label: 'Email', icon: '📧' },
     { id: 'notifications', label: 'Notifications', icon: '🔔' },
   ];
+  
+  // Voice settings state
+  const voice = useVoiceOptional();
+  const [inputDevice, setInputDevice] = useState<string>('default');
+  const [outputDevice, setOutputDevice] = useState<string>('default');
+  const [noiseSuppression, setNoiseSuppression] = useState(true);
+  const [echoCancellation, setEchoCancellation] = useState(true);
+  const [autoGainControl, setAutoGainControl] = useState(true);
+  const [audioDevices, setAudioDevices] = useState<{ inputs: MediaDeviceInfo[]; outputs: MediaDeviceInfo[] }>({ inputs: [], outputs: [] });
+  
+  // Load audio devices
+  useEffect(() => {
+    async function loadDevices() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        setAudioDevices({
+          inputs: devices.filter(d => d.kind === 'audioinput'),
+          outputs: devices.filter(d => d.kind === 'audiooutput'),
+        });
+      } catch (error) {
+        console.error('Failed to enumerate devices:', error);
+      }
+    }
+    loadDevices();
+  }, []);
 
   return (
     <main className="min-h-screen p-4 md:p-8">
@@ -346,6 +374,147 @@ export default function SettingsPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'voice' && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold text-white mb-4">Voice Settings</h2>
+                
+                {/* Microphone Permission */}
+                <div className="glass-panel p-4 rounded-lg border border-neon-cyan/30">
+                  <h3 className="font-semibold text-white mb-2">Microphone Access</h3>
+                  <p className="text-sm text-gray-400 mb-4">
+                    Voice features require microphone access for Sophia voice mode and user-to-user voice chat.
+                  </p>
+                  <PermissionButton 
+                    permissionState={voice?.microphonePermission || 'unknown'}
+                    onClick={() => voice?.requestMicrophonePermission()}
+                  />
+                </div>
+                
+                {/* Input Device */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Input Device (Microphone)</label>
+                  <select
+                    value={inputDevice}
+                    onChange={(e) => setInputDevice(e.target.value)}
+                    className="w-full glass-panel px-4 py-3 rounded-lg text-white bg-transparent border border-dark-600 focus:border-neon-cyan outline-none"
+                  >
+                    <option value="default">System Default</option>
+                    {audioDevices.inputs.map((device) => (
+                      <option key={device.deviceId} value={device.deviceId}>
+                        {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Output Device */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Output Device (Speakers)</label>
+                  <select
+                    value={outputDevice}
+                    onChange={(e) => setOutputDevice(e.target.value)}
+                    className="w-full glass-panel px-4 py-3 rounded-lg text-white bg-transparent border border-dark-600 focus:border-neon-cyan outline-none"
+                  >
+                    <option value="default">System Default</option>
+                    {audioDevices.outputs.map((device) => (
+                      <option key={device.deviceId} value={device.deviceId}>
+                        {device.label || `Speaker ${device.deviceId.slice(0, 8)}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Audio Processing */}
+                <div className="glass-panel p-4 rounded-lg">
+                  <h3 className="font-semibold text-white mb-4">Audio Processing</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-white">Noise Suppression</div>
+                        <div className="text-xs text-gray-400">Reduces background noise</div>
+                      </div>
+                      <button 
+                        onClick={() => setNoiseSuppression(!noiseSuppression)}
+                        className={`w-12 h-6 rounded-full transition-all relative ${
+                          noiseSuppression ? 'bg-neon-cyan' : 'bg-dark-600'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${
+                          noiseSuppression ? 'left-6' : 'left-0.5'
+                        }`} />
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-white">Echo Cancellation</div>
+                        <div className="text-xs text-gray-400">Removes echo from speakers</div>
+                      </div>
+                      <button 
+                        onClick={() => setEchoCancellation(!echoCancellation)}
+                        className={`w-12 h-6 rounded-full transition-all relative ${
+                          echoCancellation ? 'bg-neon-cyan' : 'bg-dark-600'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${
+                          echoCancellation ? 'left-6' : 'left-0.5'
+                        }`} />
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-white">Auto Gain Control</div>
+                        <div className="text-xs text-gray-400">Automatically adjusts volume</div>
+                      </div>
+                      <button 
+                        onClick={() => setAutoGainControl(!autoGainControl)}
+                        className={`w-12 h-6 rounded-full transition-all relative ${
+                          autoGainControl ? 'bg-neon-cyan' : 'bg-dark-600'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${
+                          autoGainControl ? 'left-6' : 'left-0.5'
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Sophia Voice */}
+                <div className="glass-panel p-4 rounded-lg border border-yellow-500/30">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-3xl">✧</span>
+                    <div>
+                      <h3 className="font-semibold text-yellow-400">Sophia Voice Mode</h3>
+                      <p className="text-xs text-gray-400">Powered by Grok Voice (Ara)</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-400 mb-4">
+                    Talk directly with Sophia using natural voice conversation. 
+                    Sophia will respond with the warm, friendly Ara voice.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white">Sophia Voice Enabled</span>
+                    <button 
+                      onClick={() => voice?.toggleSophiaVoice()}
+                      className={`w-12 h-6 rounded-full transition-all relative ${
+                        voice?.sophiaVoiceEnabled ? 'bg-yellow-500' : 'bg-dark-600'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${
+                        voice?.sophiaVoiceEnabled ? 'left-6' : 'left-0.5'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-gray-500 text-center">
+                  Voice data is processed in real-time and is not stored.
+                </p>
               </div>
             )}
           </div>

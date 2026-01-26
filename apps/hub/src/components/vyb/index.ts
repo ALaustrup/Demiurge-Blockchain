@@ -13,3 +13,6 @@ export { SophiaBadge } from './SophiaBadge';
 export { SophiaChat } from './SophiaChat';
 export { ModerationOverlay, BanIndicator } from './ModerationOverlay';
 export { KarmaDisplay, KarmaBadge, KarmaChange } from './KarmaDisplay';
+
+// Voice Components
+export { VoiceRoom, VoiceRoomMini } from './VoiceRoom';
