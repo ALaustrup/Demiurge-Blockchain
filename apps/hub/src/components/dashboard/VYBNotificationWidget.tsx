@@ -14,7 +14,7 @@ interface NotificationItem {
 }
 
 export function VYBNotificationWidget() {
-  const { notifications, unreadCount } = useVYB();
+  const { notifications, unreadNotificationCount } = useVYB();
   const [recentNotifications, setRecentNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
@@ -64,9 +64,9 @@ export function VYBNotificationWidget() {
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-grunge text-neon-magenta">🔔 VYB Social</h3>
-          {unreadCount > 0 && (
+          {unreadNotificationCount > 0 && (
             <span className="bg-neon-magenta text-black text-xs font-bold px-2 py-1 rounded-full">
-              {unreadCount} new
+              {unreadNotificationCount} new
             </span>
           )}
         </div>
