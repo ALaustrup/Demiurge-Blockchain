@@ -219,6 +219,18 @@ export class DemiurgeRpcClient {
   }
 
   /**
+   * Claim starter CGT bonus (for new users)
+   * This is NOT a public crypto faucet - it's platform onboarding credits
+   */
+  async claimStarterBonus(address: string): Promise<{
+    success: boolean;
+    amount: string;
+    message: string;
+  }> {
+    return this.request('balances_claimStarter', [address]);
+  }
+
+  /**
    * Get energy for an account
    */
   async getEnergy(address: string): Promise<EnergyInfo> {

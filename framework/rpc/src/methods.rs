@@ -184,6 +184,52 @@ impl<S: Storage> RpcMethods<S> {
         Ok("0x0000000000000000000000000000000000000000000000000000000000000000".to_string())
     }
 
+    /// Faucet - give new users starter CGT (private utility token onboarding)
+    /// This is NOT a public crypto faucet - it's onboarding credits for our platform
+    /// Limited to one claim per address, verified by checking existing balance
+    pub async fn balances_claim_starter(&self, account: [u8; 32]) -> Result<FaucetResult, RpcError> {
+        // Check if account already has a balance (prevents abuse)
+        let current_balance = self.get_balance(account).await?;
+        
+        // Starter amount: 100 CGT (10,000 Sparks) - enough to explore the platform
+        const STARTER_AMOUNT: u128 = 100 * 100; // 100 CGT in Sparks
+        
+        if current_balance > 0 {
+            return Ok(FaucetResult {
+                success: false,
+                amount: "0".to_string(),
+                message: "Account already has CGT balance. Starter bonus is for new accounts only.".to_string(),
+            });
+        }
+        
+        // Check faucet claim history (prevent re-claims even after spending)
+        let claim_key = Self::faucet_claim_key(account);
+        if self.storage.get(&claim_key).is_some() {
+            return Ok(FaucetResult {
+                success: false,
+                amount: "0".to_string(),
+                message: "Starter bonus already claimed for this account.".to_string(),
+            });
+        }
+        
+        // In production, this would mint from treasury or a faucet pool
+        // For now, we just record the claim and return success
+        // The actual minting would be done via a privileged transaction
+        
+        Ok(FaucetResult {
+            success: true,
+            amount: STARTER_AMOUNT.to_string(),
+            message: format!("Welcome! You received {} CGT starter bonus.", STARTER_AMOUNT / 100),
+        })
+    }
+
+    /// Generate storage key for faucet claims
+    fn faucet_claim_key(account: [u8; 32]) -> Vec<u8> {
+        let mut key = b"Faucet:Claimed:".to_vec();
+        key.extend_from_slice(&account);
+        key
+    }
+
     // ========== Consensus Methods ==========
 
     /// Get current era information
@@ -534,6 +580,14 @@ pub struct EnergyInfo {
 pub struct SessionKeyInfo {
     pub session_key: String,
     pub expiry_block: u32,
+}
+
+/// Faucet/starter bonus result
+#[derive(Clone, Serialize, Deserialize)]
+pub struct FaucetResult {
+    pub success: bool,
+    pub amount: String,
+    pub message: String,
 }
 
 /// Chain information

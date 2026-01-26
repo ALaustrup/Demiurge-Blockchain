@@ -138,6 +138,17 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
             Err::<String, ErrorObjectOwned>(method_not_found())
         }).map_err(|e| RpcError::ServerError(format!("Failed to register balances_transfer: {}", e)))?;
 
+        // balances_claimStarter - Onboarding faucet for new users
+        module.register_async_method("balances_claimStarter", |params, ctx| async move {
+            let address_str: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address") })?;
+            let address = hex::decode(address_str)
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address hex") })?
+                .try_into()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Address must be 32 bytes") })?;
+            ctx.balances_claim_starter(address).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register balances_claimStarter: {}", e)))?;
+
         Ok(())
     }
 

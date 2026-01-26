@@ -1,5 +1,5 @@
 {
-  "chainId": "demiurge-mainnet",
+  "chain_id": "demiurge-mainnet",
   "timestamp": "2026-01-25T00:00:00Z",
   "validators": [
     {

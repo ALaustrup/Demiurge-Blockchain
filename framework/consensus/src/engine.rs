@@ -475,7 +475,10 @@ impl<S: Storage> ConsensusEngine<S> {
         // Calculate total rewards for the era
         // Base reward per block * blocks in era + transaction fees
         let blocks_in_era: u128 = self.era_length as u128;
-        let base_reward_per_block = 1000u128; // 1000 CGT per block (configurable)
+        // Sustainable emission: ~5% annual inflation on 13B supply
+        // = 650M CGT/year / 15.7M blocks/year = ~41 CGT/block
+        // Using 42 CGT per block (4200 Sparks) for simplicity
+        let base_reward_per_block = 42u128; // 42 CGT per block (sustainable)
         let total_base_rewards = base_reward_per_block * blocks_in_era;
         
         // Add accumulated transaction fees
