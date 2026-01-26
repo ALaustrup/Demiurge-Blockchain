@@ -215,7 +215,7 @@ export function Messages() {
               <div className="border-b border-gray-800">
                 <VoiceRoom
                   roomId={`voice_${selectedConversation.id}`}
-                  userId={profile.id}
+                  userId={profile.qorId}
                   onClose={() => setIsVoiceCallActive(false)}
                 />
               </div>
