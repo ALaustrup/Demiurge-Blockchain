@@ -31,8 +31,8 @@ services:
   # Hub Web Application (Next.js)
   hub:
     build:
-      context: ../apps/hub
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/hub/Dockerfile
     container_name: demiurge-hub
     restart: always
     env_file:
