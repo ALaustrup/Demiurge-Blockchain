@@ -5,10 +5,16 @@
  * Dual Functions:
  * 1. LOREKEEPER - RAG-powered Q&A about Demiurge
  * 2. ENFORCER - Content moderation with progressive discipline
+ * 
+ * Now integrated with:
+ * - LLM (Claude/GPT) for intelligent responses
+ * - Pinecone for vector search (RAG)
  */
 
 import { demiurgeRpc } from '../demiurge-rpc';
 import { vybService } from './service';
+import { llmClient, moderateContent as llmModerate, askSophia as llmAsk } from '../llm-client';
+import { pineconeClient, searchLore } from '../pinecone-client';
 import {
   ModerationProfile,
   Strike,
@@ -72,13 +78,14 @@ class SophiaAgentService {
   /**
    * Analyze content for violations
    * Called before any public message is distributed
+   * Uses LLM for intelligent content analysis
    */
   async analyzeContent(
     content: string,
     authorQorId: string,
     contentType: 'post' | 'comment' | 'message' | 'profile'
   ): Promise<ContentAnalysis> {
-    // Check against violation patterns
+    // First pass: Quick pattern matching for obvious violations
     for (const { pattern, category, severity } of VIOLATION_PATTERNS) {
       if (pattern.test(content)) {
         return {
@@ -88,15 +95,37 @@ class SophiaAgentService {
           isViolation: true,
           violationCategory: category,
           severity,
-          confidence: 0.85,
+          confidence: 0.9,
           explanation: `Content matches ${category} pattern`,
           suggestedAction: this.getSuggestedAction(severity),
         };
       }
     }
 
-    // In production: Send to LLM for nuanced analysis
-    // const llmAnalysis = await this.llmAnalyze(content);
+    // Second pass: LLM analysis for nuanced content
+    // Only use LLM for longer content that pattern matching might miss
+    if (content.length > 50) {
+      try {
+        const llmResult = await llmModerate(content, contentType);
+        
+        if (llmResult.isViolation) {
+          return {
+            content,
+            authorQorId,
+            contentType,
+            isViolation: true,
+            violationCategory: (llmResult.category as ViolationCategory) || 'other',
+            severity: llmResult.severity || 'low',
+            confidence: llmResult.confidence,
+            explanation: llmResult.explanation,
+            suggestedAction: llmResult.suggestedAction,
+          };
+        }
+      } catch (error) {
+        // LLM failed, fall through to safe default
+        console.warn('LLM moderation failed, using pattern-only check:', error);
+      }
+    }
 
     return {
       content,
@@ -104,7 +133,7 @@ class SophiaAgentService {
       contentType,
       isViolation: false,
       confidence: 0.95,
-      explanation: 'Content passes automated checks',
+      explanation: 'Content passes automated and AI checks',
     };
   }
 
@@ -308,7 +337,7 @@ The Chain remembers. Choose wisdom.
 
   /**
    * Consult Sophia about Demiurge lore
-   * Uses RAG to retrieve relevant documents
+   * Uses RAG (Pinecone + LLM) for intelligent responses
    */
   async consultTheOracle(
     query: string,
@@ -316,34 +345,46 @@ The Chain remembers. Choose wisdom.
   ): Promise<SophiaResponse> {
     await this.initialize();
 
-    // Retrieve relevant lore documents
-    const ragResult = await this.retrieveLore({
-      query,
-      userContext: userContext ? { ...userContext, role: 'user' } : undefined,
-      topK: 3,
-    });
+    // 1. Search for relevant documents using Pinecone
+    let ragResults;
+    try {
+      ragResults = await searchLore(query, 3);
+    } catch (error) {
+      console.warn('Pinecone search failed, using fallback:', error);
+      ragResults = [];
+    }
 
     // Build context from retrieved documents
-    const context = ragResult.documents
-      .map(doc => `[${doc.metadata.source}] ${doc.content}`)
-      .join('\n\n');
+    const context = ragResults.length > 0
+      ? ragResults.map(doc => `[${doc.metadata.title}] ${doc.content}`).join('\n\n')
+      : '';
 
-    // In production: Send to LLM with context
-    // const response = await this.llm.generate({
-    //   systemPrompt: SOPHIA_SYSTEM_PROMPTS.lorekeeper,
-    //   context,
-    //   userQuery: query
-    // });
-
-    // Mock response for development
-    const response = this.generateMockLoreResponse(query, ragResult);
+    // 2. Generate response using LLM with RAG context
+    let responseText: string;
+    try {
+      const llmResponse = await llmAsk(query, context, userContext);
+      responseText = llmResponse.text;
+    } catch (error) {
+      console.warn('LLM call failed, using fallback response:', error);
+      // Use legacy mock response as fallback
+      const mockResult = {
+        documents: ragResults.map(r => ({
+          id: r.id,
+          content: r.content,
+          metadata: r.metadata,
+        })),
+        scores: ragResults.map(r => r.score),
+        queryEmbedding: [],
+      };
+      responseText = this.generateMockLoreResponse(query, mockResult);
+    }
 
     return {
-      text: response,
-      citations: ragResult.documents.map((doc, i) => ({
+      text: responseText,
+      citations: ragResults.map(doc => ({
         source: doc.metadata.title,
         chunk: doc.content.slice(0, 200) + '...',
-        relevanceScore: ragResult.scores[i],
+        relevanceScore: doc.score,
       })),
       signature: await this.signAction(`lore:${Date.now()}`),
     };

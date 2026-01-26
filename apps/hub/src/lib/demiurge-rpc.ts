@@ -436,6 +436,97 @@ export class DemiurgeRpcClient {
       transactionFees: raw.transaction_fees,
     };
   }
+
+  /**
+   * Get chain info (combined data for dashboard)
+   */
+  async getChainInfo(): Promise<{
+    blockHeight: number;
+    currentEra: number;
+    validators: number;
+    totalStake: string;
+    connected: boolean;
+  }> {
+    try {
+      const [status, health] = await Promise.all([
+        this.getConsensusStatus(),
+        this.getHealth(),
+      ]);
+      
+      return {
+        blockHeight: status.blockNumber,
+        currentEra: status.currentEra,
+        validators: status.validators,
+        totalStake: status.totalStake,
+        connected: health.connected,
+      };
+    } catch (error) {
+      // Return mock data if blockchain is unavailable
+      return {
+        blockHeight: 0,
+        currentEra: 0,
+        validators: 0,
+        totalStake: '0',
+        connected: false,
+      };
+    }
+  }
+
+  /**
+   * Get user's NFT assets (DRC-369)
+   */
+  async getUserNFTs(address: string): Promise<Array<{
+    id: string;
+    name: string;
+    description: string;
+    image: string;
+    collection?: string;
+    attributes: Array<{ trait_type: string; value: string }>;
+    royalty: number;
+    owner: string;
+    mintedAt: number;
+  }>> {
+    try {
+      return await this.request('drc369_getAssets', [address]);
+    } catch (error) {
+      console.warn('Failed to fetch NFTs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Mint a new DRC-369 NFT
+   */
+  async mintNFT(
+    creator: string,
+    metadataUri: string,
+    royaltyBps: number,
+    signature: string
+  ): Promise<{
+    success: boolean;
+    tokenId?: string;
+    txHash?: string;
+    error?: string;
+  }> {
+    return this.request('drc369_mint', [creator, metadataUri, royaltyBps, signature]);
+  }
+
+  /**
+   * Get recent chain events for feed
+   */
+  async getRecentEvents(limit: number = 10): Promise<Array<{
+    type: 'block' | 'transaction' | 'nft_mint' | 'stake' | 'reward';
+    data: any;
+    timestamp: number;
+    blockNumber: number;
+  }>> {
+    try {
+      return await this.request('chain_getRecentEvents', [limit]);
+    } catch (error) {
+      console.warn('Failed to fetch events:', error);
+      return [];
+    }
+  }
 }
 
 // Export singleton instance

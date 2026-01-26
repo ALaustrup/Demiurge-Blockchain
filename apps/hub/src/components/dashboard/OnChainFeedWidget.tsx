@@ -28,17 +28,36 @@ export function OnChainFeedWidget() {
 
   const loadChainData = async () => {
     try {
-      // Try to get real chain data
+      // Get real chain data
       const chainInfo = await demiurgeRpc.getChainInfo();
-      if (chainInfo) {
+      if (chainInfo && chainInfo.connected) {
         setBlockHeight(chainInfo.blockHeight);
         setEra(chainInfo.currentEra);
+        
+        // Try to get real events
+        try {
+          const recentEvents = await demiurgeRpc.getRecentEvents(5);
+          if (recentEvents.length > 0) {
+            const formattedEvents: ChainEvent[] = recentEvents.map(e => ({
+              id: `${e.type}-${e.blockNumber}`,
+              type: e.type as any,
+              title: formatEventTitle(e),
+              description: formatEventDescription(e),
+              timestamp: new Date(e.timestamp * 1000),
+            }));
+            setEvents(prev => [...formattedEvents, ...prev.filter(p => p.type === 'announcement')].slice(0, 10));
+            setLoading(false);
+            return;
+          }
+        } catch (eventError) {
+          // Events endpoint might not be available yet
+        }
       }
     } catch (error) {
       console.warn('Using mock chain data');
     }
 
-    // Generate events (mix of real and mock)
+    // Fallback to mock events if blockchain not available
     const mockEvents: ChainEvent[] = [
       {
         id: `block-${Date.now()}`,
@@ -82,6 +101,28 @@ export function OnChainFeedWidget() {
 
     setEvents(mockEvents);
     setLoading(false);
+  };
+  
+  const formatEventTitle = (event: any): string => {
+    switch (event.type) {
+      case 'block': return `Block #${event.blockNumber}`;
+      case 'transaction': return `Transfer`;
+      case 'nft_mint': return `NFT Minted`;
+      case 'stake': return `Stake Update`;
+      case 'reward': return `Rewards Distributed`;
+      default: return event.type;
+    }
+  };
+  
+  const formatEventDescription = (event: any): string => {
+    switch (event.type) {
+      case 'block': return 'New block produced';
+      case 'transaction': return `${(event.data?.amount || 0) / 100} CGT transferred`;
+      case 'nft_mint': return `New DRC-369 asset created`;
+      case 'stake': return `${(event.data?.amount || 0) / 100} CGT staked`;
+      case 'reward': return `Era rewards distributed`;
+      default: return '';
+    }
   };
 
   const getEventIcon = (type: string) => {
