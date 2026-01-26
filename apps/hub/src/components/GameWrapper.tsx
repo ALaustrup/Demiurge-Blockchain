@@ -90,20 +90,25 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     // Handle keyboard shortcuts
+    // IMPORTANT: Only capture keys when game iframe is NOT focused
+    // Games need keyboard input to function properly
     const handleKeyPress = (e: KeyboardEvent) => {
-      // ESC to exit fullscreen or show exit confirmation
+      // Check if iframe has focus - if so, let the game handle all keys
+      const iframeFocused = document.activeElement === iframe || 
+                           document.activeElement?.tagName === 'IFRAME';
+      
+      // ESC to exit fullscreen or show exit confirmation (always capture)
       if (e.key === 'Escape') {
         if (isFullscreen) {
           document.exitFullscreen();
-        } else {
+        } else if (!iframeFocused) {
+          // Only show exit dialog if game doesn't have focus
           handleExit();
         }
       }
-      // Space to pause/unpause (if game supports it)
-      if (e.key === ' ' && e.target === document.body) {
-        e.preventDefault();
-        handlePause();
-      }
+      
+      // DON'T intercept Space - games use it for critical functions
+      // The pause button is available in the UI for manual pausing
     };
     window.addEventListener('keydown', handleKeyPress);
 
@@ -466,19 +471,42 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
         ref={iframeRef}
         src={gameUrl}
         className={`w-full h-full border-0 ${isPaused ? 'pointer-events-none' : ''}`}
-        allow="fullscreen; keyboard-map"
+        allow="fullscreen; keyboard-map; gamepad"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock"
         style={{ opacity: isPaused ? 0.5 : 1 }}
         tabIndex={0}
         onLoad={() => {
-          // Auto-focus iframe for keyboard input
-          iframeRef.current?.focus();
+          // Auto-focus iframe for keyboard input after a short delay
+          // This ensures the game canvas is ready to receive input
+          setTimeout(() => {
+            iframeRef.current?.focus();
+          }, 100);
+        }}
+        onMouseEnter={() => {
+          // Focus iframe when mouse enters for seamless input
+          if (!isPaused) {
+            iframeRef.current?.focus();
+          }
         }}
         onClick={() => {
           // Focus iframe when clicked
           iframeRef.current?.focus();
         }}
       />
+      
+      {/* Click-to-play overlay for touch/click to focus */}
+      {!loading && !isPaused && (
+        <div 
+          className="absolute inset-0 z-30 cursor-pointer"
+          onClick={() => {
+            iframeRef.current?.focus();
+            // Remove overlay after first click
+            const overlay = document.querySelector('.click-to-play-overlay');
+            if (overlay) overlay.remove();
+          }}
+          style={{ display: 'none' }} // Hidden by default, show only if needed
+        />
+      )}
     </div>
   );
 }

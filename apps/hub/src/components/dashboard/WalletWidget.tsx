@@ -3,28 +3,40 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBlockchain } from '@/contexts/BlockchainContext';
-import { getOrCreateAddressForQorId, formatQorId } from '@/lib/qor-wallet';
-import { getBalance as getBalanceWithMock } from '@/lib/mock-blockchain';
 import { blockchainClient } from '@/lib/blockchain';
-import Link from 'next/link';
+import { getOrCreateAddressForQorId } from '@/lib/qor-wallet';
+import { getBalance as getBalanceWithMock } from '@/lib/mock-blockchain';
+import { SendCGTModal } from '@/components/wallet/SendCGTModal';
+import { ReceiveCGTModal } from '@/components/wallet/ReceiveCGTModal';
+import { EnergyDisplay } from '@/components/energy/EnergyDisplay';
+
+interface Transaction {
+  type: 'send' | 'receive';
+  amount: string;
+  timestamp: Date;
+  hash?: string;
+}
 
 export function WalletWidget() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { getBalance, isConnected } = useBlockchain();
   const [balance, setBalance] = useState('0');
   const [address, setAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [recentTx, setRecentTx] = useState<Transaction[]>([]);
 
   useEffect(() => {
-    if (user) {
-      loadWalletData();
+    if (isAuthenticated && user) {
+      loadWallet();
     }
-  }, [user, isConnected]);
+  }, [isAuthenticated, user, isConnected]);
 
-  const loadWalletData = async () => {
+  const loadWallet = async () => {
     if (!user) return;
-    
+    setLoading(true);
     try {
       const userAddress = await getOrCreateAddressForQorId(user, false);
       setAddress(userAddress);
@@ -35,7 +47,7 @@ export function WalletWidget() {
             ? await getBalance(userAddress)
             : await getBalanceWithMock(userAddress);
           setBalance(balanceStr);
-        } catch {
+        } catch (error) {
           const balanceStr = await getBalanceWithMock(userAddress);
           setBalance(balanceStr);
         }
@@ -51,7 +63,7 @@ export function WalletWidget() {
     const formatted = blockchainClient.formatCGTBalance(rawBalance);
     return Number.parseFloat(formatted).toLocaleString('en-US', {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 4,
+      maximumFractionDigits: 2,
     });
   };
 
@@ -62,69 +74,109 @@ export function WalletWidget() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const truncateAddress = (addr: string) => {
-    return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
-  };
+  if (!isAuthenticated) {
+    return (
+      <div className="glass-panel rounded-xl p-6 border border-neon-cyan/20">
+        <h3 className="text-lg font-grunge text-neon-cyan mb-4">💎 Wallet</h3>
+        <p className="text-gray-400 text-sm">Login to view your wallet</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="glass-panel rounded-xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white">Wallet</h3>
-        <Link 
-          href="/wallet" 
-          className="text-xs text-neon-cyan hover:underline"
-        >
-          View Full →
-        </Link>
-      </div>
-
-      {/* Balance Display */}
-      <div className="mb-4">
-        <div className="text-sm text-gray-400 mb-1">Balance</div>
-        <div className="text-3xl font-bold text-neon-cyan">
-          {loading ? '...' : formatBalance(balance)}
-          <span className="text-xl text-gray-400 ml-2">CGT</span>
+    <div className="glass-panel rounded-xl p-6 border border-neon-cyan/20 relative overflow-hidden">
+      {/* Glow effect */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-neon-cyan/10 rounded-full blur-3xl" />
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-grunge text-neon-cyan">💎 Wallet</h3>
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-yellow-400'}`} />
+            <span className="text-xs text-gray-500">
+              {isConnected ? 'Live' : 'Mock'}
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* Address */}
-      {address && (
-        <div className="mb-4">
-          <div className="text-sm text-gray-400 mb-1">Address</div>
+        {/* Balance Display */}
+        <div className="mb-6">
+          <div className="text-xs text-gray-400 mb-1">Available Balance</div>
+          <div className="text-4xl font-grunge text-white">
+            {loading ? (
+              <span className="animate-pulse">...</span>
+            ) : (
+              <>
+                {formatBalance(balance)}
+                <span className="text-lg text-neon-cyan ml-2">CGT</span>
+              </>
+            )}
+          </div>
+          <div className="text-sm text-gray-500 mt-1">
+            ≈ {loading ? '...' : (parseFloat(formatBalance(balance)) * 100).toLocaleString()} Sparks
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex gap-2 mb-6">
           <button
-            onClick={handleCopy}
-            className="glass-panel px-3 py-2 rounded text-sm font-mono text-gray-300 hover:text-white transition-colors w-full text-left"
+            onClick={() => setShowSendModal(true)}
+            disabled={!address}
+            className="flex-1 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 text-black font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
           >
-            {copied ? 'Copied!' : truncateAddress(address)}
+            ↑ Send
+          </button>
+          <button
+            onClick={() => setShowReceiveModal(true)}
+            disabled={!address}
+            className="flex-1 glass-panel py-2 px-4 rounded-lg hover:border-neon-cyan/50 border border-transparent transition-all disabled:opacity-50"
+          >
+            ↓ Receive
           </button>
         </div>
+
+        {/* Address */}
+        {address && (
+          <div className="mb-4">
+            <div className="text-xs text-gray-400 mb-1">Public Address</div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-black/30 rounded px-3 py-2 text-xs font-mono text-gray-300 truncate">
+                {address}
+              </div>
+              <button
+                onClick={handleCopy}
+                className="px-3 py-2 glass-panel rounded text-xs hover:text-neon-cyan transition-colors"
+              >
+                {copied ? '✓' : '📋'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Energy Display */}
+        {address && (
+          <div className="pt-4 border-t border-white/5">
+            <EnergyDisplay address={address} compact />
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      {showSendModal && address && (
+        <SendCGTModal
+          isOpen={showSendModal}
+          onClose={() => setShowSendModal(false)}
+          fromAddress={address}
+          currentBalance={balance}
+        />
       )}
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-2">
-        <Link
-          href="/wallet?action=send"
-          className="glass-panel py-2 px-3 rounded text-center text-sm text-neon-cyan hover:chroma-glow transition-all"
-        >
-          Send
-        </Link>
-        <Link
-          href="/wallet?action=receive"
-          className="glass-panel py-2 px-3 rounded text-center text-sm text-neon-magenta hover:chroma-glow transition-all"
-        >
-          Receive
-        </Link>
-      </div>
-
-      {/* Connection Status */}
-      <div className="mt-4 pt-4 border-t border-dark-600">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-400">Blockchain</span>
-          <span className={isConnected ? 'text-neon-green' : 'text-yellow-400'}>
-            {isConnected ? '● Connected' : '○ Mock Mode'}
-          </span>
-        </div>
-      </div>
+      {showReceiveModal && address && (
+        <ReceiveCGTModal
+          isOpen={showReceiveModal}
+          onClose={() => setShowReceiveModal(false)}
+          address={address}
+        />
+      )}
     </div>
   );
 }

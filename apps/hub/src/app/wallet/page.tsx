@@ -1,6 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+/**
+ * DEPRECATED: The standalone wallet page has been moved to the Dashboard.
+ * This page now redirects to /portal where the Wallet Widget is available.
+ */
+export default function WalletPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to the new dashboard
+    router.replace('/portal');
+  }, [router]);
+
+  return (
+    <main className="min-h-screen p-8 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-cyan mx-auto mb-4" />
+        <p className="text-gray-400">Redirecting to Dashboard...</p>
+        <p className="text-gray-500 text-sm mt-2">
+          The wallet is now part of your Dashboard.
+        </p>
+      </div>
+    </main>
+  );
+}
+
+/* Original wallet page preserved below for reference - DELETE after confirming redirect works
+
+import { useState } from 'react';
 import { qorAuth } from '@demiurge/qor-sdk';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBlockchain } from '@/contexts/BlockchainContext';
@@ -14,7 +44,7 @@ import { EnhancedSessionKeyManager } from '@/components/wallet/EnhancedSessionKe
 import { WalletSelector } from '@/components/wallet/WalletSelector';
 import { EnergyDisplay } from '@/components/energy/EnergyDisplay';
 
-export default function WalletPage() {
+export function WalletPageLegacy() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const { getBalance, isConnected } = useBlockchain();
   const [balance, setBalance] = useState('0');

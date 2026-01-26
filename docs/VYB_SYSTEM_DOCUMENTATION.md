@@ -1,6 +1,6 @@
 # VYB Social Platform - Complete System Documentation
 
-> **Version**: 1.0.0  
+> **Version**: 1.1.0  
 > **Platform**: Demiurge Blockchain Ecosystem  
 > **Framework**: Next.js 14 (React 18)  
 > **Language**: TypeScript  
@@ -24,6 +24,13 @@
 12. [Integration Points](#12-integration-points)
 13. [API Reference](#13-api-reference)
 14. [File Structure](#14-file-structure)
+15. [Sophia AI System](#15-sophia-ai-system)
+16. [Phase 2 Web3 Native Roadmap](#16-phase-2-web3-native-roadmap)
+
+---
+
+> **Related Documentation:**
+> - [Sophia AI & Phase 2 Architecture](./VYB_PHASE_2_WEB3_NATIVE_ARCHITECTURE.md) - Complete Web3 native upgrade roadmap
 
 ---
 
@@ -1216,4 +1223,103 @@ apps/hub/src/
 
 ---
 
-*Documentation generated for Demiurge VYB Social Platform v1.0.0*
+## 15. Sophia AI System
+
+### Overview
+
+Sophia is the AI system entity of the Demiurge ecosystem, serving dual functions:
+
+1. **Lorekeeper**: Answers questions about Demiurge lore, history, and mechanics using RAG (Retrieval Augmented Generation)
+2. **Enforcer**: Moderates content with a progressive discipline system
+
+### Core Components
+
+```typescript
+// lib/vyb/sophia-types.ts
+interface ModerationProfile {
+  qorId: string;
+  strikeCount: number;
+  banStatus: BanStatus;
+  reputationScore: number;  // Karma
+}
+
+// Justice Scale (9 levels)
+const SOPHIA_JUSTICE_SCALE = [
+  { level: 0, triggerStrikeCount: 1, durationMinutes: 0, label: "First Warning" },
+  { level: 1, triggerStrikeCount: 2, durationMinutes: 0, label: "Final Warning" },
+  { level: 2, triggerStrikeCount: 3, durationMinutes: 5, label: "Time Out" },
+  // ... up to level 8: Permanent Exile
+];
+```
+
+### Karma System
+
+| Tier | Karma Range | Permissions |
+|------|-------------|-------------|
+| Newcomer | 0-99 | post, comment, like |
+| Citizen | 100-499 | + create_groups, tip |
+| Trusted | 500-999 | + livestream |
+| Elder | 1000-4999 | + vote_moderation |
+| Oracle | 5000+ | + propose_governance |
+
+### Sophia Components
+
+| Component | Purpose |
+|-----------|---------|
+| `<SophiaBadge />` | Golden halo indicator for System Entity |
+| `<SophiaChat />` | DM interface to consult the Oracle |
+| `<ModerationOverlay />` | Ghost Mode banner during bans |
+| `<KarmaDisplay />` | Reputation with tier progress |
+
+### Usage
+
+```typescript
+import { sophiaAgent, checkContent, askSophia } from '@/lib/vyb/sophia-agent';
+
+// Check content before posting
+const allowed = await checkContent(postContent, userQorId);
+
+// Consult Sophia about lore
+const response = await askSophia("What is CGT?", userQorId);
+```
+
+### Sophia Identity
+
+```typescript
+const SOPHIA_IDENTITY = {
+  qorId: 'sophia#0001',
+  displayName: 'Sophia',
+  role: 'deity',
+  primaryColor: '#FFD700',  // Gold
+};
+```
+
+---
+
+## 16. Phase 2 Web3 Native Roadmap
+
+VYB is designed to evolve into a fully Web3 native platform. See the complete Phase 2 architecture document for details:
+
+**[VYB Phase 2: Web3 Native Architecture](./VYB_PHASE_2_WEB3_NATIVE_ARCHITECTURE.md)**
+
+### Planned Integrations
+
+| Technology | Purpose |
+|------------|---------|
+| Ceramic Network | Decentralized profile storage |
+| XMTP | E2E encrypted messaging |
+| Lit Protocol | Token-gated access control |
+| Pinecone | Vector DB for Sophia RAG |
+| Soulbound Tokens | Non-transferable karma |
+
+### "Next-Gen" Litmus Test
+
+| Test | Current | Phase 2 |
+|------|---------|---------|
+| Portable social graph | ❌ | ✅ Ceramic |
+| Censorship-resistant chat | ❌ | ✅ XMTP |
+| Transparent moderation | ❌ | ✅ On-chain |
+
+---
+
+*Documentation generated for Demiurge VYB Social Platform v1.1.0*
