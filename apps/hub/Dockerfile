@@ -37,7 +37,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app/apps/hub
 RUN npm run build
 
-# Stage 3: Runner (minimal production image)
+# Stage 3: Runner (production image with all dependencies)
 FROM node:20-alpine AS runner
 WORKDIR /app
 
@@ -48,10 +48,16 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built application (standalone output includes only required node_modules)
+# Copy node_modules for production
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy built application
 COPY --from=builder /app/apps/hub/public ./public
-COPY --from=builder /app/apps/hub/.next/standalone ./
-COPY --from=builder /app/apps/hub/.next/static ./.next/static
+COPY --from=builder /app/apps/hub/.next ./.next
+COPY --from=builder /app/apps/hub/package.json ./package.json
+
+# Copy workspace packages (needed for runtime)
+COPY --from=builder /app/packages ./packages
 
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app
@@ -63,4 +69,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["npm", "run", "start"]
