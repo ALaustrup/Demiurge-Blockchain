@@ -226,7 +226,7 @@ export default function SocialPage() {
       <WelcomeModal
         isOpen={showWelcome}
         onClose={handleWelcomeClose}
-        walletAddress={user?.wallet_address}
+        walletAddress={user?.id ? `0x${user.id.slice(0, 40)}` : undefined}
         qorId={user?.qor_id}
       />
     </main>
