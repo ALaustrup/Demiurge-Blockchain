@@ -97,7 +97,7 @@ export function UserIdentityHeader() {
         {/* User Info */}
         <div className="flex-1 text-center md:text-left">
           <h1 className="text-3xl md:text-4xl font-grunge text-white animate-text-glow">
-            {user.username || user.qor_id?.split('#')[0] || 'Architect'}
+            {user.qor_id?.split('#')[0] || 'Architect'}
           </h1>
           <div className="flex items-center justify-center md:justify-start gap-3 mt-2">
             <span className="text-neon-cyan font-mono text-sm">
