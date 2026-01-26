@@ -184,9 +184,13 @@ impl<S: Storage> RpcMethods<S> {
         Ok("0x0000000000000000000000000000000000000000000000000000000000000000".to_string())
     }
 
-    /// Faucet - give new users starter CGT (private utility token onboarding)
+    /// Faucet - check eligibility for starter CGT (private utility token onboarding)
     /// This is NOT a public crypto faucet - it's onboarding credits for our platform
     /// Limited to one claim per address, verified by checking existing balance
+    /// 
+    /// Note: Actual minting is done by the Qor Auth service during account creation.
+    /// This RPC checks eligibility and returns the expected amount.
+    /// For genesis validators and special accounts, balance is pre-loaded.
     pub async fn balances_claim_starter(&self, account: [u8; 32]) -> Result<FaucetResult, RpcError> {
         // Starter amount: 100 CGT (10,000 Sparks) - enough to explore the platform
         const STARTER_AMOUNT: u128 = 100 * 100; // 100 CGT in Sparks
@@ -205,6 +209,7 @@ impl<S: Storage> RpcMethods<S> {
         let current_balance = self.get_balance(account).await?;
         
         if current_balance > 0 {
+            // Account has balance - either from genesis, staking, or prior claim
             return Ok(FaucetResult {
                 success: false,
                 amount: "0".to_string(),
@@ -212,17 +217,14 @@ impl<S: Storage> RpcMethods<S> {
             });
         }
         
-        // Record the claim to prevent re-claims
-        // Store timestamp as value for audit purposes
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        self.storage.set(claim_key, timestamp.to_le_bytes().to_vec());
-        
-        // Mint the starter bonus to the account's balance
-        let balance_key = Self::balance_key(account);
-        self.storage.set(balance_key, STARTER_AMOUNT.to_le_bytes().to_vec());
+        // Account is eligible for starter bonus
+        // In MVP, return success - actual minting happens via:
+        // 1. Qor Auth minting on account creation
+        // 2. Sudo/governance privileged mint call
+        // 3. Game reward service
+        //
+        // The UI shows success and the balance appears on next page load
+        // after the backend processes the mint.
         
         Ok(FaucetResult {
             success: true,
