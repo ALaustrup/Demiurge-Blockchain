@@ -327,7 +327,7 @@ export class WebRTCClient {
 
         // Check for new/left participants
         const currentPeers = new Set(this.peers.keys());
-        const serverParticipants = new Set(participants);
+        const serverParticipants = new Set<string>(participants as string[]);
 
         // Handle new participants
         for (const peerId of serverParticipants) {
