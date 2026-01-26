@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVYB } from '@/contexts/VYBContext';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { 
   Feed, 
   ProfileCard, 
@@ -12,6 +13,7 @@ import {
   MediaGallery,
   Messages,
   ServiceMarketplace,
+  TopFriends,
 } from '@/components/vyb';
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
 
@@ -71,6 +73,24 @@ export default function SocialPage() {
     { id: 'notifications', label: 'Notifications', icon: '🔔', badge: unreadNotificationCount },
   ];
 
+  // Quick navigation items
+  const quickNav = [
+    { href: '/social/friends', icon: '👥', label: 'Friends', count: 142 },
+    { href: '/social/groups', icon: '🏛️', label: 'Groups', count: 8 },
+    { href: '/social/events', icon: '📅', label: 'Events', count: 3 },
+    { href: '/games', icon: '🎮', label: 'Games' },
+    { href: '/music', icon: '🎵', label: 'Music' },
+    { href: '/marketplace', icon: '🛒', label: 'Market' },
+  ];
+
+  // Online friends mock
+  const onlineFriends = [
+    { id: '1', name: 'CryptoArtist', icon: '🎨', status: 'Playing Cosmic Drift' },
+    { id: '2', name: 'BlockDev', icon: '💻', status: 'Online' },
+    { id: '3', name: 'PixelKing', icon: '🎮', status: 'In Voice Room' },
+    { id: '4', name: 'SynthMaster', icon: '🎵', status: 'Listening to music' },
+  ];
+
   return (
     <main className="min-h-screen">
       {/* Header */}
@@ -81,18 +101,40 @@ export default function SocialPage() {
               <h1 className="text-4xl font-grunge bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">
                 VYB
               </h1>
-              <p className="text-gray-400 font-body">On-Chain Creator Economy</p>
+              <p className="text-gray-400 font-body">Your On-Chain Social Network</p>
             </div>
             <div className="flex items-center gap-3">
               <ProfileCustomizer />
-              <button className="glass-panel p-3 rounded-lg hover:border-neon-cyan/50 transition-colors">
+              <Link 
+                href="/settings" 
+                className="glass-panel p-3 rounded-lg hover:border-neon-cyan/50 transition-colors"
+              >
                 ⚙️
-              </button>
+              </Link>
             </div>
           </div>
 
+          {/* Quick Navigation Bar */}
+          <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-2">
+            {quickNav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blockchain-light/30 border border-gray-700 hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-all whitespace-nowrap group"
+              >
+                <span className="group-hover:scale-110 transition-transform">{item.icon}</span>
+                <span className="text-gray-300 text-sm group-hover:text-white">{item.label}</span>
+                {item.count !== undefined && (
+                  <span className="text-xs bg-neon-cyan/20 text-neon-cyan px-2 py-0.5 rounded-full">
+                    {item.count}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </div>
+
           {/* Tabs */}
-          <div className="flex gap-2 mt-6 overflow-x-auto">
+          <div className="flex gap-2 mt-4 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -121,15 +163,92 @@ export default function SocialPage() {
         {/* Feed Tab */}
         {activeTab === 'feed' && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Left Sidebar */}
+            <div className="hidden lg:block space-y-6">
+              <ProfileCard />
+              
+              {/* Online Friends */}
+              <div className="glass-panel p-4 rounded-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-grunge-alt text-lg text-green-400 flex items-center gap-2">
+                    🟢 Online
+                  </h3>
+                  <span className="text-gray-500 text-xs">{onlineFriends.length} friends</span>
+                </div>
+                <div className="space-y-3">
+                  {onlineFriends.map((friend) => (
+                    <Link
+                      key={friend.id}
+                      href={`/social/profile/${friend.id}`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors group"
+                    >
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-cyan/50 to-neon-purple/50 flex items-center justify-center text-lg">
+                          {friend.icon}
+                        </div>
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-blockchain-dark" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm group-hover:text-neon-cyan transition-colors truncate">
+                          {friend.name}
+                        </p>
+                        <p className="text-gray-500 text-xs truncate">{friend.status}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                <Link 
+                  href="/social/friends"
+                  className="block text-center text-neon-cyan text-sm mt-4 hover:underline"
+                >
+                  See all friends →
+                </Link>
+              </div>
+
+              {/* My Groups */}
+              <div className="glass-panel p-4 rounded-xl">
+                <h3 className="font-grunge-alt text-lg text-neon-purple mb-4 flex items-center gap-2">
+                  🏛️ My Groups
+                </h3>
+                <div className="space-y-2">
+                  {[
+                    { name: 'Cosmic Drift Players', icon: '🌌', members: 1247 },
+                    { name: 'NFT Artists Collective', icon: '🎨', members: 892 },
+                    { name: 'Demiurge Developers', icon: '💻', members: 456 },
+                  ].map((group, i) => (
+                    <Link
+                      key={i}
+                      href={`/social/groups/${i+1}`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors group"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-neon-purple/50 to-neon-cyan/50 flex items-center justify-center">
+                        {group.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm group-hover:text-neon-purple transition-colors truncate">
+                          {group.name}
+                        </p>
+                        <p className="text-gray-500 text-xs">{group.members} members</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                <Link 
+                  href="/social/groups"
+                  className="block text-center text-neon-purple text-sm mt-4 hover:underline"
+                >
+                  Browse groups →
+                </Link>
+              </div>
+            </div>
+
             {/* Main Feed */}
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-2">
               <Feed />
             </div>
 
-            {/* Sidebar */}
+            {/* Right Sidebar */}
             <div className="space-y-6">
-              <ProfileCard />
-              
               {/* Quick Stats */}
               <div className="glass-panel p-4 rounded-xl">
                 <h3 className="font-grunge-alt text-lg text-neon-cyan mb-4">📊 This Week</h3>
@@ -139,8 +258,8 @@ export default function SocialPage() {
                     <span className="text-green-400 font-grunge">+42</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-sm">New Followers</span>
-                    <span className="text-blue-400 font-grunge">+12</span>
+                    <span className="text-gray-400 text-sm">New Friends</span>
+                    <span className="text-blue-400 font-grunge">+8</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400 text-sm">Post Likes</span>
@@ -175,27 +294,58 @@ export default function SocialPage() {
                 </div>
               </div>
 
-              {/* Suggested Creators */}
+              {/* Upcoming Events */}
               <div className="glass-panel p-4 rounded-xl">
-                <h3 className="font-grunge-alt text-lg text-neon-cyan mb-4">✨ Suggested</h3>
+                <h3 className="font-grunge-alt text-lg text-yellow-400 mb-4">📅 Upcoming</h3>
                 <div className="space-y-3">
                   {[
-                    { name: 'CryptoArtist', role: 'artist', icon: '🎨' },
-                    { name: 'BlockDev', role: 'developer', icon: '💻' },
-                    { name: 'SynthMaster', role: 'musician', icon: '🎵' },
+                    { name: 'NFT Drop: Genesis Collection', time: 'Today 8PM', type: 'drop' },
+                    { name: 'Cosmic Drift Tournament', time: 'Tomorrow 3PM', type: 'tournament' },
+                    { name: 'Dev AMA with Core Team', time: 'Sat 6PM', type: 'ama' },
+                  ].map((event, i) => (
+                    <div key={i} className="p-2 rounded-lg bg-blockchain-light/30">
+                      <p className="text-white text-sm">{event.name}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-yellow-400 text-xs">🕐 {event.time}</span>
+                        <button className="text-neon-cyan text-xs hover:underline">RSVP</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Link 
+                  href="/social/events"
+                  className="block text-center text-yellow-400 text-sm mt-4 hover:underline"
+                >
+                  View all events →
+                </Link>
+              </div>
+
+              {/* Suggested Creators */}
+              <div className="glass-panel p-4 rounded-xl">
+                <h3 className="font-grunge-alt text-lg text-neon-cyan mb-4">✨ People to Follow</h3>
+                <div className="space-y-3">
+                  {[
+                    { name: 'CryptoArtist', role: 'artist', icon: '🎨', mutuals: 12 },
+                    { name: 'BlockDev', role: 'developer', icon: '💻', mutuals: 8 },
+                    { name: 'SynthMaster', role: 'musician', icon: '🎵', mutuals: 5 },
                   ].map((creator, i) => (
                     <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neon-cyan/50 to-neon-purple/50 flex items-center justify-center text-sm">
+                      <Link 
+                        href={`/social/profile/${creator.name.toLowerCase()}`}
+                        className="flex items-center gap-2 group"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-cyan/50 to-neon-purple/50 flex items-center justify-center text-sm">
                           {creator.icon}
                         </div>
                         <div>
-                          <p className="text-white text-sm">{creator.name}</p>
-                          <p className="text-gray-500 text-xs capitalize">{creator.role}</p>
+                          <p className="text-white text-sm group-hover:text-neon-cyan transition-colors">
+                            {creator.name}
+                          </p>
+                          <p className="text-gray-500 text-xs">{creator.mutuals} mutual friends</p>
                         </div>
-                      </div>
-                      <button className="text-neon-cyan text-sm hover:text-neon-cyan/80 transition-colors">
-                        Follow
+                      </Link>
+                      <button className="text-neon-cyan text-sm hover:bg-neon-cyan/10 px-3 py-1 rounded-full transition-colors">
+                        + Add
                       </button>
                     </div>
                   ))}

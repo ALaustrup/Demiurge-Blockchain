@@ -8,6 +8,12 @@ export { Messages } from './Messages';
 export { NotificationsPanel } from './NotificationsPanel';
 export { ServiceMarketplace } from './ServiceMarketplace';
 
+// Enhanced Social Network Components
+export { ProfileWall } from './ProfileWall';
+export { TopFriends } from './TopFriends';
+export { MoodStatus } from './MoodStatus';
+export { AboutMe } from './AboutMe';
+
 // Sophia AI Components
 export { SophiaBadge } from './SophiaBadge';
 export { SophiaChat } from './SophiaChat';
