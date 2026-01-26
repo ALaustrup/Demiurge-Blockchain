@@ -188,21 +188,10 @@ impl<S: Storage> RpcMethods<S> {
     /// This is NOT a public crypto faucet - it's onboarding credits for our platform
     /// Limited to one claim per address, verified by checking existing balance
     pub async fn balances_claim_starter(&self, account: [u8; 32]) -> Result<FaucetResult, RpcError> {
-        // Check if account already has a balance (prevents abuse)
-        let current_balance = self.get_balance(account).await?;
-        
         // Starter amount: 100 CGT (10,000 Sparks) - enough to explore the platform
         const STARTER_AMOUNT: u128 = 100 * 100; // 100 CGT in Sparks
         
-        if current_balance > 0 {
-            return Ok(FaucetResult {
-                success: false,
-                amount: "0".to_string(),
-                message: "Account already has CGT balance. Starter bonus is for new accounts only.".to_string(),
-            });
-        }
-        
-        // Check faucet claim history (prevent re-claims even after spending)
+        // Check faucet claim history first (prevent re-claims even after spending)
         let claim_key = Self::faucet_claim_key(account);
         if self.storage.get(&claim_key).is_some() {
             return Ok(FaucetResult {
@@ -212,9 +201,28 @@ impl<S: Storage> RpcMethods<S> {
             });
         }
         
-        // In production, this would mint from treasury or a faucet pool
-        // For now, we just record the claim and return success
-        // The actual minting would be done via a privileged transaction
+        // Check if account already has a balance (prevents abuse)
+        let current_balance = self.get_balance(account).await?;
+        
+        if current_balance > 0 {
+            return Ok(FaucetResult {
+                success: false,
+                amount: "0".to_string(),
+                message: "Account already has CGT balance. Starter bonus is for new accounts only.".to_string(),
+            });
+        }
+        
+        // Record the claim to prevent re-claims
+        // Store timestamp as value for audit purposes
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        self.storage.set(claim_key, timestamp.to_le_bytes().to_vec());
+        
+        // Mint the starter bonus to the account's balance
+        let balance_key = Self::balance_key(account);
+        self.storage.set(balance_key, STARTER_AMOUNT.to_le_bytes().to_vec());
         
         Ok(FaucetResult {
             success: true,
