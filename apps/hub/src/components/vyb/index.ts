@@ -1,3 +1,4 @@
+// Core VYB Components
 export { Feed } from './Feed';
 export { FeedCard } from './FeedCard';
 export { ProfileCard } from './ProfileCard';
@@ -6,3 +7,9 @@ export { MediaGallery } from './MediaGallery';
 export { Messages } from './Messages';
 export { NotificationsPanel } from './NotificationsPanel';
 export { ServiceMarketplace } from './ServiceMarketplace';
+
+// Sophia AI Components
+export { SophiaBadge } from './SophiaBadge';
+export { SophiaChat } from './SophiaChat';
+export { ModerationOverlay, BanIndicator } from './ModerationOverlay';
+export { KarmaDisplay, KarmaBadge, KarmaChange } from './KarmaDisplay';
