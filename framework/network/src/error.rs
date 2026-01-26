@@ -25,4 +25,13 @@ pub enum NetworkError {
 
     #[error("Invalid message")]
     InvalidMessage,
+    
+    #[error("Invalid address: {0}")]
+    InvalidAddress(String),
+    
+    #[error("Connection timeout")]
+    ConnectionTimeout,
+    
+    #[error("Discovery failed: {0}")]
+    DiscoveryFailed(String),
 }

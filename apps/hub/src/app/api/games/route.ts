@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { gameRegistry } from '@/lib/game-registry';
+import { gameRegistry, GameCategory, GameEngine } from '@/lib/game-registry';
 
 /**
  * GET /api/games
@@ -7,8 +7,17 @@ import { gameRegistry } from '@/lib/game-registry';
  */
 export async function GET(request: NextRequest) {
   try {
-    const games = gameRegistry.getAll();
-    console.log(`[API /games] Returning ${games.length} games:`, games.map(g => g.id));
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get('category') as GameCategory | null;
+    
+    let games;
+    if (category) {
+      games = gameRegistry.getByCategory(category);
+    } else {
+      games = gameRegistry.getAll();
+    }
+    
+    console.log(`[API /games] Returning ${games.length} games`);
     return NextResponse.json({ games });
   } catch (error: any) {
     console.error('[API /games] Error:', error);
@@ -35,6 +44,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate and default category and engine
+    const category: GameCategory = body.category || 'casual';
+    const engine: GameEngine = body.engine || 'custom';
+
     // Register game
     gameRegistry.register({
       id: body.id,
@@ -45,7 +58,13 @@ export async function POST(request: NextRequest) {
       version: body.version || '1.0.0',
       author: body.author,
       tags: body.tags || [],
+      category,
+      engine,
+      engineVersion: body.engineVersion,
+      rewards: body.rewards || [],
       minLevel: body.minLevel,
+      cgtEarning: body.cgtEarning,
+      nftSupport: body.nftSupport,
     });
 
     return NextResponse.json({ 

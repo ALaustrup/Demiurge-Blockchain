@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Enable standalone output for Docker deployment
+  output: 'standalone',
   transpilePackages: ['@demiurge/qor-sdk', '@demiurge/ui-shared', '@demiurge/wallet-wasm'],
   // Server Actions are enabled by default in Next.js 15
   // No need for experimental.serverActions

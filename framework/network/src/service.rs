@@ -1,13 +1,16 @@
 //! Network service - Main networking component
+//!
+//! Manages P2P connections, block/transaction propagation, and peer discovery.
 
-use crate::{Result, NetworkError};
+use crate::{Result, NetworkError, PeerDiscovery};
+use crate::discovery::{PeerState, DiscoveredPeer};
 use demiurge_core::Block;
 use libp2p::PeerId;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tracing::{info, warn, debug};
 
 /// Network configuration
 #[derive(Clone, Debug)]
@@ -20,6 +23,12 @@ pub struct NetworkConfig {
     
     /// Node identity (optional - will be generated if not provided)
     pub node_key: Option<[u8; 32]>,
+    
+    /// Maximum number of peers to connect to
+    pub max_peers: usize,
+    
+    /// Connection timeout in seconds
+    pub connection_timeout_secs: u64,
 }
 
 impl Default for NetworkConfig {
@@ -28,6 +37,8 @@ impl Default for NetworkConfig {
             listen_addr: "0.0.0.0:30333".parse().unwrap(),
             bootstrap_peers: vec![],
             node_key: None,
+            max_peers: 50,
+            connection_timeout_secs: 30,
         }
     }
 }
@@ -40,6 +51,9 @@ pub struct NetworkService {
     /// Connected peers
     peers: Arc<RwLock<HashMap<PeerId, PeerInfo>>>,
     
+    /// Peer discovery service
+    discovery: Arc<RwLock<PeerDiscovery>>,
+    
     /// Pending outbound blocks to broadcast
     pending_blocks: Arc<RwLock<Vec<Block>>>,
     
@@ -48,6 +62,9 @@ pub struct NetworkService {
     
     /// Running flag
     running: bool,
+    
+    /// Local peer ID (generated or from node key)
+    local_peer_id: Option<PeerId>,
 }
 
 /// Peer information
@@ -68,12 +85,16 @@ impl NetworkService {
     
     /// Create a new network service with custom config
     pub fn with_config(config: NetworkConfig) -> Result<Self> {
+        let discovery = PeerDiscovery::new(config.bootstrap_peers.clone());
+        
         Ok(Self {
             config,
             peers: Arc::new(RwLock::new(HashMap::new())),
+            discovery: Arc::new(RwLock::new(discovery)),
             pending_blocks: Arc::new(RwLock::new(Vec::new())),
             pending_transactions: Arc::new(RwLock::new(Vec::new())),
             running: false,
+            local_peer_id: None,
         })
     }
 
@@ -85,17 +106,78 @@ impl NetworkService {
         
         info!("Starting P2P network on {:?}", self.config.listen_addr);
         
-        // Connect to bootstrap peers
-        for peer_addr in &self.config.bootstrap_peers {
-            info!("Connecting to bootstrap peer: {}", peer_addr);
-            // Note: Full libp2p integration would go here
-            // For now, we log and continue - actual connection requires swarm setup
+        // Initialize bootstrap peer connections
+        let bootstrap_addrs = {
+            let discovery = self.discovery.read().await;
+            discovery.get_bootstrap_addrs()
+        };
+        
+        info!("Connecting to {} bootstrap peers...", bootstrap_addrs.len());
+        
+        for (multiaddr, peer_id_opt) in &bootstrap_addrs {
+            info!("  Bootstrap peer: {}", multiaddr);
+            
+            // Add bootstrap peers to discovery with their addresses
+            if let Some(peer_id) = peer_id_opt {
+                let mut discovery = self.discovery.write().await;
+                discovery.add_peer_with_addr(*peer_id, multiaddr.clone(), true);
+            }
+            
+            // TODO: Initiate actual libp2p connection via swarm
+            // For now, log the connection attempt
+            debug!("Would connect to bootstrap peer: {:?}", multiaddr);
         }
         
         self.running = true;
-        info!("P2P network started");
+        info!("P2P network started with {} bootstrap peers configured", bootstrap_addrs.len());
+        
+        // Start background peer discovery loop
+        let discovery_clone = self.discovery.clone();
+        let peers_clone = self.peers.clone();
+        tokio::spawn(async move {
+            Self::peer_discovery_loop(discovery_clone, peers_clone).await;
+        });
         
         Ok(())
+    }
+    
+    /// Background peer discovery loop
+    async fn peer_discovery_loop(
+        discovery: Arc<RwLock<PeerDiscovery>>,
+        _peers: Arc<RwLock<HashMap<PeerId, PeerInfo>>>,
+    ) {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
+        
+        loop {
+            interval.tick().await;
+            
+            // Prune failed peers
+            {
+                let mut disc = discovery.write().await;
+                disc.prune_failed_peers(5);
+            }
+            
+            // Discover new peers
+            let peers_to_connect = {
+                let mut disc = discovery.write().await;
+                match disc.discover().await {
+                    Ok(peers) => peers,
+                    Err(e) => {
+                        warn!("Peer discovery failed: {:?}", e);
+                        continue;
+                    }
+                }
+            };
+            
+            if !peers_to_connect.is_empty() {
+                debug!("Attempting to connect to {} discovered peers", peers_to_connect.len());
+                
+                // TODO: Initiate connections via libp2p swarm
+                for peer_id in peers_to_connect {
+                    debug!("Would attempt connection to peer: {}", peer_id);
+                }
+            }
+        }
     }
     
     /// Stop the network service
@@ -121,13 +203,14 @@ impl NetworkService {
         if peer_count == 0 {
             // Queue block for later broadcast
             self.pending_blocks.write().await.push(block.clone());
+            debug!("Block {} queued for broadcast (no peers connected)", block.header.block_number);
             return Ok(());
         }
         
         info!("Broadcasting block {} to {} peers", block.header.block_number, peer_count);
         
         // In a full implementation, this would serialize the block and send to all peers
-        // For now, we just log the action
+        // TODO: Implement block propagation via libp2p gossipsub
         
         Ok(())
     }
@@ -139,10 +222,13 @@ impl NetworkService {
         if peer_count == 0 {
             // Queue transaction for later broadcast
             self.pending_transactions.write().await.push(tx.clone());
+            debug!("Transaction queued for broadcast (no peers connected)");
             return Ok(());
         }
         
         info!("Broadcasting transaction to {} peers", peer_count);
+        
+        // TODO: Implement transaction propagation via libp2p gossipsub
         
         Ok(())
     }
@@ -153,6 +239,11 @@ impl NetworkService {
             .values()
             .filter(|p| p.connected)
             .count()
+    }
+    
+    /// Get discovery peer count (includes pending connections)
+    pub async fn discovered_peer_count(&self) -> usize {
+        self.discovery.read().await.connected_count()
     }
 
     /// Get peer information
@@ -169,30 +260,56 @@ impl NetworkService {
             .collect()
     }
     
+    /// Get all discovered peers
+    pub async fn get_discovered_peers(&self) -> Vec<DiscoveredPeer> {
+        self.discovery.read().await
+            .all_peers()
+            .values()
+            .cloned()
+            .collect()
+    }
+    
     /// Add a peer manually (for testing or manual peer management)
     pub async fn add_peer(&mut self, peer_id: PeerId, address: String) -> Result<()> {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        
         let peer_info = PeerInfo {
             peer_id,
-            address,
+            address: address.clone(),
             connected: false,
-            last_seen: 0,
+            last_seen: now,
             block_height: 0,
         };
         
         self.peers.write().await.insert(peer_id, peer_info);
+        
+        // Also add to discovery
+        if let Ok(multiaddr) = address.parse() {
+            let mut discovery = self.discovery.write().await;
+            discovery.add_peer_with_addr(peer_id, multiaddr, false);
+        }
+        
         Ok(())
     }
     
     /// Mark a peer as connected
     pub async fn peer_connected(&mut self, peer_id: &PeerId) {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        
         if let Some(peer) = self.peers.write().await.get_mut(peer_id) {
             peer.connected = true;
-            peer.last_seen = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
+            peer.last_seen = now;
             info!("Peer connected: {}", peer_id);
         }
+        
+        // Update discovery state
+        self.discovery.write().await.peer_connected(peer_id);
     }
     
     /// Mark a peer as disconnected
@@ -201,11 +318,72 @@ impl NetworkService {
             peer.connected = false;
             warn!("Peer disconnected: {}", peer_id);
         }
+        
+        // Update discovery state
+        self.discovery.write().await.peer_disconnected(peer_id);
+    }
+    
+    /// Handle connection failure
+    pub async fn connection_failed(&mut self, peer_id: &PeerId) {
+        self.discovery.write().await.connection_failed(peer_id);
     }
     
     /// Is the network running?
     pub fn is_running(&self) -> bool {
         self.running
+    }
+    
+    /// Get local peer ID
+    pub fn local_peer_id(&self) -> Option<PeerId> {
+        self.local_peer_id
+    }
+    
+    /// Get pending block count
+    pub async fn pending_block_count(&self) -> usize {
+        self.pending_blocks.read().await.len()
+    }
+    
+    /// Get pending transaction count
+    pub async fn pending_transaction_count(&self) -> usize {
+        self.pending_transactions.read().await.len()
+    }
+    
+    /// Flush pending broadcasts (call when peers connect)
+    pub async fn flush_pending(&mut self) -> Result<()> {
+        let peer_count = self.peer_count().await;
+        if peer_count == 0 {
+            return Ok(());
+        }
+        
+        // Flush pending blocks
+        let pending_blocks = {
+            let mut blocks = self.pending_blocks.write().await;
+            std::mem::take(&mut *blocks)
+        };
+        
+        if !pending_blocks.is_empty() {
+            info!("Flushing {} pending blocks to {} peers", pending_blocks.len(), peer_count);
+            for block in pending_blocks {
+                // TODO: Actually broadcast via libp2p
+                debug!("Would broadcast pending block {}", block.header.block_number);
+            }
+        }
+        
+        // Flush pending transactions
+        let pending_txs = {
+            let mut txs = self.pending_transactions.write().await;
+            std::mem::take(&mut *txs)
+        };
+        
+        if !pending_txs.is_empty() {
+            info!("Flushing {} pending transactions to {} peers", pending_txs.len(), peer_count);
+            for _tx in pending_txs {
+                // TODO: Actually broadcast via libp2p
+                debug!("Would broadcast pending transaction");
+            }
+        }
+        
+        Ok(())
     }
 }
 

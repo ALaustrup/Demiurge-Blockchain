@@ -9,16 +9,21 @@ Type=simple
 User=ubuntu
 Group=ubuntu
 WorkingDirectory=/data/Demiurge-Blockchain/framework
-Environment="RUST_LOG=info"
+Environment="RUST_LOG=info,demiurge=debug"
 Environment="RUST_BACKTRACE=1"
 
+# Node binary with full configuration
+# --genesis: Load initial chain state and validator set
+# --validator-key: Enable validator mode with signing key
 ExecStart=/data/Demiurge-Blockchain/framework/target/release/demiurge-node \
     --data-dir /data/demiurge-chain \
-    --rpc-addr 0.0.0.0:9944 \
+    --rpc-addr 127.0.0.1:9944 \
     --p2p-addr 0.0.0.0:30333 \
     --block-time 2000 \
     --rpc \
-    --p2p
+    --p2p \
+    --genesis /data/demiurge-chain/genesis.json \
+    --validator-key /data/demiurge-chain/validator.key
 
 Restart=always
 RestartSec=10
