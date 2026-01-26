@@ -1,6 +1,7 @@
 /**
  * Sophia Chat API Route
  * Server-side LLM calls to protect API keys
+ * Supports: Grok (xAI), Claude (Anthropic), GPT (OpenAI)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -28,18 +29,57 @@ export async function POST(request: NextRequest) {
   try {
     const { messages, maxTokens = 1024, temperature = 0.7, systemPrompt } = await request.json();
 
-    // Get API key from server environment
+    // Get API keys from server environment (priority: Grok > Anthropic > OpenAI)
+    const grokKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
 
-    if (!anthropicKey && !openaiKey) {
+    if (!grokKey && !anthropicKey && !openaiKey) {
       return NextResponse.json(
         { error: 'LLM API not configured' },
         { status: 503 }
       );
     }
 
-    // Use Anthropic if available, otherwise OpenAI
+    // Use Grok (xAI) if available (preferred for Sophia)
+    if (grokKey) {
+      const grokMessages = [
+        { role: 'system', content: systemPrompt || SOPHIA_LOREKEEPER_PROMPT },
+        ...messages,
+      ];
+
+      const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${grokKey}`,
+        },
+        body: JSON.stringify({
+          model: 'grok-4-latest',
+          max_tokens: maxTokens,
+          temperature,
+          messages: grokMessages,
+          stream: false,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return NextResponse.json({
+          text: data.choices[0].message.content,
+          usage: data.usage ? {
+            promptTokens: data.usage.prompt_tokens,
+            completionTokens: data.usage.completion_tokens,
+            totalTokens: data.usage.total_tokens,
+          } : undefined,
+          model: data.model,
+        });
+      }
+      // If Grok fails, fall through to other providers
+      console.warn('Grok API failed, trying fallback providers');
+    }
+
+    // Fallback to Anthropic if available
     if (anthropicKey) {
       const anthropicMessages = messages
         .filter((m: any) => m.role !== 'system')

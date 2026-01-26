@@ -1,10 +1,12 @@
 /**
  * LLM Client for Sophia AI
  * 
- * Provides integration with Claude (Anthropic) or GPT (OpenAI) for:
+ * Provides integration with Grok (xAI), Claude (Anthropic), or GPT (OpenAI) for:
  * - Content moderation
  * - Lore Q&A (RAG-enhanced)
  * - User assistance
+ * 
+ * Priority: Grok > Claude > GPT
  */
 
 export interface LLMMessage {
@@ -75,21 +77,26 @@ Respond with a JSON object containing:
 Be fair but firm. Not everything is a violation - normal conversation is fine.`,
 };
 
-type LLMProvider = 'anthropic' | 'openai';
+type LLMProvider = 'grok' | 'anthropic' | 'openai';
 
 class LLMClient {
   private provider: LLMProvider;
+  private grokApiKey: string | null = null;
   private anthropicApiKey: string | null = null;
   private openaiApiKey: string | null = null;
   private modelName: string;
 
   constructor() {
     // Load API keys from environment
+    this.grokApiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY || null;
     this.anthropicApiKey = process.env.ANTHROPIC_API_KEY || null;
     this.openaiApiKey = process.env.OPENAI_API_KEY || null;
 
-    // Determine provider based on available keys (prefer Anthropic)
-    if (this.anthropicApiKey) {
+    // Determine provider based on available keys (prefer Grok > Anthropic > OpenAI)
+    if (this.grokApiKey) {
+      this.provider = 'grok';
+      this.modelName = 'grok-4-latest';
+    } else if (this.anthropicApiKey) {
       this.provider = 'anthropic';
       this.modelName = 'claude-3-5-sonnet-20241022';
     } else if (this.openaiApiKey) {
@@ -97,8 +104,8 @@ class LLMClient {
       this.modelName = 'gpt-4o';
     } else {
       // Fallback to API route which handles server-side keys
-      this.provider = 'anthropic';
-      this.modelName = 'claude-3-5-sonnet-20241022';
+      this.provider = 'grok';
+      this.modelName = 'grok-4-latest';
     }
   }
 
@@ -115,7 +122,11 @@ class LLMClient {
   ): Promise<LLMResponse> {
     const { maxTokens = 1024, temperature = 0.7, systemPrompt } = options || {};
 
-    // If we have direct API access, use it
+    // If we have direct API access, use it (priority: Grok > Anthropic > OpenAI)
+    if (this.grokApiKey && this.provider === 'grok') {
+      return this.callGrok(messages, { maxTokens, temperature, systemPrompt });
+    }
+
     if (this.anthropicApiKey && this.provider === 'anthropic') {
       return this.callAnthropic(messages, { maxTokens, temperature, systemPrompt });
     }
@@ -126,6 +137,52 @@ class LLMClient {
 
     // Otherwise, use our API route
     return this.callViaApi(messages, { maxTokens, temperature, systemPrompt });
+  }
+
+  /**
+   * Call xAI Grok API directly
+   */
+  private async callGrok(
+    messages: LLMMessage[],
+    options: { maxTokens: number; temperature: number; systemPrompt?: string }
+  ): Promise<LLMResponse> {
+    const { maxTokens, temperature, systemPrompt } = options;
+
+    // Grok uses OpenAI-compatible format
+    const grokMessages = systemPrompt
+      ? [{ role: 'system' as const, content: systemPrompt }, ...messages]
+      : messages;
+
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.grokApiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.modelName,
+        max_tokens: maxTokens,
+        temperature,
+        messages: grokMessages,
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: { message: response.statusText } }));
+      throw new Error(`Grok API error: ${error.error?.message || response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      text: data.choices[0].message.content,
+      usage: data.usage ? {
+        promptTokens: data.usage.prompt_tokens,
+        completionTokens: data.usage.completion_tokens,
+        totalTokens: data.usage.total_tokens,
+      } : undefined,
+      model: data.model,
+    };
   }
 
   /**
