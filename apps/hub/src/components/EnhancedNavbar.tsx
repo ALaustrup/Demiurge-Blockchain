@@ -200,6 +200,13 @@ export function EnhancedNavbar() {
                 NFTs
               </Link>
               <Link 
+                href="/explorer" 
+                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-cyan transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative flex items-center gap-1"
+              >
+                <span className="text-xs">⛓️</span>
+                Explorer
+              </Link>
+              <Link 
                 href="/music" 
                 className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-magenta transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative flex items-center gap-1"
               >
