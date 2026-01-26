@@ -346,12 +346,11 @@ The Chain remembers. Choose wisdom.
     await this.initialize();
 
     // 1. Search for relevant documents using Pinecone
-    let ragResults;
+    let ragResults: Array<{ id: string; score: number; content: string; metadata: any }> = [];
     try {
       ragResults = await searchLore(query, 3);
     } catch (error) {
       console.warn('Pinecone search failed, using fallback:', error);
-      ragResults = [];
     }
 
     // Build context from retrieved documents
