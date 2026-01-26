@@ -6,7 +6,8 @@ export { NFTSnapshotWidget } from './NFTSnapshotWidget';
 export { OnChainFeedWidget } from './OnChainFeedWidget';
 export { UserIdentityHeader } from './UserIdentityHeader';
 
-// Re-export existing dashboard components
-export { default as DailyTasksPanel } from './DailyTasksPanel';
-export { default as UpdatesPanel } from './UpdatesPanel';
-export { default as BlogPanel } from './BlogPanel';
+// Existing dashboard components
+export { ProfileCard } from './ProfileCard';
+export { DailyTasksPanel } from './DailyTasksPanel';
+export { UpdatesPanel } from './UpdatesPanel';
+export { BlogPanel } from './BlogPanel';
