@@ -2,7 +2,7 @@
 # Multi-stage build for optimized Next.js production image
 # Context: Repository root (for workspace packages access)
 
-# Stage 1: Dependencies
+# Stage 1: Dependencies (all deps including devDependencies for build)
 FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -14,8 +14,8 @@ COPY packages/qor-sdk/package.json ./packages/qor-sdk/
 COPY packages/ui-shared/package.json ./packages/ui-shared/
 COPY packages/wallet-wasm/package.json ./packages/wallet-wasm/
 
-# Install all workspace dependencies
-RUN npm install --omit=dev --workspaces --include-workspace-root || npm install --omit=dev
+# Install all dependencies including devDependencies (needed for build)
+RUN npm install --workspaces --include-workspace-root || npm install
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
@@ -31,25 +31,24 @@ COPY packages/ ./packages/
 COPY apps/hub/ ./apps/hub/
 
 # Set environment for build
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build the application
 WORKDIR /app/apps/hub
 RUN npm run build
 
-# Stage 3: Runner
+# Stage 3: Runner (minimal production image)
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built application
+# Copy built application (standalone output includes only required node_modules)
 COPY --from=builder /app/apps/hub/public ./public
 COPY --from=builder /app/apps/hub/.next/standalone ./
 COPY --from=builder /app/apps/hub/.next/static ./.next/static
@@ -61,7 +60,7 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
