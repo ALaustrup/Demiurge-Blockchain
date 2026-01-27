@@ -145,7 +145,7 @@ export default function GameSubmitPage() {
           <h1 className="text-4xl font-bold mb-4 text-white">Submit Your Game</h1>
           <p className="text-gray-400 mb-8">You need to be logged in to submit a game.</p>
           <Link
-            href="/social"
+            href="/login"
             className="inline-block px-8 py-3 bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-black font-bold rounded-lg hover:opacity-80 transition-all"
           >
             Login with QOR ID

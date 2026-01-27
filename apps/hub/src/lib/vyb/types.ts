@@ -309,3 +309,113 @@ export type NotificationType =
   | 'nft_sold'
   | 'order_update'
   | 'system';
+
+// ============ Music Artist Types ============
+
+export interface MusicArtistProfile {
+  id: string;
+  userId: string;
+  qorId: string;
+  artistName: string;
+  bio?: string;
+  avatar?: string;
+  coverImage?: string;
+  primaryGenre: string;
+  genres: string[];
+  socialLinks: MusicArtistSocialLinks;
+  isVerified: boolean;
+  verifiedAt?: Date;
+  artistBadgeId?: string;  // DRC-369 NFT ID
+  releaseCount: number;
+  totalPlays: number;
+  totalCollectors: number;
+  followers: number;
+  following: number;
+  termsAcceptedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MusicArtistSocialLinks {
+  soundcloud?: string;
+  spotify?: string;
+  appleMusic?: string;
+  bandcamp?: string;
+  twitter?: string;
+  instagram?: string;
+  youtube?: string;
+  tiktok?: string;
+  website?: string;
+}
+
+export type ReleaseType = 'single' | 'ep' | 'album';
+
+export interface MusicRelease {
+  id: string;
+  artistId: string;
+  artist: MusicArtistProfile;
+  title: string;
+  releaseType: ReleaseType;
+  coverArt: string;  // IPFS URI
+  coverArtThumbnail?: string;
+  tracks: MusicReleaseTrack[];
+  genre: string;
+  subGenres?: string[];
+  releaseDate: Date;
+  description?: string;
+  credits?: string;
+  upc?: string;  // Optional UPC code
+  
+  // DRC-369 specific
+  nftId: string;
+  metadataUri: string;  // IPFS URI
+  mintedAt: Date;
+  mintCost: number;  // 20/50/75 CGT
+  royaltyBps: number;  // Artist royalty on secondary sales (basis points)
+  
+  // Stats
+  totalPlays: number;
+  totalCollectors: number;
+  likes: number;
+  
+  // Flags
+  isFeatured: boolean;
+  isExplicit: boolean;
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MusicReleaseTrack {
+  id: string;
+  releaseId: string;
+  trackNumber: number;
+  title: string;
+  duration: number;  // Duration in seconds
+  audioUri: string;  // IPFS URI
+  previewUri?: string;  // 30-second preview
+  isrc?: string;  // International Standard Recording Code
+  lyrics?: string;
+  credits?: string;
+  isExplicit: boolean;
+  plays: number;
+}
+
+// Release pricing constants
+export const RELEASE_PRICING = {
+  single: { minTracks: 1, maxTracks: 3, cost: 20 },
+  ep: { minTracks: 4, maxTracks: 7, cost: 50 },
+  album: { minTracks: 8, maxTracks: 50, cost: 75 },
+} as const;
+
+// Helper to determine release type from track count
+export function getReleaseType(trackCount: number): ReleaseType {
+  if (trackCount <= 3) return 'single';
+  if (trackCount <= 7) return 'ep';
+  return 'album';
+}
+
+// Helper to get release cost
+export function getReleaseCost(releaseType: ReleaseType): number {
+  return RELEASE_PRICING[releaseType].cost;
+}
