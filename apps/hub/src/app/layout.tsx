@@ -1,19 +1,20 @@
 import type { Metadata } from 'next'
 import { Orbitron, Rajdhani, Space_Grotesk } from 'next/font/google'
-import { PersistentHUD } from '@demiurge/ui-shared'
 import { BlockchainProvider } from '@/contexts/BlockchainContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { MusicProvider } from '@/contexts/MusicContext'
 import { VYBProvider } from '@/contexts/VYBContext'
 import { VoiceProvider } from '@/contexts/VoiceContext'
-import { WalletDropdownWrapper } from '@/components/WalletDropdownWrapper'
-import { QorIdHeaderWrapper } from '@/components/QorIdHeaderWrapper'
-import { EnhancedNavbar } from '@/components/EnhancedNavbar'
+import { StarfieldBackground, HeaderBar } from '@/components/Launcher'
 import { MusicPlayer } from '@/components/music/MusicPlayer'
-import { VYBChat } from '@/components/VYBChat'
 import './globals.css'
 
-// Grunge/Block font for titles and logos
+// ═══════════════════════════════════════════════════════════════════════════
+// DEMIURGE OS - Root Layout
+// Deep Space Cyber-Noir aesthetic with persistent 3D background
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Primary display font
 const orbitron = Orbitron({ 
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800', '900'],
@@ -21,7 +22,7 @@ const orbitron = Orbitron({
   display: 'swap',
 })
 
-// Alternative grunge font for variety
+// Secondary display font
 const rajdhani = Rajdhani({ 
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
@@ -29,7 +30,7 @@ const rajdhani = Rajdhani({
   display: 'swap',
 })
 
-// Elegant body font
+// Body font
 const spaceGrotesk = Space_Grotesk({ 
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
@@ -38,8 +39,15 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata: Metadata = {
-  title: 'Demiurge.Cloud - The Metaverse Operating System',
-  description: 'The central hub for the Demiurge ecosystem - games, social, and blockchain',
+  title: 'Demiurge - The Metaverse Operating System',
+  description: 'The central hub for the Demiurge ecosystem - games, social, music, and blockchain',
+  keywords: ['blockchain', 'metaverse', 'games', 'music', 'social', 'NFT', 'crypto'],
+  authors: [{ name: 'Demiurge Team' }],
+  openGraph: {
+    title: 'Demiurge - The Metaverse Operating System',
+    description: 'Experience the future of digital interaction',
+    type: 'website',
+  },
 }
 
 export default function RootLayout({
@@ -48,26 +56,30 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${orbitron.variable} ${rajdhani.variable} ${spaceGrotesk.variable}`}>
+    <html 
+      lang="en" 
+      className={`${orbitron.variable} ${rajdhani.variable} ${spaceGrotesk.variable}`}
+      suppressHydrationWarning
+    >
       <body className={`${spaceGrotesk.className} font-body`}>
         <AuthProvider>
           <BlockchainProvider>
             <VYBProvider>
               <VoiceProvider>
                 <MusicProvider>
-                  {/* Animated background with liquid neon glow */}
-                  <div className="fixed inset-0 -z-10 overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#0f0f1a] to-[#050510]"></div>
-                    <div className="liquid-glow"></div>
-                    <div className="neon-grid"></div>
-                  </div>
+                  {/* Persistent 3D Starfield Background */}
+                  <StarfieldBackground />
                   
-                  <EnhancedNavbar />
-                  <div className="relative z-10 pt-20 pb-16">
+                  {/* Header Navigation */}
+                  <HeaderBar />
+                  
+                  {/* Main Content */}
+                  <main className="relative z-10 min-h-screen">
                     {children}
-                  </div>
+                  </main>
+                  
+                  {/* Global Music Player */}
                   <MusicPlayer />
-                  <VYBChat />
                 </MusicProvider>
               </VoiceProvider>
             </VYBProvider>
