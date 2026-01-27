@@ -2,6 +2,7 @@
 export { Feed } from './Feed';
 export { FeedCard } from './FeedCard';
 export { ProfileCard } from './ProfileCard';
+export { DonorUsername, useDonorStatus } from './DonorUsername';
 export { ProfileCustomizer } from './ProfileCustomizer';
 export { MediaGallery } from './MediaGallery';
 export { Messages } from './Messages';

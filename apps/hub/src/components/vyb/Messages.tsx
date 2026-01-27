@@ -5,6 +5,7 @@ import { useVYB } from '@/contexts/VYBContext';
 import { vybService } from '@/lib/vyb/service';
 import type { Conversation, Message } from '@/lib/vyb/types';
 import { VoiceRoom } from './VoiceRoom';
+import { DonorUsername } from './DonorUsername';
 
 export function Messages() {
   const { conversations, unreadMessageCount, refreshConversations, profile } = useVYB();
@@ -127,9 +128,12 @@ export function Messages() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="font-grunge-alt text-white truncate">
-                        {conv.participants[0]?.displayName}
-                      </span>
+                      <DonorUsername
+                        displayName={conv.participants[0]?.displayName || 'Unknown'}
+                        donorTier={conv.participants[0]?.donorTier}
+                        chatPrivileges={conv.participants[0]?.chatPrivileges}
+                        className="text-white truncate"
+                      />
                       {conv.lastMessage && (
                         <span className="text-xs text-gray-500">
                           {formatTime(conv.lastMessage.timestamp)}
@@ -173,7 +177,11 @@ export function Messages() {
                 </div>
                 <div>
                   <h3 className="font-grunge-alt text-white">
-                    {selectedConversation.participants[0]?.displayName}
+                    <DonorUsername
+                      displayName={selectedConversation.participants[0]?.displayName || 'Unknown'}
+                      donorTier={selectedConversation.participants[0]?.donorTier}
+                      chatPrivileges={selectedConversation.participants[0]?.chatPrivileges}
+                    />
                   </h3>
                   <p className="text-xs text-gray-500">
                     {selectedConversation.participants[0]?.isOnline 
@@ -320,7 +328,14 @@ export function Messages() {
               💰 Send CGT Tip
             </h3>
             <p className="text-gray-400 text-sm mb-4">
-              Tip <span className="text-neon-purple">{selectedConversation?.participants[0]?.displayName}</span>
+              Tip{' '}
+              <DonorUsername
+                displayName={selectedConversation?.participants[0]?.displayName || 'Unknown'}
+                donorTier={selectedConversation?.participants[0]?.donorTier}
+                chatPrivileges={selectedConversation?.participants[0]?.chatPrivileges}
+                className="text-neon-purple"
+                showBadge={false}
+              />
             </p>
             <input
               type="number"

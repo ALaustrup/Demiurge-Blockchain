@@ -107,6 +107,9 @@ export interface FeedAuthor {
   avatar?: string;
   isVerified: boolean;
   role: UserRole;
+  // Donor status for VYB chat privileges
+  donorTier?: number;
+  chatPrivileges?: string[];
 }
 
 export interface FeedContent {
@@ -181,6 +184,9 @@ export interface ConversationParticipant {
   avatar?: string;
   isOnline: boolean;
   lastSeen?: Date;
+  // Donor status for VYB chat privileges
+  donorTier?: number;
+  chatPrivileges?: string[];
 }
 
 export interface Message {

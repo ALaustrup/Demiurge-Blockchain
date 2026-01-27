@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useVYB } from '@/contexts/VYBContext';
 import type { FeedItem } from '@/lib/vyb/types';
+import { DonorUsername } from './DonorUsername';
 
 interface FeedCardProps {
   item: FeedItem;
@@ -67,9 +68,13 @@ export function FeedCard({ item }: FeedCardProps) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-grunge-alt text-neon-cyan hover:text-neon-cyan/80 cursor-pointer">
-              {item.author.displayName}
-            </span>
+            <DonorUsername
+              displayName={item.author.displayName}
+              qorId={item.author.qorId}
+              donorTier={item.author.donorTier}
+              chatPrivileges={item.author.chatPrivileges}
+              className="text-neon-cyan hover:text-neon-cyan/80 cursor-pointer"
+            />
             {item.author.isVerified && (
               <span className="text-blue-400 text-sm" title="Verified">✓</span>
             )}
@@ -232,7 +237,14 @@ export function FeedCard({ item }: FeedCardProps) {
               Send CGT Tip
             </h3>
             <p className="text-gray-400 text-sm mb-4">
-              Tip <span className="text-neon-purple">{item.author.displayName}</span>
+              Tip{' '}
+              <DonorUsername
+                displayName={item.author.displayName}
+                donorTier={item.author.donorTier}
+                chatPrivileges={item.author.chatPrivileges}
+                className="text-neon-purple"
+                showBadge={false}
+              />
             </p>
             <div className="mb-4">
               <input
