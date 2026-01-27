@@ -50,20 +50,20 @@ export function UserIdentityHeader() {
             <h1 className="text-3xl font-grunge bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green bg-clip-text text-transparent">
               Welcome to Demiurge
             </h1>
-            <p className="text-gray-400 mt-1">Create your QOR ID to begin your journey</p>
+            <p className="text-gray-400 mt-1">The Metaverse Operating System</p>
           </div>
           <div className="flex gap-3">
             <Link
-              href="/login"
+              href="/games"
               className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-white font-grunge-alt py-3 px-6 rounded-lg hover:scale-105 transition-all"
             >
-              Login
+              Players
             </Link>
             <Link
-              href="/login?step=register"
+              href="/development"
               className="glass-panel border border-neon-cyan/30 text-neon-cyan font-grunge-alt py-3 px-6 rounded-lg hover:border-neon-cyan transition-all"
             >
-              Create QOR ID
+              Developers
             </Link>
           </div>
         </div>

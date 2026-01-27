@@ -105,7 +105,7 @@ export function EnhancedNavbar() {
       <div className="ancient-glow-bg" />
 
       <nav className="fixed top-0 left-0 right-0 z-50 liquid-border border-b-2 wardens-gaze overflow-visible bg-[rgba(10,10,15,0.75)] backdrop-blur-xl shadow-lg">
-        <div className="flex justify-between items-center max-w-7xl mx-auto px-4 py-3">
+        <div className="flex justify-between items-center max-w-7xl mx-auto px-6 md:px-10 py-3">
           {/* Left: Logo + Chain Status */}
           <div className="flex items-center gap-4">
             <Link href="/" className="grunge-text text-3xl font-grunge tracking-wider hover:scale-105 transition-transform ancient-text">
@@ -176,35 +176,16 @@ export function EnhancedNavbar() {
                 Games
               </Link>
               <Link 
-                href="/scattertxt" 
-                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-green transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
-              >
-                ScatterTXT
-              </Link>
-              <Link 
-                href="/wallet" 
-                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-green transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
-              >
-                Wallet
-              </Link>
-              <Link 
-                href="/staking" 
+                href="/social" 
                 className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-purple transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
               >
-                Staking
+                VYB
               </Link>
               <Link 
                 href="/nft-portal" 
                 className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-pink transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative"
               >
                 NFTs
-              </Link>
-              <Link 
-                href="/explorer" 
-                className="font-grunge-alt text-sm uppercase tracking-wider text-white hover:text-neon-cyan transition-all duration-300 hover:chroma-glow px-3 py-1 rounded relative flex items-center gap-1"
-              >
-                <span className="text-xs">⛓️</span>
-                Explorer
               </Link>
               <Link 
                 href="/music" 
@@ -228,6 +209,20 @@ export function EnhancedNavbar() {
               {showMenu && (
                 <div className="cascade-menu open absolute right-0 top-full mt-2 glass-panel p-2 rounded-lg min-w-[180px] z-[200] border border-neon-cyan/50 shadow-2xl bg-[rgba(10,10,15,0.98)] backdrop-blur-[20px]">
                   <Link 
+                    href="/explorer" 
+                    onClick={() => setShowMenu(false)}
+                    className="cascade-menu-item block w-full text-white py-2 px-3 rounded hover:chroma-glow hover:bg-neon-cyan/10 transition-all text-left mb-1"
+                  >
+                    <span className="text-xs mr-2">⛓️</span>Explorer
+                  </Link>
+                  <Link 
+                    href="/staking" 
+                    onClick={() => setShowMenu(false)}
+                    className="cascade-menu-item block w-full text-white py-2 px-3 rounded hover:chroma-glow hover:bg-neon-purple/10 transition-all text-left mb-1"
+                  >
+                    Staking
+                  </Link>
+                  <Link 
                     href="/validators" 
                     onClick={() => setShowMenu(false)}
                     className="cascade-menu-item block w-full text-white py-2 px-3 rounded hover:chroma-glow hover:bg-neon-cyan/10 transition-all text-left mb-1"
@@ -244,16 +239,9 @@ export function EnhancedNavbar() {
                   <Link 
                     href="/development" 
                     onClick={() => setShowMenu(false)}
-                    className="cascade-menu-item block w-full text-white py-2 px-3 rounded hover:chroma-glow hover:bg-neon-green/10 transition-all text-left mb-1"
+                    className="cascade-menu-item block w-full text-white py-2 px-3 rounded hover:chroma-glow hover:bg-neon-green/10 transition-all text-left"
                   >
                     Development
-                  </Link>
-                  <Link 
-                    href="/social" 
-                    onClick={() => setShowMenu(false)}
-                    className="cascade-menu-item block w-full text-white py-2 px-3 rounded hover:chroma-glow hover:bg-neon-purple/10 transition-all text-left"
-                  >
-                    VYB
                   </Link>
                 </div>
               )}
