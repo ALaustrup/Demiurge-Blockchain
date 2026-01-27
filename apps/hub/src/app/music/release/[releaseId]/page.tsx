@@ -73,6 +73,9 @@ export default function ReleaseDetailPage() {
       plays: track.plays || 0,
       likes: 0,
       genre: release?.genre,
+      uploader_id: release?.artistId || '',
+      is_public: true,
+      created_at: release?.createdAt?.toString() || new Date().toISOString(),
     });
   };
 
