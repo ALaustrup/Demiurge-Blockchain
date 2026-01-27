@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HolographicBadge, BadgeDetailModal } from './HolographicBadge';
 import type { MintedBadge, UserBadgeCollection, BadgeCategory } from '@/lib/badges/types';
-import { useQorAuth } from '@demiurge/qor-sdk';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ChainBadgesCollectionProps {
   address?: string;
@@ -24,7 +24,7 @@ export function ChainBadgesCollection({
   showTitle = true,
   maxColumns = 4,
 }: ChainBadgesCollectionProps) {
-  const { user, isAuthenticated } = useQorAuth();
+  const { user, isAuthenticated } = useAuth();
   const [collection, setCollection] = useState<UserBadgeCollection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export function ChainBadgesCollection({
   const [activeCategory, setActiveCategory] = useState<BadgeCategory | 'all'>('all');
 
   // Use provided address or current user's address
-  const targetAddress = address || user?.blockchain_address;
+  const targetAddress = address || user?.on_chain_address || user?.on_chain?.address;
 
   useEffect(() => {
     async function fetchBadges() {

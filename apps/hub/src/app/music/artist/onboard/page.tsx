@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useQorAuth } from '@demiurge/qor-sdk';
+import { useAuth } from '@/contexts/AuthContext';
 import { HolographicBadge } from '@/components/badges';
 import { OFFICIAL_BADGES } from '@/lib/badges/official-badges';
 import type { MintedBadge } from '@/lib/badges/types';
@@ -12,7 +12,7 @@ type OnboardingStep = 'terms' | 'profile' | 'minting' | 'complete';
 
 export default function MusicArtistOnboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useQorAuth();
+  const { user, isAuthenticated, loading: isLoading } = useAuth();
   
   const [step, setStep] = useState<OnboardingStep>('terms');
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -42,10 +42,11 @@ export default function MusicArtistOnboardPage() {
   // Check if user already has artist badge
   useEffect(() => {
     async function checkExistingBadge() {
-      if (!user?.blockchain_address) return;
+      const walletAddress = user?.on_chain_address || user?.on_chain?.address;
+      if (!walletAddress) return;
       
       try {
-        const res = await fetch(`/api/badges/${user.blockchain_address}`);
+        const res = await fetch(`/api/badges/${walletAddress}`);
         const data = await res.json();
         
         if (data.success) {
@@ -66,7 +67,8 @@ export default function MusicArtistOnboardPage() {
   }, [user, router]);
 
   const handleSubmit = async () => {
-    if (!user?.blockchain_address || !user?.qor_id) {
+    const walletAddress = user?.on_chain_address || user?.on_chain?.address;
+    if (!walletAddress || !user?.qor_id) {
       setError('Wallet not connected');
       return;
     }
@@ -82,7 +84,7 @@ export default function MusicArtistOnboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           qorId: user.qor_id,
-          walletAddress: user.blockchain_address,
+          walletAddress: walletAddress,
           ...formData,
         }),
       });
@@ -98,7 +100,7 @@ export default function MusicArtistOnboardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          recipientAddress: user.blockchain_address,
+          recipientAddress: walletAddress,
           recipientQorId: user.qor_id,
           badgeType: 'MUSIC_ARTIST',
           context: {

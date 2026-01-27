@@ -2,12 +2,12 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQorAuth } from '@demiurge/qor-sdk';
+import { useAuth } from '@/contexts/AuthContext';
 import { ChainBadgesCollection } from '@/components/badges';
 
 export default function WalletBadgesPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useQorAuth();
+  const { isAuthenticated, loading: isLoading } = useAuth();
 
   // Redirect if not authenticated
   useEffect(() => {
