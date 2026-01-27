@@ -661,7 +661,7 @@ export function ArtistOnboarding({ isOpen, onClose, onSuccess }: ArtistOnboardin
             </div>
 
             <div className="bg-black/50 border border-gray-700 rounded-lg p-4 max-h-64 overflow-y-auto text-sm text-gray-300 space-y-4">
-              <h3 className="text-white font-bold">Demiurge Music Distribution Agreement</h3>
+              <h3 className="text-white font-bold">QOR MUSIC Distribution Agreement</h3>
               
               <p>
                 By registering as a Music Artist on the Demiurge Blockchain platform, you agree to the following terms:

@@ -173,7 +173,7 @@ export default function MusicPage() {
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
           <h1 className="text-6xl md:text-7xl font-grunge mb-4">
             <span className="bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green bg-clip-text text-transparent">
-              Demiurge Music
+              QOR MUSIC
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl">

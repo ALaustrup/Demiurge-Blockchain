@@ -73,8 +73,8 @@ export default function RootLayout({
                   {/* Header Navigation */}
                   <HeaderBar />
                   
-                  {/* Main Content */}
-                  <main className="relative z-10 min-h-screen">
+                  {/* Main Content - pt-20 ensures content appears below fixed navbar */}
+                  <main className="relative z-10 min-h-screen pt-20">
                     {children}
                   </main>
                   

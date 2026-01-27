@@ -87,7 +87,7 @@ export function DashboardGrid() {
   ];
 
   return (
-    <div className="min-h-screen pt-20 pb-10 px-4 md:px-8">
+    <div className="min-h-screen pb-10 px-4 md:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Welcome Header */}
         <motion.div

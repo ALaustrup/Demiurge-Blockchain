@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChainStore, selectBlockHeight, selectTps, selectConnectionStatus } from '@/store/chainStore';
@@ -12,9 +12,15 @@ import { WalletConnector } from './WalletConnector';
 
 export function HeaderBar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const connect = useChainStore((state) => state.connect);
   const connectionStatus = useChainStore(selectConnectionStatus);
   const blockHeight = useChainStore(selectBlockHeight);
   const tps = useChainStore(selectTps);
+
+  // Connect to blockchain on mount (global for all pages)
+  useEffect(() => {
+    connect();
+  }, [connect]);
 
   const navItems = [
     { label: 'Games', href: '/games' },
@@ -83,7 +89,8 @@ export function HeaderBar() {
               <Link
                 key={item.label}
                 href={item.href}
-                className="px-4 py-2 text-sm text-lavender hover:text-holographic hover:bg-ultraviolet/30 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-holographic hover:text-data-cyan hover:bg-ultraviolet/40 rounded-lg transition-all"
+                style={{ textShadow: '0 0 8px rgba(205, 171, 195, 0.4)' }}
               >
                 {item.label}
               </Link>
@@ -93,7 +100,8 @@ export function HeaderBar() {
             <div className="relative">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="px-4 py-2 text-sm text-lavender hover:text-holographic hover:bg-ultraviolet/30 rounded-lg transition-colors flex items-center gap-1"
+                className="px-4 py-2 text-sm font-medium text-holographic hover:text-data-cyan hover:bg-ultraviolet/40 rounded-lg transition-all flex items-center gap-1"
+                style={{ textShadow: '0 0 8px rgba(205, 171, 195, 0.4)' }}
               >
                 More
                 <span className={`transition-transform ${menuOpen ? 'rotate-180' : ''}`}>▾</span>
@@ -106,17 +114,23 @@ export function HeaderBar() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 top-full mt-2 w-56 holo-panel p-2 z-50"
+                    className="absolute right-0 top-full mt-2 w-56 p-2 z-50 rounded-xl border border-holographic/30"
+                    style={{
+                      background: 'rgba(3, 2, 5, 0.95)',
+                      backdropFilter: 'blur(20px)',
+                      boxShadow: '0 0 30px rgba(205, 171, 195, 0.2), inset 0 0 20px rgba(13, 10, 20, 0.5)',
+                    }}
                   >
                     {dropdownItems.map((item) => (
                       <Link
                         key={item.label}
                         href={item.href}
                         onClick={() => setMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-lavender hover:text-holographic hover:bg-ultraviolet/50 rounded-lg transition-colors"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-holographic hover:text-data-cyan hover:bg-ultraviolet/60 rounded-lg transition-all group"
+                        style={{ textShadow: '0 0 10px rgba(205, 171, 195, 0.5)' }}
                       >
-                        <span>{item.icon}</span>
-                        <span>{item.label}</span>
+                        <span className="group-hover:scale-110 transition-transform">{item.icon}</span>
+                        <span className="font-medium">{item.label}</span>
                       </Link>
                     ))}
                   </motion.div>
@@ -154,13 +168,20 @@ export function HeaderBar() {
               exit={{ opacity: 0, height: 0 }}
               className="md:hidden overflow-hidden"
             >
-              <div className="py-4 space-y-2">
+              <div 
+                className="py-4 space-y-2 mt-2 rounded-xl border border-holographic/20 p-3"
+                style={{
+                  background: 'rgba(3, 2, 5, 0.95)',
+                  boxShadow: '0 0 20px rgba(205, 171, 195, 0.1)',
+                }}
+              >
                 {[...navItems, ...dropdownItems].map((item) => (
                   <Link
                     key={item.label}
                     href={item.href}
                     onClick={() => setMenuOpen(false)}
-                    className="block px-4 py-3 text-lavender hover:text-holographic hover:bg-ultraviolet/30 rounded-lg transition-colors"
+                    className="block px-4 py-3 text-holographic hover:text-data-cyan hover:bg-ultraviolet/50 rounded-lg transition-all font-medium"
+                    style={{ textShadow: '0 0 8px rgba(205, 171, 195, 0.4)' }}
                   >
                     {'icon' in item && <span className="mr-2">{(item as { icon: string }).icon}</span>}
                     {item.label}

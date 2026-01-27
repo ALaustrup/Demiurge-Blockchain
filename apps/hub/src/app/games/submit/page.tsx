@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { qorAuth } from '@demiurge/qor-sdk';
@@ -26,38 +26,51 @@ const ENGINES: { id: GameEngine; label: string; docs: string }[] = [
 ];
 
 const MINIMUM_STAKE = 1000; // 1000 CGT minimum
+const MAX_FILE_SIZE = 50 * 1024 * 1024 * 1024; // 50GB in bytes
+const MAX_FILE_SIZE_DISPLAY = '50GB';
 
 interface SubmissionForm {
   title: string;
   description: string;
+  gameFile: File | null;
   gameUrl: string;
+  thumbnailFile: File | null;
   thumbnailUrl: string;
   category: GameCategory | '';
   engine: GameEngine | '';
   engineVersion: string;
   stake: number;
   agreeTerms: boolean;
+  uploadMethod: 'file' | 'url';
 }
 
 export default function GameSubmitPage() {
   const router = useRouter();
   const { isConnected, getBalance } = useBlockchain();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [balance, setBalance] = useState<number>(0);
   const [step, setStep] = useState(1);
   
+  const gameFileRef = useRef<HTMLInputElement>(null);
+  const thumbnailFileRef = useRef<HTMLInputElement>(null);
+  
   const [form, setForm] = useState<SubmissionForm>({
     title: '',
     description: '',
+    gameFile: null,
     gameUrl: '',
+    thumbnailFile: null,
     thumbnailUrl: '',
     category: '',
     engine: '',
     engineVersion: '',
     stake: MINIMUM_STAKE,
     agreeTerms: false,
+    uploadMethod: 'file',
   });
 
   const isAuthenticated = qorAuth.isAuthenticated();
@@ -73,7 +86,7 @@ export default function GameSubmitPage() {
         const address = profile.on_chain_address || profile.on_chain?.address;
         if (address) {
           const bal = await getBalance(address);
-          setBalance(parseInt(bal || '0') / 100); // Convert from smallest units
+          setBalance(parseInt(bal || '0') / 100);
         }
       } catch (err) {
         console.error('Failed to load balance:', err);
@@ -81,9 +94,83 @@ export default function GameSubmitPage() {
     }
   };
 
+  const handleGameFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`File size exceeds ${MAX_FILE_SIZE_DISPLAY} limit`);
+        return;
+      }
+      if (!file.name.endsWith('.zip')) {
+        setError('Please upload a .zip archive');
+        return;
+      }
+      setForm(prev => ({ ...prev, gameFile: file }));
+      setError(null);
+    }
+  };
+
+  const handleThumbnailFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10MB max for thumbnail
+        setError('Thumbnail must be less than 10MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        setError('Please upload an image file');
+        return;
+      }
+      setForm(prev => ({ ...prev, thumbnailFile: file }));
+      setError(null);
+    }
+  };
+
+  const uploadFile = async (file: File, type: 'game' | 'thumbnail'): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
+    const xhr = new XMLHttpRequest();
+    
+    return new Promise((resolve, reject) => {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress(percent);
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const response = JSON.parse(xhr.responseText);
+          resolve(response.url || response.ipfsHash);
+        } else {
+          reject(new Error('Upload failed'));
+        }
+      });
+
+      xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+      
+      xhr.open('POST', '/api/ipfs/upload');
+      xhr.setRequestHeader('Authorization', `Bearer ${qorAuth.getToken()}`);
+      xhr.send(formData);
+    });
+  };
+
   const handleSubmit = async () => {
-    if (!form.title || !form.description || !form.gameUrl || !form.category || !form.engine) {
+    if (!form.title || !form.description || !form.category || !form.engine) {
       setError('Please fill in all required fields');
+      return;
+    }
+
+    if (form.uploadMethod === 'file' && !form.gameFile) {
+      setError('Please upload your game archive');
+      return;
+    }
+
+    if (form.uploadMethod === 'url' && !form.gameUrl) {
+      setError('Please provide a game URL');
       return;
     }
 
@@ -106,6 +193,23 @@ export default function GameSubmitPage() {
       setLoading(true);
       setError(null);
 
+      let gameUrl = form.gameUrl;
+      let thumbnailUrl = form.thumbnailUrl;
+
+      // Upload game file if using file upload
+      if (form.uploadMethod === 'file' && form.gameFile) {
+        setUploading(true);
+        gameUrl = await uploadFile(form.gameFile, 'game');
+      }
+
+      // Upload thumbnail if provided
+      if (form.thumbnailFile) {
+        thumbnailUrl = await uploadFile(form.thumbnailFile, 'thumbnail');
+      }
+
+      setUploading(false);
+      setUploadProgress(0);
+
       // Submit to API
       const response = await fetch('/api/games/submit', {
         method: 'POST',
@@ -116,8 +220,8 @@ export default function GameSubmitPage() {
         body: JSON.stringify({
           title: form.title,
           description: form.description,
-          gameUrl: form.gameUrl,
-          thumbnailUrl: form.thumbnailUrl,
+          gameUrl,
+          thumbnailUrl,
           category: form.category,
           engine: form.engine,
           engineVersion: form.engineVersion,
@@ -135,18 +239,26 @@ export default function GameSubmitPage() {
       setError(err.message || 'Failed to submit game');
     } finally {
       setLoading(false);
+      setUploading(false);
     }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
   };
 
   if (!isAuthenticated) {
     return (
       <main className="min-h-screen p-8">
         <div className="max-w-2xl mx-auto text-center py-20">
-          <h1 className="text-4xl font-bold mb-4 text-white">Submit Your Game</h1>
-          <p className="text-gray-400 mb-8">You need to be logged in to submit a game.</p>
+          <h1 className="text-4xl font-bold mb-4 text-holo-gradient">Submit Your Game</h1>
+          <p className="text-lavender mb-8">You need to be logged in to submit a game.</p>
           <Link
             href="/login"
-            className="inline-block px-8 py-3 bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-black font-bold rounded-lg hover:opacity-80 transition-all"
+            className="launcher-button-primary px-8 py-3 rounded-lg inline-block"
           >
             Login with QOR ID
           </Link>
@@ -160,21 +272,15 @@ export default function GameSubmitPage() {
       <main className="min-h-screen p-8">
         <div className="max-w-2xl mx-auto text-center py-20">
           <div className="text-6xl mb-6">🎮</div>
-          <h1 className="text-4xl font-bold mb-4 text-demiurge-cyan">Game Submitted!</h1>
-          <p className="text-gray-400 mb-8">
+          <h1 className="text-4xl font-bold mb-4 text-data-cyan">Game Submitted!</h1>
+          <p className="text-lavender mb-8">
             Your game has been submitted for review. You will be notified when it's approved.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link
-              href="/games"
-              className="px-6 py-3 glass-panel rounded-lg hover:chroma-glow transition-all"
-            >
+            <Link href="/games" className="launcher-button px-6 py-3 rounded-lg">
               Browse Games
             </Link>
-            <Link
-              href="/dashboard"
-              className="px-6 py-3 bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-black font-bold rounded-lg hover:opacity-80 transition-all"
-            >
+            <Link href="/dashboard" className="launcher-button-primary px-6 py-3 rounded-lg">
               Dashboard
             </Link>
           </div>
@@ -188,15 +294,59 @@ export default function GameSubmitPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/games" className="text-demiurge-cyan hover:underline mb-4 inline-block">
+          <Link href="/games" className="text-data-cyan hover:underline mb-4 inline-block">
             ← Back to Games
           </Link>
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-demiurge-cyan via-demiurge-violet to-demiurge-gold bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold mb-4 text-holo-gradient">
             Submit Your Game
           </h1>
-          <p className="text-xl text-gray-300">
+          <p className="text-xl text-holographic">
             Register your game on the Demiurge blockchain and reach millions of players.
           </p>
+        </div>
+
+        {/* Developer Documentation Banner */}
+        <div className="holo-panel p-6 mb-8 border-data-cyan/30">
+          <div className="flex items-start gap-4">
+            <div className="text-4xl">📚</div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-data-cyan mb-2">Game Developer Documentation</h3>
+              <p className="text-lavender mb-4">
+                Before submitting, ensure your game is set up for on-chain service integration.
+                Our SDK enables DRC-369 NFT assets, wallet inventories, achievements, and player XP towards QOR levels.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link 
+                  href="/docs/developers/PHASER_INTEGRATION" 
+                  className="launcher-button px-4 py-2 text-sm rounded-lg"
+                  style={{ textShadow: '0 0 8px rgba(0, 212, 255, 0.5)' }}
+                >
+                  📖 Phaser Integration Guide
+                </Link>
+                <Link 
+                  href="/docs/developers/DRC_SDK" 
+                  className="launcher-button px-4 py-2 text-sm rounded-lg"
+                  style={{ textShadow: '0 0 8px rgba(0, 212, 255, 0.5)' }}
+                >
+                  🔗 DRC-369 SDK
+                </Link>
+                <Link 
+                  href="/docs/developers/game-achievements" 
+                  className="launcher-button px-4 py-2 text-sm rounded-lg"
+                  style={{ textShadow: '0 0 8px rgba(0, 212, 255, 0.5)' }}
+                >
+                  🏆 Achievements API
+                </Link>
+                <Link 
+                  href="/docs/developers/player-xp" 
+                  className="launcher-button px-4 py-2 text-sm rounded-lg"
+                  style={{ textShadow: '0 0 8px rgba(0, 212, 255, 0.5)' }}
+                >
+                  ⚡ Player XP System
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Progress Steps */}
@@ -205,7 +355,7 @@ export default function GameSubmitPage() {
             <div
               key={s}
               className={`flex-1 h-2 rounded-full transition-all ${
-                s <= step ? 'bg-gradient-to-r from-demiurge-cyan to-demiurge-violet' : 'bg-gray-700'
+                s <= step ? 'bg-gradient-to-r from-holographic to-data-cyan' : 'bg-ultraviolet/50'
               }`}
             />
           ))}
@@ -217,64 +367,169 @@ export default function GameSubmitPage() {
           </div>
         )}
 
-        {/* Step 1: Game Details */}
+        {/* Upload Progress */}
+        {uploading && (
+          <div className="mb-6 p-4 holo-panel rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-holographic">Uploading game archive...</span>
+              <span className="text-data-cyan font-mono">{uploadProgress}%</span>
+            </div>
+            <div className="h-2 bg-ultraviolet/50 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-holographic to-data-cyan transition-all"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Step 1: Game Details & Upload */}
         {step === 1 && (
-          <div className="glass-panel p-8 rounded-lg">
-            <h2 className="text-2xl font-bold mb-6">Game Details</h2>
+          <div className="holo-panel p-8 rounded-xl">
+            <h2 className="text-2xl font-bold mb-6 text-holographic">Game Details & Upload</h2>
             
             <div className="space-y-6">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Game Title *</label>
+                <label className="block text-sm text-lavender mb-2">Game Title *</label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-demiurge-cyan focus:outline-none"
+                  className="w-full bg-void/80 border border-lavender/30 rounded-lg px-4 py-3 text-white focus:border-data-cyan focus:outline-none"
                   placeholder="Enter your game's title"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Description *</label>
+                <label className="block text-sm text-lavender mb-2">Description *</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-demiurge-cyan focus:outline-none h-32 resize-none"
+                  className="w-full bg-void/80 border border-lavender/30 rounded-lg px-4 py-3 text-white focus:border-data-cyan focus:outline-none h-32 resize-none"
                   placeholder="Describe your game, its features, and how players can earn rewards..."
                 />
               </div>
 
+              {/* Upload Method Toggle */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Game URL *</label>
-                <input
-                  type="url"
-                  value={form.gameUrl}
-                  onChange={(e) => setForm(prev => ({ ...prev, gameUrl: e.target.value }))}
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-demiurge-cyan focus:outline-none"
-                  placeholder="https://ipfs.io/ipfs/... or https://yourdomain.com/game/"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Upload your game to IPFS or a hosting service. Must contain an index.html file.
-                </p>
+                <label className="block text-sm text-lavender mb-3">Game Files *</label>
+                <div className="flex gap-4 mb-4">
+                  <button
+                    onClick={() => setForm(prev => ({ ...prev, uploadMethod: 'file' }))}
+                    className={`flex-1 p-4 rounded-lg border transition-all ${
+                      form.uploadMethod === 'file' 
+                        ? 'border-data-cyan bg-ultraviolet/30' 
+                        : 'border-lavender/30 hover:border-lavender/50'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">📦</div>
+                    <div className="font-bold text-holographic">Upload Archive</div>
+                    <div className="text-xs text-lavender mt-1">Max {MAX_FILE_SIZE_DISPLAY} .zip file</div>
+                  </button>
+                  <button
+                    onClick={() => setForm(prev => ({ ...prev, uploadMethod: 'url' }))}
+                    className={`flex-1 p-4 rounded-lg border transition-all ${
+                      form.uploadMethod === 'url' 
+                        ? 'border-data-cyan bg-ultraviolet/30' 
+                        : 'border-lavender/30 hover:border-lavender/50'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">🔗</div>
+                    <div className="font-bold text-holographic">External URL</div>
+                    <div className="text-xs text-lavender mt-1">IPFS or hosted URL</div>
+                  </button>
+                </div>
+
+                {form.uploadMethod === 'file' ? (
+                  <div
+                    onClick={() => gameFileRef.current?.click()}
+                    className="border-2 border-dashed border-lavender/30 hover:border-data-cyan/50 rounded-lg p-8 text-center cursor-pointer transition-all"
+                  >
+                    <input
+                      ref={gameFileRef}
+                      type="file"
+                      accept=".zip"
+                      onChange={handleGameFileChange}
+                      className="hidden"
+                    />
+                    {form.gameFile ? (
+                      <div>
+                        <div className="text-4xl mb-3">✅</div>
+                        <div className="text-holographic font-bold">{form.gameFile.name}</div>
+                        <div className="text-lavender text-sm mt-1">{formatFileSize(form.gameFile.size)}</div>
+                        <div className="text-data-cyan text-sm mt-2">Click to change file</div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-4xl mb-3">📤</div>
+                        <div className="text-holographic font-bold">Click to upload game archive</div>
+                        <div className="text-lavender text-sm mt-2">
+                          .zip file containing your game (index.html at root)
+                        </div>
+                        <div className="text-lavender/60 text-xs mt-1">Maximum file size: {MAX_FILE_SIZE_DISPLAY}</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="url"
+                      value={form.gameUrl}
+                      onChange={(e) => setForm(prev => ({ ...prev, gameUrl: e.target.value }))}
+                      className="w-full bg-void/80 border border-lavender/30 rounded-lg px-4 py-3 text-white focus:border-data-cyan focus:outline-none"
+                      placeholder="https://ipfs.io/ipfs/... or https://yourdomain.com/game/"
+                    />
+                    <p className="text-xs text-lavender/60 mt-1">
+                      Must contain an index.html file at the root
+                    </p>
+                  </div>
+                )}
               </div>
 
+              {/* Thumbnail Upload */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Thumbnail URL</label>
-                <input
-                  type="url"
-                  value={form.thumbnailUrl}
-                  onChange={(e) => setForm(prev => ({ ...prev, thumbnailUrl: e.target.value }))}
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-demiurge-cyan focus:outline-none"
-                  placeholder="https://example.com/thumbnail.png"
-                />
+                <label className="block text-sm text-lavender mb-2">Thumbnail Image</label>
+                <div className="flex gap-4">
+                  <div
+                    onClick={() => thumbnailFileRef.current?.click()}
+                    className="w-40 h-24 border border-lavender/30 hover:border-data-cyan/50 rounded-lg flex items-center justify-center cursor-pointer transition-all overflow-hidden"
+                  >
+                    <input
+                      ref={thumbnailFileRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleThumbnailFileChange}
+                      className="hidden"
+                    />
+                    {form.thumbnailFile ? (
+                      <img 
+                        src={URL.createObjectURL(form.thumbnailFile)} 
+                        alt="Thumbnail preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-lavender/60 text-sm">+ Add thumbnail</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="url"
+                      value={form.thumbnailUrl}
+                      onChange={(e) => setForm(prev => ({ ...prev, thumbnailUrl: e.target.value }))}
+                      className="w-full bg-void/80 border border-lavender/30 rounded-lg px-4 py-3 text-white focus:border-data-cyan focus:outline-none"
+                      placeholder="Or enter thumbnail URL"
+                      disabled={!!form.thumbnailFile}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="mt-8 flex justify-end">
               <button
                 onClick={() => setStep(2)}
-                disabled={!form.title || !form.description || !form.gameUrl}
-                className="px-8 py-3 bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-black font-bold rounded-lg hover:opacity-80 transition-all disabled:opacity-50"
+                disabled={!form.title || !form.description || (form.uploadMethod === 'file' ? !form.gameFile : !form.gameUrl)}
+                className="launcher-button-primary px-8 py-3 rounded-lg disabled:opacity-50"
               >
                 Continue →
               </button>
@@ -284,72 +539,69 @@ export default function GameSubmitPage() {
 
         {/* Step 2: Category & Engine */}
         {step === 2 && (
-          <div className="glass-panel p-8 rounded-lg">
-            <h2 className="text-2xl font-bold mb-6">Category & Engine</h2>
+          <div className="holo-panel p-8 rounded-xl">
+            <h2 className="text-2xl font-bold mb-6 text-holographic">Category & Engine</h2>
             
             <div className="space-y-6">
               <div>
-                <label className="block text-sm text-gray-400 mb-3">Game Category *</label>
+                <label className="block text-sm text-lavender mb-3">Game Category *</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {CATEGORIES.map((cat) => (
                     <button
                       key={cat.id}
                       onClick={() => setForm(prev => ({ ...prev, category: cat.id }))}
-                      className={`p-4 rounded-lg text-left transition-all ${
+                      className={`p-4 rounded-lg text-left transition-all border ${
                         form.category === cat.id
-                          ? 'bg-demiurge-cyan/20 border-2 border-demiurge-cyan'
-                          : 'glass-panel hover:bg-gray-800/50'
+                          ? 'bg-ultraviolet/40 border-data-cyan'
+                          : 'border-lavender/30 hover:border-lavender/50 hover:bg-ultraviolet/20'
                       }`}
                     >
-                      <div className="font-bold text-white">{cat.label}</div>
-                      <div className="text-sm text-gray-400">{cat.description}</div>
+                      <div className="font-bold text-holographic">{cat.label}</div>
+                      <div className="text-sm text-lavender">{cat.description}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-3">Game Engine *</label>
+                <label className="block text-sm text-lavender mb-3">Game Engine *</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {ENGINES.map((engine) => (
                     <button
                       key={engine.id}
                       onClick={() => setForm(prev => ({ ...prev, engine: engine.id }))}
-                      className={`p-4 rounded-lg text-center transition-all ${
+                      className={`p-4 rounded-lg text-center transition-all border ${
                         form.engine === engine.id
-                          ? 'bg-demiurge-cyan/20 border-2 border-demiurge-cyan'
-                          : 'glass-panel hover:bg-gray-800/50'
+                          ? 'bg-ultraviolet/40 border-data-cyan'
+                          : 'border-lavender/30 hover:border-lavender/50 hover:bg-ultraviolet/20'
                       }`}
                     >
-                      <div className="font-bold text-white">{engine.label}</div>
+                      <div className="font-bold text-holographic">{engine.label}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Engine Version (optional)</label>
+                <label className="block text-sm text-lavender mb-2">Engine Version (optional)</label>
                 <input
                   type="text"
                   value={form.engineVersion}
                   onChange={(e) => setForm(prev => ({ ...prev, engineVersion: e.target.value }))}
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-demiurge-cyan focus:outline-none"
+                  className="w-full bg-void/80 border border-lavender/30 rounded-lg px-4 py-3 text-white focus:border-data-cyan focus:outline-none"
                   placeholder="e.g., 3.70.0"
                 />
               </div>
             </div>
 
             <div className="mt-8 flex justify-between">
-              <button
-                onClick={() => setStep(1)}
-                className="px-8 py-3 glass-panel rounded-lg hover:chroma-glow transition-all"
-              >
+              <button onClick={() => setStep(1)} className="launcher-button px-8 py-3 rounded-lg">
                 ← Back
               </button>
               <button
                 onClick={() => setStep(3)}
                 disabled={!form.category || !form.engine}
-                className="px-8 py-3 bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-black font-bold rounded-lg hover:opacity-80 transition-all disabled:opacity-50"
+                className="launcher-button-primary px-8 py-3 rounded-lg disabled:opacity-50"
               >
                 Continue →
               </button>
@@ -359,13 +611,13 @@ export default function GameSubmitPage() {
 
         {/* Step 3: Stake & Submit */}
         {step === 3 && (
-          <div className="glass-panel p-8 rounded-lg">
-            <h2 className="text-2xl font-bold mb-6">Stake & Submit</h2>
+          <div className="holo-panel p-8 rounded-xl">
+            <h2 className="text-2xl font-bold mb-6 text-holographic">Stake & Submit</h2>
             
             <div className="space-y-6">
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                <h3 className="font-bold text-yellow-400 mb-2">Stake Requirement</h3>
-                <p className="text-gray-400 text-sm">
+              <div className="p-4 bg-data-gold/10 border border-data-gold/30 rounded-lg">
+                <h3 className="font-bold text-data-gold mb-2">Stake Requirement</h3>
+                <p className="text-lavender text-sm">
                   A minimum stake of {MINIMUM_STAKE} CGT is required to register your game.
                   This stake is returned when you remove your game from the registry.
                   It helps prevent spam and ensures quality.
@@ -373,43 +625,49 @@ export default function GameSubmitPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Stake Amount (CGT) *</label>
+                <label className="block text-sm text-lavender mb-2">Stake Amount (CGT) *</label>
                 <div className="flex items-center gap-4">
                   <input
                     type="number"
                     value={form.stake}
                     onChange={(e) => setForm(prev => ({ ...prev, stake: parseInt(e.target.value) || 0 }))}
                     min={MINIMUM_STAKE}
-                    className="flex-1 bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-demiurge-cyan focus:outline-none"
+                    className="flex-1 bg-void/80 border border-lavender/30 rounded-lg px-4 py-3 text-white focus:border-data-cyan focus:outline-none"
                   />
-                  <div className="text-gray-400">
-                    Balance: <span className="text-demiurge-cyan font-bold">{balance.toLocaleString()} CGT</span>
+                  <div className="text-lavender">
+                    Balance: <span className="text-data-cyan font-bold">{balance.toLocaleString()} CGT</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-lavender/60 mt-1">
                   Minimum: {MINIMUM_STAKE} CGT. Higher stakes may lead to faster approval.
                 </p>
               </div>
 
-              <div className="p-6 bg-gray-800/30 rounded-lg">
-                <h3 className="font-bold text-white mb-4">Submission Summary</h3>
+              <div className="p-6 bg-ultraviolet/20 rounded-lg">
+                <h3 className="font-bold text-holographic mb-4">Submission Summary</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-400">Title:</span>
+                    <span className="text-lavender">Title:</span>
                     <span className="ml-2 text-white">{form.title}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400">Category:</span>
+                    <span className="text-lavender">Category:</span>
                     <span className="ml-2 text-white">{CATEGORIES.find(c => c.id === form.category)?.label}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400">Engine:</span>
+                    <span className="text-lavender">Engine:</span>
                     <span className="ml-2 text-white">{ENGINES.find(e => e.id === form.engine)?.label}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400">Stake:</span>
-                    <span className="ml-2 text-demiurge-cyan font-bold">{form.stake} CGT</span>
+                    <span className="text-lavender">Stake:</span>
+                    <span className="ml-2 text-data-cyan font-bold">{form.stake} CGT</span>
                   </div>
+                  {form.gameFile && (
+                    <div className="col-span-2">
+                      <span className="text-lavender">Game File:</span>
+                      <span className="ml-2 text-white">{form.gameFile.name} ({formatFileSize(form.gameFile.size)})</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -418,16 +676,16 @@ export default function GameSubmitPage() {
                   type="checkbox"
                   checked={form.agreeTerms}
                   onChange={(e) => setForm(prev => ({ ...prev, agreeTerms: e.target.checked }))}
-                  className="mt-1"
+                  className="mt-1 accent-data-cyan"
                 />
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-lavender">
                   I confirm that I own the rights to this game, it does not contain malicious code,
                   and I agree to the{' '}
-                  <Link href="/docs/terms" className="text-demiurge-cyan hover:underline">
+                  <Link href="/docs/terms" className="text-data-cyan hover:underline">
                     Terms of Service
                   </Link>
                   {' '}and{' '}
-                  <Link href="/docs/game-guidelines" className="text-demiurge-cyan hover:underline">
+                  <Link href="/docs/game-guidelines" className="text-data-cyan hover:underline">
                     Game Submission Guidelines
                   </Link>.
                 </span>
@@ -435,16 +693,13 @@ export default function GameSubmitPage() {
             </div>
 
             <div className="mt-8 flex justify-between">
-              <button
-                onClick={() => setStep(2)}
-                className="px-8 py-3 glass-panel rounded-lg hover:chroma-glow transition-all"
-              >
+              <button onClick={() => setStep(2)} className="launcher-button px-8 py-3 rounded-lg">
                 ← Back
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={loading || !form.agreeTerms || form.stake < MINIMUM_STAKE}
-                className="px-8 py-3 bg-gradient-to-r from-demiurge-cyan to-demiurge-violet text-black font-bold rounded-lg hover:opacity-80 transition-all disabled:opacity-50"
+                className="launcher-button-primary px-8 py-3 rounded-lg disabled:opacity-50"
               >
                 {loading ? 'Submitting...' : `Submit Game (Stake ${form.stake} CGT)`}
               </button>
@@ -452,30 +707,80 @@ export default function GameSubmitPage() {
           </div>
         )}
 
+        {/* On-Chain Integration Guide */}
+        <div className="mt-8 holo-panel p-6 rounded-xl">
+          <h3 className="font-bold text-holographic text-xl mb-4">🔗 On-Chain Integration Features</h3>
+          <p className="text-lavender mb-6">
+            Integrate these features into your game to provide players with blockchain-powered experiences:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-ultraviolet/20 rounded-lg border border-lavender/20">
+              <div className="text-2xl mb-2">🎨</div>
+              <div className="font-bold text-data-cyan">DRC-369 NFT Assets</div>
+              <p className="text-sm text-lavender mt-1">
+                Let players earn, trade, and use NFT items in your game. Swords, skins, collectibles.
+              </p>
+              <Link href="/docs/developers/drc-sdk" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
+                View SDK Documentation →
+              </Link>
+            </div>
+            <div className="p-4 bg-ultraviolet/20 rounded-lg border border-lavender/20">
+              <div className="text-2xl mb-2">💼</div>
+              <div className="font-bold text-data-cyan">Wallet Inventories</div>
+              <p className="text-sm text-lavender mt-1">
+                Connect player wallets to sync game inventories with their on-chain assets.
+              </p>
+              <Link href="/docs/developers/wallet-integration" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
+                View Integration Guide →
+              </Link>
+            </div>
+            <div className="p-4 bg-ultraviolet/20 rounded-lg border border-lavender/20">
+              <div className="text-2xl mb-2">🏆</div>
+              <div className="font-bold text-data-cyan">Achievements System</div>
+              <p className="text-sm text-lavender mt-1">
+                Award permanent on-chain achievements that players can show off across the ecosystem.
+              </p>
+              <Link href="/docs/developers/achievements" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
+                View Achievements API →
+              </Link>
+            </div>
+            <div className="p-4 bg-ultraviolet/20 rounded-lg border border-lavender/20">
+              <div className="text-2xl mb-2">⚡</div>
+              <div className="font-bold text-data-cyan">QOR Level XP</div>
+              <p className="text-sm text-lavender mt-1">
+                Players earn XP towards their QOR Level by playing your game. Higher levels unlock perks.
+              </p>
+              <Link href="/docs/developers/qor-xp" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
+                View XP System →
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* Help Section */}
-        <div className="mt-8 glass-panel p-6 rounded-lg">
-          <h3 className="font-bold text-white mb-4">Need Help?</h3>
+        <div className="mt-8 holo-panel p-6 rounded-xl">
+          <h3 className="font-bold text-holographic mb-4">Need Help?</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
-              href="/docs/developers/getting-started"
-              className="p-4 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-all"
+              href="/docs/developers"
+              className="p-4 bg-ultraviolet/20 rounded-lg hover:bg-ultraviolet/40 transition-all border border-lavender/20"
             >
-              <div className="font-bold text-demiurge-cyan">Developer Guide</div>
-              <div className="text-sm text-gray-400">Learn how to build games for Demiurge</div>
+              <div className="font-bold text-data-cyan">Developer Guide</div>
+              <div className="text-sm text-lavender">Learn how to build games for Demiurge</div>
             </Link>
             <Link
-              href="/docs/game-integration-guide"
-              className="p-4 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-all"
+              href="/docs/developers/PHASER_INTEGRATION"
+              className="p-4 bg-ultraviolet/20 rounded-lg hover:bg-ultraviolet/40 transition-all border border-lavender/20"
             >
-              <div className="font-bold text-demiurge-cyan">Integration Guide</div>
-              <div className="text-sm text-gray-400">Add blockchain features to your game</div>
+              <div className="font-bold text-data-cyan">Phaser.js Guide</div>
+              <div className="text-sm text-lavender">Add blockchain features to Phaser games</div>
             </Link>
             <Link
-              href="/scattertxt"
-              className="p-4 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-all"
+              href="/development"
+              className="p-4 bg-ultraviolet/20 rounded-lg hover:bg-ultraviolet/40 transition-all border border-lavender/20"
             >
-              <div className="font-bold text-demiurge-cyan">ScatterTXT Engine</div>
-              <div className="text-sm text-gray-400">Build games with our native engine</div>
+              <div className="font-bold text-data-cyan">Developer Hub</div>
+              <div className="text-sm text-lavender">Access all developer resources</div>
             </Link>
           </div>
         </div>

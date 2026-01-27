@@ -80,7 +80,7 @@ export function ReportArtistModal({ isOpen, onClose, artistId, artistName }: Rep
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Report Submitted</h2>
             <p className="text-gray-400 mb-6">
-              Thank you for helping keep Demiurge Music safe. Our team will review your report.
+              Thank you for helping keep QOR MUSIC safe. Our team will review your report.
             </p>
             <button
               onClick={handleClose}
