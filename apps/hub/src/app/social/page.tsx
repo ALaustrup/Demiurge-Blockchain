@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVYB } from '@/contexts/VYBContext';
 import { useEffect, useState } from 'react';
@@ -20,18 +19,12 @@ import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
 type TabType = 'feed' | 'messages' | 'gallery' | 'services' | 'notifications';
 
 export default function SocialPage() {
-  const router = useRouter();
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const { profile, unreadMessageCount, unreadNotificationCount } = useVYB();
   const [activeTab, setActiveTab] = useState<TabType>('feed');
   const [showWelcome, setShowWelcome] = useState(false);
 
-  useEffect(() => {
-    // Redirect to login if not authenticated (after loading completes)
-    if (!loading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [loading, isAuthenticated, router]);
+  // NOTE: No redirect needed - AuthGate ensures users are authenticated before reaching this page
 
   // Check if user is new and should see welcome modal
   useEffect(() => {
@@ -49,21 +42,7 @@ export default function SocialPage() {
     setShowWelcome(false);
   };
 
-  // Show loading state while checking auth
-  if (loading) {
-    return (
-      <main className="min-h-screen p-8 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-cyan mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading VYB...</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null; // Will redirect
-  }
+  // NOTE: No loading/auth checks needed - AuthGate handles authentication before this page loads
 
   const tabs: { id: TabType; label: string; icon: string; badge?: number }[] = [
     { id: 'feed', label: 'Feed', icon: '🌐' },

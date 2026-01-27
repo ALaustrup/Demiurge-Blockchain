@@ -7,6 +7,7 @@ import { VYBProvider } from '@/contexts/VYBContext'
 import { VoiceProvider } from '@/contexts/VoiceContext'
 import { StarfieldBackground, HeaderBar } from '@/components/Launcher'
 import { MusicPlayer } from '@/components/music/MusicPlayer'
+import { AuthGate } from '@/components/auth/AuthGate'
 import './globals.css'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -63,27 +64,30 @@ export default function RootLayout({
     >
       <body className={`${spaceGrotesk.className} font-body`}>
         <AuthProvider>
-          <BlockchainProvider>
-            <VYBProvider>
-              <VoiceProvider>
-                <MusicProvider>
-                  {/* Persistent 3D Starfield Background */}
-                  <StarfieldBackground />
-                  
-                  {/* Header Navigation */}
-                  <HeaderBar />
-                  
-                  {/* Main Content - pt-20 ensures content appears below fixed navbar */}
-                  <main className="relative z-10 min-h-screen pt-20">
-                    {children}
-                  </main>
-                  
-                  {/* Global Music Player */}
-                  <MusicPlayer />
-                </MusicProvider>
-              </VoiceProvider>
-            </VYBProvider>
-          </BlockchainProvider>
+          {/* AuthGate: Users MUST authenticate before accessing ANY chain features */}
+          <AuthGate>
+            <BlockchainProvider>
+              <VYBProvider>
+                <VoiceProvider>
+                  <MusicProvider>
+                    {/* Persistent 3D Starfield Background */}
+                    <StarfieldBackground />
+                    
+                    {/* Header Navigation */}
+                    <HeaderBar />
+                    
+                    {/* Main Content - pt-20 ensures content appears below fixed navbar */}
+                    <main className="relative z-10 min-h-screen pt-20">
+                      {children}
+                    </main>
+                    
+                    {/* Global Music Player */}
+                    <MusicPlayer />
+                  </MusicProvider>
+                </VoiceProvider>
+              </VYBProvider>
+            </BlockchainProvider>
+          </AuthGate>
         </AuthProvider>
       </body>
     </html>

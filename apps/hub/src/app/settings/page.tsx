@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVoiceOptional } from '@/contexts/VoiceContext';
 import { qorAuth } from '@demiurge/qor-sdk';
@@ -11,8 +10,7 @@ import { PermissionButton } from '@/components/voice';
 type SettingsTab = 'account' | 'security' | 'email' | 'notifications' | 'voice';
 
 export default function SettingsPage() {
-  const router = useRouter();
-  const { user, loading, isAuthenticated, refreshUser } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingsTab>('account');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -25,11 +23,7 @@ export default function SettingsPage() {
   const [confirmPin, setConfirmPin] = useState('');
   const [emailEnabled, setEmailEnabled] = useState(false);
   
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push('/login?redirect=/settings');
-    }
-  }, [loading, isAuthenticated, router]);
+  // NOTE: No redirect needed - AuthGate ensures users are authenticated before reaching this page
 
   useEffect(() => {
     if (user) {
@@ -38,7 +32,7 @@ export default function SettingsPage() {
     }
   }, [user]);
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <main className="min-h-screen p-8 flex items-center justify-center">
         <div className="text-center">
@@ -47,10 +41,6 @@ export default function SettingsPage() {
         </div>
       </main>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   const handleSaveProfile = async () => {

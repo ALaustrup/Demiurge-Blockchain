@@ -2,18 +2,33 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('qor_token')
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
-  const isPortalRoute = request.nextUrl.pathname.startsWith('/portal')
+  const { pathname } = request.nextUrl;
   
-  // Redirect to login if accessing protected routes without token
-  if ((isAdminRoute || isPortalRoute) && !token) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // Redirect /portal to / (single dashboard consolidation)
+  if (pathname === '/portal' || pathname.startsWith('/portal/')) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
   
-  return NextResponse.next()
+  // Admin route protection
+  const token = request.cookies.get('qor_token');
+  if (pathname.startsWith('/admin') && !token) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+  
+  // Redirect /login to / (AuthGate handles authentication)
+  // This prevents logged-in users from seeing login page
+  if (pathname === '/login' || pathname === '/register') {
+    const hasToken = request.cookies.get('qor_token');
+    if (hasToken) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    // For non-authenticated users, redirect to home (AuthGate will show login)
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+  
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/portal/:path*']
+  matcher: ['/admin/:path*', '/portal/:path*', '/login', '/register']
 }

@@ -1,22 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProfileCard, DailyTasksPanel, WalletWidget, UpdatesPanel, BlogPanel } from '@/components/dashboard';
 import Link from 'next/link';
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, loading } = useAuth();
   const [userXp, setUserXp] = useState(0);
 
-  useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!loading && !isAuthenticated) {
-      router.push('/login?redirect=/dashboard');
-    }
-  }, [loading, isAuthenticated, router]);
+  // NOTE: No redirect needed - AuthGate ensures users are authenticated before reaching this page
 
   useEffect(() => {
     // Fetch user XP from API
@@ -28,7 +21,7 @@ export default function DashboardPage() {
   }, [user]);
 
   // Show loading state
-  if (loading) {
+  if (loading || !user) {
     return (
       <main className="min-h-screen p-8 flex items-center justify-center">
         <div className="text-center">
@@ -37,11 +30,6 @@ export default function DashboardPage() {
         </div>
       </main>
     );
-  }
-
-  // Will redirect if not authenticated
-  if (!isAuthenticated) {
-    return null;
   }
 
   return (

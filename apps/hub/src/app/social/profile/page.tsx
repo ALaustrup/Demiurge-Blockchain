@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVYB } from '@/contexts/VYBContext';
 import { useEffect, useState } from 'react';
@@ -17,8 +16,7 @@ import Link from 'next/link';
 type ProfileTabType = 'wall' | 'about' | 'photos' | 'friends' | 'nfts' | 'games';
 
 export default function MyProfilePage() {
-  const router = useRouter();
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const { profile, updateProfile, gallery } = useVYB();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTabType>('wall');
@@ -28,11 +26,7 @@ export default function MyProfilePage() {
     role: 'user' as string,
   });
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [loading, isAuthenticated, router]);
+  // NOTE: No redirect needed - AuthGate ensures users are authenticated before reaching this page
 
   useEffect(() => {
     if (profile) {
@@ -53,15 +47,13 @@ export default function MyProfilePage() {
     setIsEditing(false);
   };
 
-  if (loading) {
+  if (!profile) {
     return (
       <main className="min-h-screen p-8 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-cyan"></div>
       </main>
     );
   }
-
-  if (!isAuthenticated || !profile) return null;
 
   const getRoleIcon = (role: string) => {
     switch (role) {
