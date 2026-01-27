@@ -1,21 +1,378 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { useChainStore, selectBlockHeight, selectTps, selectValidators, selectConnectionStatus } from '@/store/chainStore';
-import { HolographicCard, SystemModuleCard, DataDisplay } from './HolographicCard';
+import { useAuth } from '@/contexts/AuthContext';
+import { HolographicCard, DataDisplay } from './HolographicCard';
 import { WalletConnector } from './WalletConnector';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// DASHBOARD GRID - Bento-grid layout for Demiurge OS Launcher
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEMIURGE COMMAND TERMINAL - Dark-Mode Ethereal Glassmorphism Dashboard
+// Industrial Sci-Fi HUD with volumetric depth and real-time chain data
+// ═══════════════════════════════════════════════════════════════════════════════
 
-export function DashboardGrid() {
-  const connect = useChainStore((state) => state.connect);
+// ─────────────────────────────────────────────────────────────────────────────
+// CORNER ACCENT COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CornerAccents({ className = '' }: { className?: string }) {
+  return (
+    <>
+      {/* Top-left corner */}
+      <div className={`absolute top-0 left-0 w-5 h-5 border-l border-t border-neon-cyan/30 ${className}`} />
+      {/* Top-right corner */}
+      <div className={`absolute top-0 right-0 w-5 h-5 border-r border-t border-neon-cyan/30 ${className}`} />
+      {/* Bottom-left corner */}
+      <div className={`absolute bottom-0 left-0 w-5 h-5 border-l border-b border-neon-cyan/30 ${className}`} />
+      {/* Bottom-right corner */}
+      <div className={`absolute bottom-0 right-0 w-5 h-5 border-r border-b border-neon-cyan/30 ${className}`} />
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SYSTEM MODULE CARD - HUD-style panel
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SystemModuleProps {
+  icon: React.ReactNode;
+  title: string;
+  value: string | number;
+  subtitle: string;
+  href: string;
+  status: 'online' | 'offline' | 'syncing';
+  delay?: number;
+}
+
+function SystemModule({ icon, title, value, subtitle, href, status, delay = 0 }: SystemModuleProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ 
+        delay, 
+        duration: 0.5, 
+        ease: [0.16, 1, 0.3, 1] 
+      }}
+    >
+      <Link href={href} className="block group">
+        <div className="relative p-5 rounded-lg overflow-hidden transition-all duration-500 ease-out-expo
+          bg-white/[0.02] backdrop-blur-glass border border-white/[0.04]
+          hover:bg-white/[0.05] hover:border-neon-cyan/20
+          hover:shadow-glass-elevated hover:-translate-y-1">
+          
+          <CornerAccents className="transition-all duration-500 group-hover:w-7 group-hover:h-7 group-hover:border-neon-cyan/60" />
+          
+          {/* Status indicator */}
+          <div className="absolute top-3 right-3">
+            <div className={`w-1.5 h-1.5 rounded-full ${
+              status === 'online' ? 'bg-status-online animate-status-pulse shadow-status-online' :
+              status === 'syncing' ? 'bg-neon-cyan animate-pulse' :
+              'bg-text-tertiary'
+            }`} />
+          </div>
+          
+          {/* Icon */}
+          <div className="text-3xl mb-3 opacity-80 group-hover:opacity-100 transition-opacity">
+            {icon}
+          </div>
+          
+          {/* Title */}
+          <h3 className="font-display text-[11px] text-text-secondary tracking-widest mb-1 uppercase">
+            {title}
+          </h3>
+          
+          {/* Value */}
+          <div className="font-mono text-xl font-medium text-text-primary group-hover:text-neon-cyan transition-colors">
+            {value}
+          </div>
+          
+          {/* Subtitle */}
+          <p className="font-mono text-[10px] text-text-tertiary mt-1 tracking-wide">
+            {subtitle}
+          </p>
+          
+          {/* Hover glow line */}
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neon-cyan/50 to-transparent 
+            opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHAIN STATUS BAR - Real-time blockchain metrics
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ChainStatusBar() {
   const connectionStatus = useChainStore(selectConnectionStatus);
   const blockHeight = useChainStore(selectBlockHeight);
   const tps = useChainStore(selectTps);
   const validators = useChainStore(selectValidators);
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="relative mb-8"
+    >
+      <div className="relative p-4 rounded-lg overflow-hidden
+        bg-white/[0.02] backdrop-blur-glass border border-white/[0.04]">
+        
+        <CornerAccents />
+        
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* Connection Status */}
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${
+              connectionStatus === 'connected' 
+                ? 'bg-status-online shadow-status-online animate-status-pulse' 
+                : connectionStatus === 'connecting'
+                ? 'bg-neon-cyan animate-pulse'
+                : 'bg-status-error'
+            }`} />
+            <span className="font-display text-[11px] tracking-widest text-text-secondary uppercase">
+              {connectionStatus === 'connected' ? 'MAINNET LIVE' : 
+               connectionStatus === 'connecting' ? 'SYNCING...' : 'OFFLINE'}
+            </span>
+          </div>
+          
+          {/* Metrics */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="font-display text-[10px] tracking-wider text-text-tertiary">BLOCK</span>
+              <span className="font-mono text-sm text-neon-cyan animate-data-pulse">
+                {blockHeight.toLocaleString()}
+              </span>
+            </div>
+            
+            <div className="w-px h-4 bg-white/10" />
+            
+            <div className="flex items-center gap-2">
+              <span className="font-display text-[10px] tracking-wider text-text-tertiary">TPS</span>
+              <span className="font-mono text-sm text-neon-cyan">
+                {tps.toFixed(1)}
+              </span>
+            </div>
+            
+            <div className="w-px h-4 bg-white/10" />
+            
+            <div className="flex items-center gap-2">
+              <span className="font-display text-[10px] tracking-wider text-text-tertiary">VALIDATORS</span>
+              <span className="font-mono text-sm text-neon-cyan">
+                {validators}
+              </span>
+            </div>
+            
+            <div className="w-px h-4 bg-white/10" />
+            
+            <div className="flex items-center gap-2">
+              <span className="font-display text-[10px] tracking-wider text-text-tertiary">FINALITY</span>
+              <span className="font-mono text-sm text-status-online">
+                &lt; 2s
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Bottom glow line */}
+        <div className="absolute bottom-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent" />
+      </div>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILE PANEL - User identity display
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ProfilePanel() {
+  const { user } = useAuth();
+  const [level, setLevel] = useState(1);
+  const [xp, setXp] = useState(0);
+  const [maxXp, setMaxXp] = useState(1000);
+  
+  // Mock XP data - would come from chain
+  useEffect(() => {
+    setLevel(12);
+    setXp(7350);
+    setMaxXp(10000);
+  }, []);
+  
+  const xpPercent = (xp / maxXp) * 100;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.3, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="relative p-5 rounded-lg overflow-hidden
+        bg-white/[0.02] backdrop-blur-glass border border-white/[0.04]"
+    >
+      <CornerAccents />
+      
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-4">
+        {/* Avatar */}
+        <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 
+          border border-neon-cyan/30 flex items-center justify-center">
+          <span className="text-2xl">👤</span>
+        </div>
+        
+        {/* Identity */}
+        <div className="flex-1">
+          <h3 className="font-display text-sm text-text-primary tracking-wide">
+            {user?.display_name || user?.qor_id?.split('#')[0] || 'Anonymous'}
+          </h3>
+          <p className="font-mono text-[10px] text-text-tertiary tracking-wider">
+            QOR-{user?.id?.slice(0, 8).toUpperCase() || '00000000'}
+          </p>
+        </div>
+        
+        {/* Level Badge */}
+        <div className="text-center">
+          <div className="font-mono text-2xl font-bold text-neon-cyan">
+            {level}
+          </div>
+          <span className="font-display text-[9px] text-text-tertiary tracking-widest">LEVEL</span>
+        </div>
+      </div>
+      
+      {/* XP Bar */}
+      <div className="space-y-1">
+        <div className="flex justify-between items-center">
+          <span className="font-display text-[9px] text-text-tertiary tracking-widest">EXPERIENCE</span>
+          <span className="font-mono text-[10px] text-text-secondary">
+            {xp.toLocaleString()} / {maxXp.toLocaleString()}
+          </span>
+        </div>
+        <div className="h-1.5 bg-void-surface rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${xpPercent}%` }}
+            transition={{ delay: 0.5, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            className="h-full bg-gradient-to-r from-neon-cyan to-neon-purple rounded-full"
+            style={{ boxShadow: '0 0 10px rgba(0, 229, 255, 0.5)' }}
+          />
+        </div>
+      </div>
+      
+      {/* Bottom glow */}
+      <div className="absolute bottom-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-neon-cyan/20 to-transparent" />
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUICK ACCESS PANEL - System shortcuts
+// ─────────────────────────────────────────────────────────────────────────────
+
+function QuickAccessPanel() {
+  const quickLinks = [
+    { icon: '🔍', title: 'Explorer', href: '/explorer' },
+    { icon: '⚒️', title: 'Forge', href: '/forge' },
+    { icon: '🏪', title: 'Market', href: '/marketplace' },
+    { icon: '💻', title: 'Dev Hub', href: '/development' },
+    { icon: '🤖', title: 'Sophia', href: '/social' },
+    { icon: '⚙️', title: 'Settings', href: '/settings' },
+  ];
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.6, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="relative p-5 rounded-lg overflow-hidden
+        bg-white/[0.02] backdrop-blur-glass border border-white/[0.04]"
+    >
+      <CornerAccents />
+      
+      <h3 className="font-display text-[11px] tracking-widest text-text-secondary mb-4 uppercase">
+        Quick Access
+      </h3>
+      
+      <div className="grid grid-cols-6 gap-2">
+        {quickLinks.map((link) => (
+          <Link
+            key={link.title}
+            href={link.href}
+            className="flex flex-col items-center p-3 rounded-md 
+              hover:bg-white/[0.03] transition-all duration-300 group"
+          >
+            <span className="text-xl mb-1 group-hover:scale-110 transition-transform">
+              {link.icon}
+            </span>
+            <span className="font-mono text-[9px] text-text-tertiary group-hover:text-neon-cyan transition-colors">
+              {link.title}
+            </span>
+          </Link>
+        ))}
+      </div>
+      
+      {/* Bottom glow */}
+      <div className="absolute bottom-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-neon-cyan/20 to-transparent" />
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WALLET PANEL - CGT Balance display
+// ─────────────────────────────────────────────────────────────────────────────
+
+function WalletPanel() {
+  const [balance, setBalance] = useState('0.00');
+  const [sparks, setSparks] = useState('0');
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.4, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="relative p-5 rounded-lg overflow-hidden
+        bg-white/[0.02] backdrop-blur-glass border border-white/[0.04]"
+    >
+      <CornerAccents />
+      
+      <h3 className="font-display text-[11px] tracking-widest text-text-secondary mb-4 uppercase">
+        Wallet
+      </h3>
+      
+      {/* CGT Balance */}
+      <div className="mb-4">
+        <span className="font-display text-[9px] text-text-tertiary tracking-widest">CGT BALANCE</span>
+        <div className="font-mono text-3xl font-medium text-neon-cyan mt-1">
+          {balance}
+        </div>
+        <span className="font-mono text-[10px] text-text-tertiary">Creator God Token</span>
+      </div>
+      
+      {/* Sparks */}
+      <div className="mb-4">
+        <span className="font-display text-[9px] text-text-tertiary tracking-widest">SPARKS</span>
+        <div className="font-mono text-xl text-neon-purple mt-1">
+          {sparks}
+        </div>
+      </div>
+      
+      {/* Connect Button */}
+      <WalletConnector variant="full" />
+      
+      {/* Bottom glow */}
+      <div className="absolute bottom-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-neon-cyan/20 to-transparent" />
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN DASHBOARD GRID
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function DashboardGrid() {
+  const connect = useChainStore((state) => state.connect);
 
   // Connect to blockchain on mount
   useEffect(() => {
@@ -27,34 +384,18 @@ export function DashboardGrid() {
 
   const systems = [
     {
-      icon: '💰',
-      title: 'Wallet',
-      value: '0.00',
-      subtitle: 'CGT Balance',
-      href: '/wallet',
-      status: 'online' as const,
-    },
-    {
-      icon: '⚡',
-      title: 'Staking',
-      value: validators || 0,
-      subtitle: 'Active Validators',
-      href: '/staking',
-      status: connectionStatus === 'connected' ? 'online' as const : 'syncing' as const,
-    },
-    {
       icon: '🎮',
       title: 'Games',
       value: '12',
-      subtitle: 'Available Games',
+      subtitle: 'AVAILABLE TITLES',
       href: '/games',
       status: 'online' as const,
     },
     {
       icon: '🎵',
-      title: 'Music',
-      value: 'Now Playing',
-      subtitle: 'Digital Stranger',
+      title: 'QOR Music',
+      value: 'Live',
+      subtitle: 'STREAMING NOW',
       href: '/music',
       status: 'online' as const,
     },
@@ -62,7 +403,7 @@ export function DashboardGrid() {
       icon: '🌐',
       title: 'VYB Social',
       value: '8',
-      subtitle: 'New Notifications',
+      subtitle: 'NEW NOTIFICATIONS',
       href: '/social',
       status: 'online' as const,
     },
@@ -70,137 +411,131 @@ export function DashboardGrid() {
       icon: '🖼️',
       title: 'NFT Portal',
       value: '23',
-      subtitle: 'Items Owned',
+      subtitle: 'ITEMS OWNED',
       href: '/nft-portal',
+      status: 'online' as const,
+    },
+    {
+      icon: '⚡',
+      title: 'Staking',
+      value: '5.2%',
+      subtitle: 'CURRENT APY',
+      href: '/staking',
+      status: 'online' as const,
+    },
+    {
+      icon: '💎',
+      title: 'Support',
+      value: 'Active',
+      subtitle: 'SUPPORTER BADGE',
+      href: '/donate',
       status: 'online' as const,
     },
   ];
 
-  const quickLinks = [
-    { icon: '🔍', title: 'Explorer', href: '/explorer' },
-    { icon: '⚒️', title: 'Forge', href: '/forge' },
-    { icon: '🏪', title: 'Marketplace', href: '/marketplace' },
-    { icon: '🌀', title: 'Portal', href: '/portal' },
-    { icon: '💻', title: 'Dev Hub', href: '/development' },
-    { icon: '🤖', title: 'Sophia AI', href: '/social' },
-    { icon: '✨', title: 'Scatter3D', href: '/scatter3d' },
-  ];
-
   return (
-    <div className="min-h-screen pb-10 px-4 md:px-8">
+    <div className="min-h-screen pb-12 px-4 md:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Welcome Header */}
+        {/* Hero Header */}
         <motion.div
-          className="text-center mb-12"
-          initial={{ opacity: 0, y: -30 }}
+          className="text-center mb-10 pt-4"
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
-          <h1 className="text-5xl md:text-6xl font-grunge text-holo-gradient mb-4">
-            DEMIURGE
+          <h1 className="font-display text-4xl md:text-5xl tracking-widest mb-2">
+            <span className="text-neon-gradient">DEMIURGE</span>
           </h1>
-          <p className="text-lavender text-lg">
-            The Metaverse Operating System
+          <p className="font-mono text-[11px] text-text-tertiary tracking-[0.3em] uppercase">
+            Command Terminal v2.0
           </p>
         </motion.div>
 
-        {/* Real-time Chain Data Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
-          <HolographicCard className="mb-8" variant="compact" animate={false}>
-            <div className="flex flex-wrap items-center justify-between gap-4 py-2">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  connectionStatus === 'connected' ? 'bg-data-green' : 
-                  connectionStatus === 'connecting' ? 'bg-data-cyan animate-pulse' :
-                  'bg-red-500'
-                }`} 
-                style={{ boxShadow: connectionStatus === 'connected' ? '0 0 10px #00FF88' : undefined }}
-                />
-                <span className="text-sm text-lavender">
-                  {connectionStatus === 'connected' ? 'MAINNET ONLINE' : 
-                   connectionStatus === 'connecting' ? 'CONNECTING...' : 'OFFLINE'}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-8">
-                <DataDisplay 
-                  label="Block" 
-                  value={blockHeight} 
-                />
-                <DataDisplay 
-                  label="TPS" 
-                  value={tps.toFixed(1)} 
-                />
-                <DataDisplay 
-                  label="Validators" 
-                  value={validators} 
-                />
-                <DataDisplay 
-                  label="Finality" 
-                  value="< 2s" 
-                />
-              </div>
-            </div>
-          </HolographicCard>
-        </motion.div>
+        {/* Chain Status Bar */}
+        <ChainStatusBar />
 
-        {/* Main Bento Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-          {systems.map((system, index) => (
-            <SystemModuleCard
-              key={system.title}
-              icon={system.icon}
-              title={system.title}
-              value={system.value}
-              subtitle={system.subtitle}
-              href={system.href}
-              status={system.status}
-              delay={0.1 + index * 0.05}
-            />
-          ))}
-        </div>
+        {/* Main Layout Grid */}
+        <div className="grid grid-cols-12 gap-4 md:gap-6">
+          {/* Left Column - Profile */}
+          <div className="col-span-12 md:col-span-3 space-y-4">
+            <ProfilePanel />
+            <WalletPanel />
+          </div>
 
-        {/* Quick Links */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-        >
-          <HolographicCard variant="elevated" className="mb-8">
-            <h3 className="font-grunge text-holographic text-lg mb-4">Quick Access</h3>
-            <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
-              {quickLinks.map((link) => (
-                <a
-                  key={link.title}
-                  href={link.href}
-                  className="flex flex-col items-center p-3 rounded-lg hover:bg-ultraviolet/50 transition-colors group"
-                >
-                  <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">
-                    {link.icon}
-                  </span>
-                  <span className="text-xs text-lavender group-hover:text-holographic transition-colors">
-                    {link.title}
-                  </span>
-                </a>
+          {/* Center Column - System Modules */}
+          <div className="col-span-12 md:col-span-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {systems.map((system, index) => (
+                <SystemModule
+                  key={system.title}
+                  icon={system.icon}
+                  title={system.title}
+                  value={system.value}
+                  subtitle={system.subtitle}
+                  href={system.href}
+                  status={system.status}
+                  delay={0.2 + index * 0.05}
+                />
               ))}
             </div>
-          </HolographicCard>
-        </motion.div>
+          </div>
 
-        {/* Connect Wallet CTA */}
+          {/* Right Column - VYB Widget (placeholder) */}
+          <div className="col-span-12 md:col-span-3 space-y-4">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="relative p-5 rounded-lg overflow-hidden h-full
+                bg-white/[0.02] backdrop-blur-glass border border-white/[0.04]"
+            >
+              <CornerAccents />
+              
+              <h3 className="font-display text-[11px] tracking-widest text-text-secondary mb-4 uppercase">
+                VYB Feed
+              </h3>
+              
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-3 rounded-md bg-white/[0.02] border border-white/[0.02]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full bg-neon-purple/20" />
+                      <span className="font-mono text-[10px] text-text-secondary">User_{i}</span>
+                    </div>
+                    <p className="font-mono text-[10px] text-text-tertiary line-clamp-2">
+                      Loading social feed...
+                    </p>
+                  </div>
+                ))}
+              </div>
+              
+              <Link 
+                href="/social" 
+                className="block mt-4 text-center font-mono text-[10px] text-neon-cyan hover:underline"
+              >
+                View All →
+              </Link>
+              
+              {/* Bottom glow */}
+              <div className="absolute bottom-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-neon-cyan/20 to-transparent" />
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Quick Access */}
+        <div className="mt-6">
+          <QuickAccessPanel />
+        </div>
+
+        {/* Footer Info */}
         <motion.div
-          className="text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8, duration: 0.5 }}
+          className="text-center mt-8"
         >
-          <WalletConnector variant="full" />
-          <p className="text-sm text-lavender mt-4">
-            Ed25519 · WASM Signing · No Extensions Required
+          <p className="font-mono text-[10px] text-text-tertiary tracking-wider">
+            Ed25519 Signing · WASM Runtime · Zero-Knowledge Proofs
           </p>
         </motion.div>
       </div>

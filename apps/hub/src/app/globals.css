@@ -2,22 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   DEMIURGE OS - Deep Space Cyber-Noir Theme
-   The Metaverse Operating System
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DEMIURGE OS - Dark-Mode Ethereal Glassmorphism + Industrial Sci-Fi
+   "Gnostic Command Terminal" Visual Design Language
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* Core palette CSS variables */
-    --void: #030205;
-    --ultraviolet: #281C55;
-    --obsidian: #0D0A14;
-    --holographic: #CDABC3;
-    --lavender: #725A8D;
-    --nebula: #4A3B6B;
-    --data-cyan: #00D4FF;
-    --data-magenta: #FF00AA;
+    /* ─────────────────────────────────────────────────────────────────────────
+       VOID PALETTE - Pure darkness with clinical neon accents
+       ───────────────────────────────────────────────────────────────────────── */
+    --void-black: #050505;
+    --void-deep: #020203;
+    --void-surface: #0a0a0b;
+    
+    /* Glass opacity layers */
+    --glass-ultra-subtle: rgba(255, 255, 255, 0.02);
+    --glass-subtle: rgba(255, 255, 255, 0.03);
+    --glass-medium: rgba(255, 255, 255, 0.05);
+    --glass-elevated: rgba(255, 255, 255, 0.08);
+    
+    /* Neon accents - Monochromatic cold palette */
+    --neon-cyan: #00E5FF;
+    --neon-cyan-dim: #00A5B5;
+    --neon-cyan-glow: rgba(0, 229, 255, 0.5);
+    --neon-purple: #9D4EDD;
+    --neon-purple-dim: #7B2CBF;
+    --neon-purple-glow: rgba(157, 78, 221, 0.5);
+    --neon-white: #E8E8E8;
+    --neon-white-glow: rgba(232, 232, 232, 0.4);
+    
+    /* Status colors */
+    --status-online: #00FF94;
+    --status-warning: #FFB800;
+    --status-error: #FF3366;
+    --status-info: #00B4D8;
+    
+    /* Text hierarchy */
+    --text-primary: #FAFAFA;
+    --text-secondary: #A0A0A0;
+    --text-tertiary: #606060;
+    --text-accent: var(--neon-cyan);
+    
+    /* Border gradients */
+    --border-shine: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 50%, transparent 100%);
+    --border-neon: linear-gradient(90deg, transparent 0%, var(--neon-cyan) 50%, transparent 100%);
+    
+    /* Animation timings */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out-expo: cubic-bezier(0.87, 0, 0.13, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   html {
@@ -25,259 +59,656 @@
     width: 100%;
     max-width: 100vw;
     scroll-behavior: smooth;
+    font-size: 16px;
   }
   
   body {
     @apply text-white antialiased;
-    font-family: var(--font-space-grotesk), system-ui, sans-serif;
-    background-color: var(--void);
+    font-family: var(--font-space-grotesk), 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--void-black);
     overflow-x: hidden;
     width: 100%;
     max-width: 100vw;
     position: relative;
+    line-height: 1.6;
   }
   
+  /* Typography hierarchy */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-orbitron), system-ui, sans-serif;
-    font-weight: 700;
-    letter-spacing: 0.05em;
+    font-family: var(--font-orbitron), 'SF Pro Display', system-ui, sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
   }
   
-  .font-grunge {
-    font-family: var(--font-orbitron), system-ui, sans-serif;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+  /* Monospace for data */
+  .font-data {
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.02em;
+  }
+  
+  /* Sleek sans-serif for headers */
+  .font-display {
+    font-family: var(--font-orbitron), 'SF Pro Display', system-ui, sans-serif;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
   }
-  
-  .font-grunge-alt {
-    font-family: var(--font-rajdhani), system-ui, sans-serif;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-  }
 
-  /* Custom scrollbar */
+  /* Custom scrollbar - ultra minimal */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   
   ::-webkit-scrollbar-track {
-    background: var(--void);
+    background: var(--void-black);
   }
   
   ::-webkit-scrollbar-thumb {
-    background: var(--lavender);
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    transition: background 0.3s var(--ease-out-expo);
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--holographic);
+    background: var(--neon-cyan);
+    box-shadow: 0 0 8px var(--neon-cyan-glow);
+  }
+
+  /* Selection styling */
+  ::selection {
+    background: var(--neon-cyan);
+    color: var(--void-black);
   }
 }
 
 @layer components {
-  /* ═══════════════════════════════════════════════════════════════════════
-     HOLOGRAPHIC PANEL - Primary container style
-     ═══════════════════════════════════════════════════════════════════════ */
-  .holo-panel {
-    @apply relative overflow-hidden rounded-xl;
-    background: rgba(40, 28, 85, 0.4);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 
-      0 0 30px rgba(205, 171, 195, 0.1),
-      inset 0 0 30px rgba(205, 171, 195, 0.02);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* ═══════════════════════════════════════════════════════════════════════════
+     GLASS PANES - Ethereal Glassmorphism with Volumetric Depth
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .glass-pane {
+    position: relative;
+    background: var(--glass-subtle);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.4s var(--ease-out-expo);
   }
   
-  .holo-panel:hover {
-    border-color: rgba(205, 171, 195, 0.3);
-    box-shadow: 
-      0 0 50px rgba(205, 171, 195, 0.2),
-      inset 0 0 40px rgba(205, 171, 195, 0.05);
+  /* Razor-thin border shine effect */
+  .glass-pane::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--border-shine);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.6;
+    transition: opacity 0.4s var(--ease-out-expo);
+  }
+  
+  .glass-pane:hover::before {
+    opacity: 1;
+  }
+  
+  .glass-pane:hover {
+    background: var(--glass-medium);
+    border-color: rgba(255, 255, 255, 0.1);
     transform: translateY(-2px);
+    box-shadow: 
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      0 0 40px rgba(0, 229, 255, 0.05);
   }
 
-  /* Top highlight line */
-  .holo-panel::before {
+  /* Elevated glass with stronger presence */
+  .glass-pane-elevated {
+    @apply glass-pane;
+    background: var(--glass-elevated);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     NEON CARD - Primary interactive container with bioluminescent glow
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .neon-card {
+    position: relative;
+    background: var(--glass-subtle);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(0, 229, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.5s var(--ease-out-expo);
+  }
+  
+  /* Top edge neon glow line */
+  .neon-card::before {
     content: '';
     position: absolute;
     top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: var(--border-neon);
+    opacity: 0.6;
+    transition: all 0.5s var(--ease-out-expo);
+  }
+  
+  /* Bioluminescent glow effect */
+  .neon-card::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    right: -50%;
+    bottom: -50%;
+    background: radial-gradient(
+      circle at 50% 0%,
+      var(--neon-cyan-glow) 0%,
+      transparent 50%
+    );
+    opacity: 0;
+    transition: opacity 0.5s var(--ease-out-expo);
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  .neon-card:hover {
+    border-color: rgba(0, 229, 255, 0.3);
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 
+      0 0 60px rgba(0, 229, 255, 0.15),
+      0 20px 60px rgba(0, 0, 0, 0.4);
+  }
+  
+  .neon-card:hover::before {
     left: 0;
     right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, 
-      transparent 0%, 
-      rgba(205, 171, 195, 0.5) 50%, 
-      transparent 100%
+    opacity: 1;
+  }
+  
+  .neon-card:hover::after {
+    opacity: 0.15;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     HOLOGRAPHIC SHEEN - Iridescent gradient that shifts on hover
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .holo-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .holo-sheen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      transparent 20%,
+      rgba(0, 229, 255, 0.03) 35%,
+      rgba(157, 78, 221, 0.03) 50%,
+      rgba(0, 229, 255, 0.03) 65%,
+      transparent 80%
     );
+    background-size: 200% 200%;
+    background-position: 100% 100%;
+    transition: background-position 0.8s var(--ease-out-expo);
+    pointer-events: none;
+  }
+  
+  .holo-sheen:hover::after {
+    background-position: 0% 0%;
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════
-     DATA TICKER - For real-time blockchain data
-     ═══════════════════════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════════════════════════════
+     DATA TICKER - Real-time blockchain data display
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
   .data-ticker {
-    @apply font-mono text-sm tracking-wider;
-    color: var(--data-cyan);
-    text-shadow: 0 0 10px var(--data-cyan);
+    @apply font-data text-sm tracking-tight;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 12px var(--neon-cyan-glow);
+    transition: all 0.3s var(--ease-out-expo);
   }
   
-  .data-ticker-magenta {
-    color: var(--data-magenta);
-    text-shadow: 0 0 10px var(--data-magenta);
+  .data-ticker:hover {
+    text-shadow: 0 0 20px var(--neon-cyan-glow), 0 0 40px var(--neon-cyan-glow);
+  }
+  
+  .data-ticker-secondary {
+    color: var(--text-secondary);
+    text-shadow: none;
+  }
+  
+  .data-ticker-live {
+    animation: data-pulse 2s var(--ease-in-out-expo) infinite;
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════
-     LAUNCHER BUTTON - Primary action button
-     ═══════════════════════════════════════════════════════════════════════ */
-  .launcher-button {
-    @apply relative px-6 py-3 font-grunge-alt text-sm uppercase tracking-wider;
-    @apply rounded-lg transition-all duration-300;
-    background: linear-gradient(135deg, var(--ultraviolet), var(--nebula));
-    border: 1px solid rgba(205, 171, 195, 0.3);
-    color: var(--holographic);
-    box-shadow: 0 0 20px rgba(114, 90, 141, 0.3);
+  /* ═══════════════════════════════════════════════════════════════════════════
+     COMMAND BUTTON - Sharp, professional action button
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .cmd-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    font-family: var(--font-rajdhani), system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--neon-cyan);
+    background: var(--glass-subtle);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s var(--ease-out-expo);
+    overflow: hidden;
   }
   
-  .launcher-button:hover {
-    border-color: var(--holographic);
+  /* Animated border gradient */
+  .cmd-button::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    opacity: 0;
+    transition: opacity 0.3s var(--ease-out-expo);
+    z-index: -1;
+    border-radius: inherit;
+  }
+  
+  .cmd-button:hover {
+    color: var(--void-black);
+    background: var(--neon-cyan);
+    border-color: var(--neon-cyan);
     box-shadow: 
-      0 0 30px rgba(205, 171, 195, 0.4),
-      inset 0 0 20px rgba(205, 171, 195, 0.1);
+      0 0 30px var(--neon-cyan-glow),
+      inset 0 0 20px rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
   }
   
-  .launcher-button:active {
+  .cmd-button:active {
     transform: translateY(0);
   }
-
-  .launcher-button-primary {
-    background: linear-gradient(135deg, var(--holographic), var(--lavender));
-    color: var(--void);
-    font-weight: 700;
+  
+  /* Primary variant */
+  .cmd-button-primary {
+    background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-cyan-dim) 100%);
+    color: var(--void-black);
     border: none;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════
-     SYSTEM CARD - Bento grid item
-     ═══════════════════════════════════════════════════════════════════════ */
-  .system-card {
-    @apply relative overflow-hidden rounded-xl p-6;
-    background: rgba(13, 10, 20, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(114, 90, 141, 0.2);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 700;
+    box-shadow: 0 0 20px var(--neon-cyan-glow);
   }
   
-  .system-card:hover {
-    border-color: rgba(205, 171, 195, 0.4);
-    background: rgba(40, 28, 85, 0.3);
-    box-shadow: 0 0 40px rgba(205, 171, 195, 0.15);
-    transform: scale(1.02);
+  .cmd-button-primary:hover {
+    box-shadow: 
+      0 0 40px var(--neon-cyan-glow),
+      0 0 80px rgba(0, 229, 255, 0.3);
+    transform: translateY(-3px);
+  }
+  
+  /* Ghost variant */
+  .cmd-button-ghost {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+  }
+  
+  .cmd-button-ghost:hover {
+    background: var(--glass-medium);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    box-shadow: none;
   }
 
-  .system-card-icon {
-    @apply text-4xl mb-4;
-    filter: drop-shadow(0 0 10px var(--holographic));
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SYSTEM PANEL - Dashboard module container
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .system-panel {
+    position: relative;
+    background: var(--glass-subtle);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    padding: 24px;
+    transition: all 0.5s var(--ease-out-expo);
+    overflow: hidden;
+  }
+  
+  /* Corner accent marks */
+  .system-panel::before,
+  .system-panel::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    transition: all 0.4s var(--ease-out-expo);
+  }
+  
+  .system-panel::before {
+    top: -1px;
+    left: -1px;
+    border-right: none;
+    border-bottom: none;
+    border-top-left-radius: 8px;
+  }
+  
+  .system-panel::after {
+    bottom: -1px;
+    right: -1px;
+    border-left: none;
+    border-top: none;
+    border-bottom-right-radius: 8px;
+  }
+  
+  .system-panel:hover {
+    border-color: rgba(0, 229, 255, 0.15);
+    background: var(--glass-medium);
+  }
+  
+  .system-panel:hover::before,
+  .system-panel:hover::after {
+    border-color: var(--neon-cyan);
+    width: 30px;
+    height: 30px;
   }
 
-  .system-card-title {
-    @apply font-grunge text-lg mb-2;
-    color: var(--holographic);
+  /* ═══════════════════════════════════════════════════════════════════════════
+     HEADER BAR - Command terminal top navigation
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .header-bar {
+    @apply fixed top-0 left-0 right-0 z-50;
+    background: rgba(5, 5, 5, 0.85);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: all 0.4s var(--ease-out-expo);
+  }
+  
+  .header-bar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(0, 229, 255, 0.2) 20%,
+      rgba(0, 229, 255, 0.4) 50%,
+      rgba(0, 229, 255, 0.2) 80%,
+      transparent 100%
+    );
+    opacity: 0;
+    transition: opacity 0.4s var(--ease-out-expo);
+  }
+  
+  .header-bar:hover::after {
+    opacity: 1;
   }
 
-  .system-card-value {
-    @apply font-mono text-2xl font-bold;
-    background: linear-gradient(135deg, var(--data-cyan), var(--holographic));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════
-     STATUS INDICATORS
-     ═══════════════════════════════════════════════════════════════════════ */
-  .status-online {
+  /* ═══════════════════════════════════════════════════════════════════════════
+     STATUS INDICATORS - Live system status
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .status-indicator {
     @apply inline-flex items-center gap-2;
   }
   
-  .status-online::before {
+  .status-indicator::before {
     content: '';
-    @apply w-2 h-2 rounded-full;
-    background: #00FF88;
-    box-shadow: 0 0 10px #00FF88;
-    animation: pulse 2s ease-in-out infinite;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--status-online);
+    box-shadow: 0 0 12px var(--status-online);
+    animation: status-pulse 2s var(--ease-in-out-expo) infinite;
   }
   
-  .status-offline::before {
-    background: #FF4444;
-    box-shadow: 0 0 10px #FF4444;
+  .status-indicator-warning::before {
+    background: var(--status-warning);
+    box-shadow: 0 0 12px var(--status-warning);
+  }
+  
+  .status-indicator-error::before {
+    background: var(--status-error);
+    box-shadow: 0 0 12px var(--status-error);
+    animation: none;
+  }
+  
+  .status-indicator-offline::before {
+    background: var(--text-tertiary);
+    box-shadow: none;
     animation: none;
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════
-     HEADER BAR - Top navigation
-     ═══════════════════════════════════════════════════════════════════════ */
-  .header-bar {
-    @apply fixed top-0 left-0 right-0 z-50;
-    background: rgba(3, 2, 5, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(114, 90, 141, 0.2);
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════
-     GRADIENT TEXT
-     ═══════════════════════════════════════════════════════════════════════ */
-  .text-holo-gradient {
-    background: linear-gradient(135deg, var(--holographic), var(--lavender), var(--data-cyan));
+  /* ═══════════════════════════════════════════════════════════════════════════
+     GRADIENT TEXT - Neon text effects
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .text-neon-gradient {
+    background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    background-size: 200% 200%;
-    animation: gradient-shift 4s ease infinite;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════
-     LEGACY COMPATIBILITY (glass-panel, neon-button, etc.)
-     ═══════════════════════════════════════════════════════════════════════ */
-  .glass-panel {
-    @apply holo-panel;
+    text-shadow: none;
   }
   
-  .neon-button {
-    @apply launcher-button;
+  .text-neon-glow {
+    color: var(--neon-cyan);
+    text-shadow: 
+      0 0 10px var(--neon-cyan-glow),
+      0 0 30px rgba(0, 229, 255, 0.3);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     INPUT FIELDS - Terminal-style inputs
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .input-terminal {
+    @apply w-full px-4 py-3 font-data text-sm;
+    background: var(--glass-subtle);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    color: var(--text-primary);
+    transition: all 0.3s var(--ease-out-expo);
+  }
+  
+  .input-terminal::placeholder {
+    color: var(--text-tertiary);
+  }
+  
+  .input-terminal:focus {
+    outline: none;
+    border-color: rgba(0, 229, 255, 0.4);
+    box-shadow: 
+      0 0 0 3px rgba(0, 229, 255, 0.1),
+      inset 0 0 20px rgba(0, 229, 255, 0.02);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     NOISE OVERLAY - Fine grain texture to prevent "plastic" look
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .noise-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.015;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SACRED GEOMETRY BACKGROUND - Wireframe motifs
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .geometry-grid {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.03;
+    background-image: 
+      linear-gradient(rgba(0, 229, 255, 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 229, 255, 0.5) 1px, transparent 1px);
+    background-size: 60px 60px;
+    transform: perspective(500px) rotateX(60deg);
+    transform-origin: center top;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BREATHING ANIMATION - Idle interface "alive" effect
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .breathing {
+    animation: breathing 4s var(--ease-in-out-expo) infinite;
+  }
+  
+  .breathing-slow {
+    animation: breathing 8s var(--ease-in-out-expo) infinite;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SPOTLIGHT EFFECT - Localized glow on interaction
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .spotlight-container {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .spotlight-container::before {
+    content: '';
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(
+      circle,
+      rgba(0, 229, 255, 0.15) 0%,
+      transparent 70%
+    );
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.4s var(--ease-out-expo);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     LEGACY COMPATIBILITY
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .holo-panel { @apply glass-pane; }
+  .glass-panel { @apply glass-pane; }
+  .launcher-button { @apply cmd-button; }
+  .launcher-button-primary { @apply cmd-button-primary; }
+  .system-card { @apply system-panel holo-sheen; }
+  .neon-button { @apply cmd-button; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   KEYFRAME ANIMATIONS - All with cubic-bezier easing (never linear)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@keyframes breathing {
+  0%, 100% { 
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% { 
+    opacity: 0.85;
+    filter: brightness(0.95);
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   KEYFRAME ANIMATIONS
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.2); }
+@keyframes data-pulse {
+  0%, 100% { 
+    opacity: 1;
+    text-shadow: 0 0 12px var(--neon-cyan-glow);
+  }
+  50% { 
+    opacity: 0.7;
+    text-shadow: 0 0 20px var(--neon-cyan-glow), 0 0 40px var(--neon-cyan-glow);
+  }
 }
 
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+@keyframes status-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.3);
+    opacity: 0.6;
+  }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+@keyframes border-flow {
+  0% { 
+    background-position: 0% 50%;
+  }
+  100% { 
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes float-subtle {
+  0%, 100% { 
+    transform: translateY(0);
+  }
+  50% { 
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes scan-line {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
+  0% { 
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% { 
+    transform: translateY(100vh);
+    opacity: 0;
+  }
 }
 
-/* Scan line overlay effect */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--neon-cyan-glow);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--neon-cyan-glow), 0 0 60px rgba(0, 229, 255, 0.2);
+  }
+}
+
+/* Scan line overlay - subtle */
 .scan-overlay::after {
   content: '';
   position: fixed;
@@ -285,12 +716,37 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, 
+  background: linear-gradient(
+    90deg,
     transparent,
-    rgba(205, 171, 195, 0.3),
+    rgba(0, 229, 255, 0.4),
     transparent
   );
-  animation: scan-line 8s linear infinite;
+  animation: scan-line 6s var(--ease-in-out-expo) infinite;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 9998;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Parallax depth layers */
+.parallax-slow { will-change: transform; transform: translateZ(-2px) scale(3); }
+.parallax-medium { will-change: transform; transform: translateZ(-1px) scale(2); }
+.parallax-fast { will-change: transform; transform: translateZ(0); }
+
+/* 3D tilt effect container */
+.tilt-card {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
 }

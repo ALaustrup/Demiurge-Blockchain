@@ -6,52 +6,79 @@ import { QorIdAuthFlow } from './QorIdAuthFlow';
 /**
  * AuthGate Component
  * 
- * This is the MASTER authentication gate for the entire Demiurge ecosystem.
+ * Master authentication gate for the Demiurge ecosystem.
+ * Dark-Mode Ethereal Glassmorphism design.
  * 
  * SECURITY PRINCIPLE:
  * - Users MUST authenticate with QOR ID BEFORE accessing ANY on-chain features
  * - Unauthenticated users see ONLY the login/signup flow
  * - Once authenticated, users NEVER see login prompts again during their session
- * - ALL chain interactions require active authentication
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading, isAuthenticated } = useAuth();
 
-  // Show loading state while checking authentication
+  // ─────────────────────────────────────────────────────────────────────────
+  // Loading State - Minimal spinner with void background
+  // ─────────────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-deep-void">
+      <div className="min-h-screen flex items-center justify-center bg-void">
         <div className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-6">
             {/* Spinning ring */}
-            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-neon-cyan border-r-neon-magenta animate-spin" />
+            <div className="absolute inset-0 rounded-lg border border-neon-cyan/30 animate-spin"
+              style={{ animationDuration: '3s' }} />
             {/* Inner glow */}
-            <div className="absolute inset-2 rounded-full bg-gradient-to-br from-neon-cyan/20 to-neon-magenta/20 animate-pulse" />
+            <div className="absolute inset-3 rounded-md bg-neon-cyan/10 animate-breathing" />
+            {/* Center dot */}
+            <div className="absolute inset-[45%] rounded-full bg-neon-cyan shadow-neon-cyan" />
           </div>
-          <p className="text-gray-400 font-body text-sm">Initializing Demiurge...</p>
+          <p className="font-mono text-[11px] text-text-tertiary tracking-widest uppercase">
+            Initializing...
+          </p>
         </div>
       </div>
     );
   }
 
-  // NOT AUTHENTICATED: Show login/signup flow as the ONLY option
+  // ─────────────────────────────────────────────────────────────────────────
+  // Unauthenticated State - Full-screen login flow
+  // ─────────────────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-deep-void relative overflow-hidden">
-        {/* Background gradient effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-ultraviolet/20 via-deep-void to-deep-void" />
+      <div className="min-h-screen bg-void relative overflow-hidden">
+        {/* Background gradient layers */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-radial from-neon-cyan/[0.03] via-transparent to-transparent" 
+            style={{ transform: 'translate(-30%, -30%)' }} />
+          <div className="absolute inset-0 bg-gradient-radial from-neon-purple/[0.02] via-transparent to-transparent"
+            style={{ transform: 'translate(30%, 30%)' }} />
+        </div>
         
-        {/* Animated background particles */}
+        {/* Sacred geometry grid */}
+        <div className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(0, 229, 255, 0.5) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0, 229, 255, 0.5) 1px, transparent 1px)
+            `,
+            backgroundSize: '60px 60px',
+            transform: 'perspective(500px) rotateX(60deg)',
+            transformOrigin: 'center top',
+          }}
+        />
+        
+        {/* Floating particles */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {Array.from({ length: 20 }).map((_, i) => (
+          {Array.from({ length: 15 }).map((_, i) => (
             <div
               key={i}
-              className="absolute w-1 h-1 bg-neon-cyan/30 rounded-full animate-float"
+              className="absolute w-0.5 h-0.5 bg-neon-cyan/40 rounded-full"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                left: `${10 + Math.random() * 80}%`,
+                top: `${10 + Math.random() * 80}%`,
+                animation: `float-subtle ${8 + Math.random() * 6}s cubic-bezier(0.87, 0, 0.13, 1) infinite`,
                 animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${10 + Math.random() * 10}s`,
               }}
             />
           ))}
@@ -60,12 +87,22 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         {/* Main content */}
         <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4">
           {/* Logo and branding */}
-          <div className="text-center mb-8">
-            <h1 className="text-6xl font-grunge text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-green mb-4">
-              DEMIURGE
+          <div className="text-center mb-10">
+            <div className="relative inline-block mb-4">
+              {/* Logo box */}
+              <div className="w-16 h-16 rounded-lg bg-white/[0.02] border border-neon-cyan/20
+                flex items-center justify-center mx-auto mb-6">
+                <div className="absolute top-0 left-0 w-4 h-4 border-l border-t border-neon-cyan/50" />
+                <div className="absolute bottom-0 right-0 w-4 h-4 border-r border-b border-neon-cyan/50" />
+                <span className="font-display text-2xl text-neon-cyan">D</span>
+              </div>
+            </div>
+            
+            <h1 className="font-display text-4xl md:text-5xl tracking-[0.15em] mb-3">
+              <span className="text-neon-gradient">DEMIURGE</span>
             </h1>
-            <p className="text-xl text-gray-400 font-body">
-              The Metaverse Operating System
+            <p className="font-mono text-[11px] text-text-tertiary tracking-[0.2em] uppercase">
+              Command Terminal v2.0
             </p>
           </div>
 
@@ -83,30 +120,40 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* "What is Demiurge?" link */}
-          <div className="mt-8 text-center">
+          <div className="mt-10 text-center">
             <a
               href="https://demiurge.guru"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neon-cyan hover:text-neon-magenta transition-colors text-sm font-body inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md
+                border border-white/[0.06] bg-white/[0.02]
+                font-mono text-[10px] text-text-secondary tracking-wider
+                hover:border-neon-cyan/30 hover:text-neon-cyan
+                transition-all duration-300"
             >
               <span>What is Demiurge Blockchain?</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
           </div>
 
           {/* Footer */}
-          <div className="mt-12 text-center text-xs text-gray-600 font-body">
-            <p>Secured by QOR ID Authentication</p>
-            <p className="mt-1">Ed25519 · WASM Signing · Zero Extensions</p>
+          <div className="mt-12 text-center">
+            <p className="font-mono text-[9px] text-text-tertiary/60 tracking-widest uppercase">
+              Ed25519 · WASM Signing · Zero Extensions
+            </p>
           </div>
         </div>
+        
+        {/* Noise overlay */}
+        <div className="noise-overlay" />
       </div>
     );
   }
 
-  // AUTHENTICATED: Show the actual application content
+  // ─────────────────────────────────────────────────────────────────────────
+  // Authenticated - Render application content
+  // ─────────────────────────────────────────────────────────────────────────
   return <>{children}</>;
 }

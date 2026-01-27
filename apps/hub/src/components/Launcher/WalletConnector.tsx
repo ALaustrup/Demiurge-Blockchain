@@ -8,10 +8,10 @@ import { generateAddressFromQorId } from '@/lib/qor-wallet';
 import { demiurgeRpc } from '@/lib/demiurge-rpc';
 import Link from 'next/link';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// WALLET CONNECTOR - WASM-based wallet connection flow
-// Ed25519 signing without browser extensions
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// WALLET CONNECTOR - Dark-Mode Ethereal Glassmorphism Design
+// WASM-based Ed25519 signing with volumetric modal UI
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface WalletState {
   address: string | null;
@@ -145,37 +145,43 @@ export function WalletConnector({
     return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
   };
 
-  // Full variant - embedded wallet panel
+  // ─────────────────────────────────────────────────────────────────────────
+  // Full variant - Embedded wallet panel
+  // ─────────────────────────────────────────────────────────────────────────
   if (variant === 'full') {
     return (
-      <div className="holo-panel p-6">
-        <h3 className="font-grunge text-holographic text-lg mb-4">Wallet</h3>
-        
+      <div>
         {wallet.isConnected ? (
           <div className="space-y-4">
             <div>
-              <span className="text-xs text-lavender uppercase">Address</span>
-              <p className="data-ticker font-mono">{formatAddress(wallet.address!)}</p>
+              <span className="font-display text-[9px] text-text-tertiary tracking-widest">ADDRESS</span>
+              <p className="font-mono text-sm text-neon-cyan mt-1">{formatAddress(wallet.address!)}</p>
             </div>
             <div>
-              <span className="text-xs text-lavender uppercase">Balance</span>
-              <p className="text-2xl font-bold text-holo-gradient">
+              <span className="font-display text-[9px] text-text-tertiary tracking-widest">BALANCE</span>
+              <p className="font-mono text-2xl font-medium text-neon-gradient mt-1">
                 {formatBalance(wallet.balance)} CGT
               </p>
             </div>
             <button
               onClick={disconnectWallet}
-              className="w-full py-2 text-sm text-lavender hover:text-red-400 transition-colors"
+              className="w-full py-2 font-mono text-[10px] text-text-tertiary hover:text-status-error 
+                tracking-wider transition-colors duration-300 uppercase"
             >
-              Disconnect
+              Disconnect Wallet
             </button>
           </div>
         ) : (
           <div>
             {!isAuthenticated ? (
               <div className="text-center">
-                <p className="text-lavender mb-4">Login to connect your wallet</p>
-                <Link href="/login" className="launcher-button w-full">
+                <p className="font-mono text-[11px] text-text-tertiary mb-4">Login to connect wallet</p>
+                <Link 
+                  href="/" 
+                  className="block w-full py-3 text-center font-display text-[11px] tracking-widest 
+                    text-neon-cyan border border-neon-cyan/30 rounded-md
+                    hover:bg-neon-cyan/10 transition-all duration-300 uppercase"
+                >
                   Login with QOR ID
                 </Link>
               </div>
@@ -183,13 +189,17 @@ export function WalletConnector({
               <button
                 onClick={connectWallet}
                 disabled={wallet.isConnecting}
-                className="launcher-button-primary w-full py-3"
+                className="w-full py-3 font-display text-[11px] tracking-widest uppercase
+                  bg-gradient-to-r from-neon-cyan to-neon-cyan-dim text-void-deep
+                  rounded-md transition-all duration-300
+                  hover:shadow-neon-cyan hover:-translate-y-0.5
+                  disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {wallet.isConnecting ? 'Connecting...' : 'Connect Wallet'}
               </button>
             )}
             {wallet.error && (
-              <p className="text-red-400 text-sm mt-2">{wallet.error}</p>
+              <p className="font-mono text-[10px] text-status-error mt-2">{wallet.error}</p>
             )}
           </div>
         )}
@@ -197,102 +207,151 @@ export function WalletConnector({
     );
   }
 
-  // Button variant - header/navbar button
+  // ─────────────────────────────────────────────────────────────────────────
+  // Button variant - Header/navbar button
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <>
       {wallet.isConnected ? (
         <button
           onClick={() => setShowModal(true)}
-          className="launcher-button flex items-center gap-2 px-4 py-2"
+          className="flex items-center gap-2 px-4 py-2 rounded-md
+            bg-white/[0.03] border border-neon-cyan/20
+            hover:border-neon-cyan/40 hover:bg-white/[0.05]
+            transition-all duration-300"
         >
-          <div className="w-2 h-2 rounded-full bg-data-green" style={{ boxShadow: '0 0 8px #00FF88' }} />
-          <span className="font-mono text-sm">{formatAddress(wallet.address!)}</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-status-online shadow-status-online animate-status-pulse" />
+          <span className="font-mono text-[11px] text-neon-cyan">{formatAddress(wallet.address!)}</span>
         </button>
       ) : (
         <button
-          onClick={isAuthenticated ? connectWallet : () => window.location.href = '/login'}
+          onClick={isAuthenticated ? connectWallet : () => window.location.href = '/'}
           disabled={wallet.isConnecting}
-          className="launcher-button px-5 py-2 text-sm"
+          className="px-5 py-2 rounded-md font-display text-[11px] tracking-widest uppercase
+            bg-gradient-to-r from-neon-cyan/20 to-neon-purple/20
+            border border-neon-cyan/30 text-neon-cyan
+            hover:border-neon-cyan/60 hover:shadow-neon-cyan
+            transition-all duration-300
+            disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {wallet.isConnecting ? 'Connecting...' : 'Connect'}
         </button>
       )}
 
-      {/* Connection Modal */}
+      {/* ─────────────────────────────────────────────────────────────────────
+          Connection Modal - Volumetric glassmorphism design
+          ───────────────────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {showModal && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             {/* Backdrop */}
-            <div
-              className="absolute inset-0 bg-void/80 backdrop-blur-sm"
+            <motion.div
+              className="absolute inset-0 bg-void/90 backdrop-blur-glass"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => !wallet.isConnecting && setShowModal(false)}
             />
 
             {/* Modal */}
             <motion.div
-              className="relative holo-panel p-8 w-full max-w-md mx-4"
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md overflow-hidden rounded-xl
+                bg-white/[0.03] backdrop-blur-ultra border border-white/[0.06]"
+              style={{
+                boxShadow: '0 30px 100px rgba(0, 0, 0, 0.5), 0 0 60px rgba(0, 229, 255, 0.1)',
+              }}
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              <h2 className="font-grunge text-2xl text-holo-gradient text-center mb-6">
-                {wallet.isConnected ? 'Wallet Connected' : 'Connecting Wallet'}
-              </h2>
+              {/* Corner accents */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-l border-t border-neon-cyan/40" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-r border-t border-neon-cyan/40" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-l border-b border-neon-cyan/40" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-r border-b border-neon-cyan/40" />
+              
+              {/* Top glow line */}
+              <div className="absolute top-0 left-[10%] right-[10%] h-px 
+                bg-gradient-to-r from-transparent via-neon-cyan/60 to-transparent" />
 
-              {/* Connection Steps */}
-              <div className="space-y-4 mb-6">
-                <StepIndicator
-                  label="Initialize WASM Module"
-                  status={initStep === 'wasm' ? 'active' : initStep === 'idle' ? 'pending' : 'complete'}
-                />
-                <StepIndicator
-                  label="Generate Ed25519 Keypair"
-                  status={initStep === 'keypair' ? 'active' : ['idle', 'wasm'].includes(initStep) ? 'pending' : 'complete'}
-                />
-                <StepIndicator
-                  label="Fetch Balance"
-                  status={initStep === 'balance' ? 'active' : ['idle', 'wasm', 'keypair'].includes(initStep) ? 'pending' : 'complete'}
-                />
-              </div>
+              <div className="p-8">
+                <h2 className="font-display text-xl tracking-widest text-center mb-8">
+                  <span className="text-neon-gradient">
+                    {wallet.isConnected ? 'WALLET CONNECTED' : 'CONNECTING WALLET'}
+                  </span>
+                </h2>
 
-              {/* Connected State */}
-              {wallet.isConnected && (
-                <div className="text-center space-y-4">
-                  <div className="text-4xl">✓</div>
-                  <p className="data-ticker font-mono">{formatAddress(wallet.address!)}</p>
-                  <p className="text-2xl font-bold text-holo-gradient">
-                    {formatBalance(wallet.balance)} CGT
-                  </p>
+                {/* Connection Steps */}
+                <div className="space-y-4 mb-8">
+                  <StepIndicator
+                    label="Initialize WASM Module"
+                    status={initStep === 'wasm' ? 'active' : initStep === 'idle' ? 'pending' : 'complete'}
+                  />
+                  <StepIndicator
+                    label="Generate Ed25519 Keypair"
+                    status={initStep === 'keypair' ? 'active' : ['idle', 'wasm'].includes(initStep) ? 'pending' : 'complete'}
+                  />
+                  <StepIndicator
+                    label="Fetch Balance"
+                    status={initStep === 'balance' ? 'active' : ['idle', 'wasm', 'keypair'].includes(initStep) ? 'pending' : 'complete'}
+                  />
                 </div>
-              )}
 
-              {/* Error State */}
-              {wallet.error && (
-                <div className="text-center">
-                  <p className="text-red-400 mb-4">{wallet.error}</p>
-                  <button
-                    onClick={connectWallet}
-                    className="launcher-button"
+                {/* Connected State */}
+                {wallet.isConnected && (
+                  <motion.div 
+                    className="text-center space-y-4"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
                   >
-                    Retry
-                  </button>
-                </div>
-              )}
+                    <div className="text-4xl text-status-online">✓</div>
+                    <p className="font-mono text-sm text-neon-cyan">{formatAddress(wallet.address!)}</p>
+                    <p className="font-mono text-3xl font-medium text-neon-gradient">
+                      {formatBalance(wallet.balance)} CGT
+                    </p>
+                  </motion.div>
+                )}
 
-              {/* Close button */}
-              {!wallet.isConnecting && (
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="absolute top-4 right-4 text-lavender hover:text-holographic"
-                >
-                  ✕
-                </button>
-              )}
+                {/* Error State */}
+                {wallet.error && (
+                  <div className="text-center">
+                    <p className="font-mono text-sm text-status-error mb-4">{wallet.error}</p>
+                    <button
+                      onClick={connectWallet}
+                      className="px-6 py-2 rounded-md font-display text-[11px] tracking-widest
+                        border border-neon-cyan/30 text-neon-cyan
+                        hover:border-neon-cyan/60 hover:bg-neon-cyan/10
+                        transition-all duration-300 uppercase"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+
+                {/* Close button */}
+                {!wallet.isConnecting && (
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center
+                      text-text-tertiary hover:text-neon-cyan transition-colors duration-300"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              
+              {/* Bottom glow line */}
+              <div className="absolute bottom-0 left-[10%] right-[10%] h-px 
+                bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent" />
             </motion.div>
           </motion.div>
         )}
@@ -301,21 +360,28 @@ export function WalletConnector({
   );
 }
 
-// Step indicator component
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP INDICATOR - Connection progress display
+// ─────────────────────────────────────────────────────────────────────────────
+
 function StepIndicator({ label, status }: { label: string; status: 'pending' | 'active' | 'complete' }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-        status === 'complete' ? 'bg-data-green text-void' :
-        status === 'active' ? 'bg-data-cyan animate-pulse' :
-        'bg-ultraviolet/50 text-lavender'
+    <div className="flex items-center gap-4">
+      <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs transition-all duration-300 ${
+        status === 'complete' 
+          ? 'bg-status-online/20 text-status-online border border-status-online/30' 
+          : status === 'active' 
+          ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30 animate-pulse' 
+          : 'bg-white/[0.02] text-text-tertiary border border-white/[0.06]'
       }`}>
-        {status === 'complete' ? '✓' : status === 'active' ? '...' : '○'}
+        {status === 'complete' ? '✓' : status === 'active' ? '⋯' : '○'}
       </div>
-      <span className={`text-sm ${
-        status === 'complete' ? 'text-data-green' :
-        status === 'active' ? 'text-data-cyan' :
-        'text-lavender'
+      <span className={`font-mono text-[11px] tracking-wide transition-colors duration-300 ${
+        status === 'complete' 
+          ? 'text-status-online' 
+          : status === 'active' 
+          ? 'text-neon-cyan' 
+          : 'text-text-tertiary'
       }`}>
         {label}
       </span>
