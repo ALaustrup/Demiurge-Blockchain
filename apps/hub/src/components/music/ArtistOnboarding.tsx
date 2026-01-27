@@ -100,10 +100,21 @@ export function ArtistOnboarding({ isOpen, onClose, onSuccess }: ArtistOnboardin
 
   const fetchBalance = async () => {
     try {
-      // TODO: Fetch actual CGT balance from wallet
-      // For now, mock a balance
-      setUserBalance(1000);
-    } catch {
+      // Fetch actual CGT balance from blockchain
+      const profile = await qorAuth.getProfile();
+      const address = profile.on_chain_address || profile.on_chain?.address;
+      
+      if (address) {
+        const { demiurgeRpc } = await import('@/lib/demiurge-rpc');
+        const balanceStr = await demiurgeRpc.getBalance(address);
+        // Balance is in smallest units, convert to CGT
+        const balance = parseInt(balanceStr || '0') / 100;
+        setUserBalance(balance);
+      } else {
+        setUserBalance(0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
       setUserBalance(0);
     }
   };
