@@ -7,10 +7,10 @@ import {
   calculateFreeMints 
 } from '@/lib/donation-tiers';
 import { demiurgeRpc } from '@/lib/demiurge-rpc';
+import { treasury } from '@/lib/treasury';
 import Stripe from 'stripe';
 
 const QOR_AUTH_URL = process.env.NEXT_PUBLIC_QOR_AUTH_URL || 'http://localhost:8080';
-const TREASURY_ADDRESS = process.env.TREASURY_ADDRESS || '0x0000000000000000000000000000000000000001';
 
 /**
  * POST /api/donate/webhook
@@ -145,9 +145,13 @@ async function processOneTimeDonation(session: Stripe.Checkout.Session) {
       try {
         const userAddress = donorData.on_chain_address;
         if (userAddress) {
-          // Transfer CGT from treasury - signature handled server-side
-          await demiurgeRpc.transfer(TREASURY_ADDRESS, userAddress, String(cgtReward * 100), ''); // Convert to smallest units
-          console.log(`[Webhook] Transferred ${cgtReward} CGT to ${userAddress}`);
+          // Transfer CGT from treasury
+          const txHash = await treasury.transferCGT(userAddress, cgtReward, `Donation tier ${tierLevel} reward`);
+          if (txHash) {
+            console.log(`[Webhook] Transferred ${cgtReward} CGT to ${userAddress} (tx: ${txHash})`);
+          } else {
+            console.warn(`[Webhook] CGT transfer pending - treasury not available`);
+          }
         }
       } catch (transferError) {
         console.error('[Webhook] CGT transfer failed:', transferError);
@@ -215,13 +219,16 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
       const userData = await userResponse.json();
       if (userData.on_chain_address && subTier.cgtPerCycle > 0) {
         try {
-          await demiurgeRpc.transfer(
-            TREASURY_ADDRESS, 
+          const txHash = await treasury.transferCGT(
             userData.on_chain_address, 
-            String(subTier.cgtPerCycle * 100),
-            ''
+            subTier.cgtPerCycle,
+            `Subscription tier ${subscriptionTierLevel} bi-weekly reward`
           );
-          console.log(`[Webhook] Subscription CGT: ${subTier.cgtPerCycle} to ${userData.on_chain_address}`);
+          if (txHash) {
+            console.log(`[Webhook] Subscription CGT: ${subTier.cgtPerCycle} to ${userData.on_chain_address} (tx: ${txHash})`);
+          } else {
+            console.warn(`[Webhook] Subscription CGT transfer pending - treasury not available`);
+          }
         } catch (transferError) {
           console.error('[Webhook] Subscription CGT transfer failed:', transferError);
         }

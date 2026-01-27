@@ -3,6 +3,9 @@ import { getQorIdFromRequest, getUserIdFromRequest } from '@/lib/auth-utils';
 import { gameRegistry } from '@/lib/game-registry';
 import { blockchainClient } from '@/lib/blockchain';
 import { qorAuth } from '@demiurge/qor-sdk';
+import { treasury } from '@/lib/treasury';
+
+const QOR_AUTH_URL = process.env.NEXT_PUBLIC_QOR_AUTH_URL || 'http://localhost:8080';
 
 /**
  * Game Rewards API
@@ -53,12 +56,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate amount (minimum 0.00000001 CGT, maximum 1000 CGT per reward)
-    const amountNum = parseFloat(amount);
+    let amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0 || amountNum > 1000) {
       return NextResponse.json(
         { error: 'Invalid amount. Must be between 0.00000001 and 1000 CGT' },
         { status: 400 }
       );
+    }
+
+    // Check for donor XP bonus and apply it
+    let xpBonusApplied = 0;
+    try {
+      const donorResponse = await fetch(`${QOR_AUTH_URL}/api/v1/donations/status`, {
+        headers: { 'Authorization': request.headers.get('Authorization') || '' },
+      });
+      
+      if (donorResponse.ok) {
+        const donorData = await donorResponse.json();
+        // Apply XP rate bonus (stored in basis points, e.g., 500 = 5%)
+        if (donorData.xp_rate_bonus_bps && donorData.xp_rate_bonus_bps > 0) {
+          const bonusMultiplier = donorData.xp_rate_bonus_bps / 10000;
+          xpBonusApplied = amountNum * bonusMultiplier;
+          amountNum = amountNum + xpBonusApplied;
+        }
+      }
+    } catch (error) {
+      // Continue without bonus if donor check fails
+      console.warn('[Reward] Failed to check donor status for XP bonus:', error);
     }
 
     // Rate limiting
@@ -94,36 +118,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert CGT amount to smallest units (2 decimals, 100 Sparks = 1 CGT)
-    const amountInSmallestUnits = Math.floor(amountNum * 100).toString();
-
-    // In production, this would:
-    // 1. Transfer CGT from game pool to player's address
-    // 2. For now, we'll use a mock transaction but log it properly
+    // Transfer CGT from treasury to player
+    let txHash: string | null = null;
+    let transferStatus = 'pending';
     
-    // TODO: Implement actual on-chain transaction
-    // const txHash = await blockchainClient.transferCGT(
-    //   gamePoolPair, // Game pool keypair
-    //   userAddress,
-    //   amountInSmallestUnits
-    // );
-
-    // Mock transaction hash for now (will be replaced with real blockchain transaction)
-    const txHash = `0x${Array.from({ length: 64 }, () => 
-      Math.floor(Math.random() * 16).toString(16)
-    ).join('')}`;
-
-    // Log reward for audit
-    console.log(`[Reward] ${qorId} earned ${amountNum} CGT from ${gameId} - ${reason} (${txHash})`);
+    try {
+      txHash = await treasury.transferCGT(
+        userAddress,
+        amountNum,
+        `Game reward: ${reason} from ${gameId}`
+      );
+      
+      if (txHash) {
+        transferStatus = 'completed';
+        console.log(`[Reward] ${qorId} earned ${amountNum} CGT from ${gameId} - ${reason} (tx: ${txHash})`);
+      } else {
+        // Treasury not available - queue for later or use fallback
+        transferStatus = 'queued';
+        console.warn(`[Reward] CGT transfer queued - treasury not available`);
+        txHash = `pending_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      }
+    } catch (transferError) {
+      console.error(`[Reward] Transfer failed:`, transferError);
+      transferStatus = 'failed';
+    }
 
     return NextResponse.json({
-      success: true,
+      success: transferStatus !== 'failed',
       txHash,
       amount: amountNum,
+      baseAmount: parseFloat(amount),
+      xpBonusApplied,
+      xpBonusPercent: xpBonusApplied > 0 ? Math.round((xpBonusApplied / parseFloat(amount)) * 100) : 0,
       reason,
       qorId,
       gameId,
-      message: `Awarded ${amountNum} CGT for ${reason}`,
+      transferStatus,
+      message: xpBonusApplied > 0 
+        ? `Awarded ${amountNum.toFixed(2)} CGT for ${reason} (+${Math.round(xpBonusApplied * 100) / 100} donor bonus!)`
+        : `Awarded ${amountNum} CGT for ${reason}`,
     });
   } catch (error: any) {
     console.error('Reward API error:', error);
