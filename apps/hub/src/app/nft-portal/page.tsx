@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { demiurgeRpc } from '@/lib/demiurge-rpc';
 import { useBlockchain } from '@/contexts/BlockchainContext';
+import { useComingSoon } from '@/components/ComingSoonModal';
 
 /**
  * NFT Portal - Mint and View NFTs
@@ -13,6 +14,7 @@ import { useBlockchain } from '@/contexts/BlockchainContext';
 export default function NFTPortalPage() {
   const { isConnected } = useBlockchain();
   const [minting, setMinting] = useState(false);
+  const { showComingSoon, ComingSoonModal } = useComingSoon();
 
   return (
     <main className="min-h-screen p-8 page-enter">
@@ -51,7 +53,7 @@ export default function NFTPortalPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
-                  onClick={() => alert('DRC-369 NFT minting coming soon! The ancient forge is being prepared...')}
+                  onClick={() => showComingSoon('DRC-369 NFT Minting', 'Create stateful NFTs that evolve, gain XP, and level up. The ancient forge is being prepared...')}
                   className="glass-panel p-6 rounded-lg hover:chroma-glow transition-all cascade-menu-item text-left"
                 >
                   <h3 className="text-xl font-bold text-neon-green mb-2">Mint DRC-369 NFT</h3>
@@ -61,7 +63,7 @@ export default function NFTPortalPage() {
                   <span className="inline-block mt-2 text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded">Coming Soon</span>
                 </button>
                 <button
-                  onClick={() => alert('Game Asset minting coming soon! The forge awaits your creation...')}
+                  onClick={() => showComingSoon('Game Asset Minting', 'Forge items for your games with cross-game compatibility, true ownership, and revenue sharing.')}
                   className="glass-panel p-6 rounded-lg hover:chroma-glow transition-all cascade-menu-item text-left"
                 >
                   <h3 className="text-xl font-bold text-neon-magenta mb-2">Mint Game Asset</h3>
@@ -149,6 +151,9 @@ export default function NFTPortalPage() {
           </div>
         </div>
       </div>
+      
+      {/* Coming Soon Modal */}
+      <ComingSoonModal />
     </main>
   );
 }

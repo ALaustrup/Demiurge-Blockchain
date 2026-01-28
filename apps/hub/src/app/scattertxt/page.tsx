@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import { useComingSoon } from '@/components/ComingSoonModal';
 
 export default function ScatterTXTPage() {
   const { user, loading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'docs' | 'create'>('overview');
+  const { showComingSoon, ComingSoonModal } = useComingSoon();
 
   if (loading) {
     return (
@@ -168,10 +170,13 @@ export default function ScatterTXTPage() {
                 <p className="text-gray-400 text-sm">Getting started with game development</p>
               </Link>
               
-              <div className="glass-panel p-4 rounded-lg border border-yellow-500/30">
+              <button
+                onClick={() => showComingSoon('ScatterTXT API Reference', 'Complete API documentation for building 3D ASCII games with the ScatterTXT engine.')}
+                className="w-full glass-panel p-4 rounded-lg border border-yellow-500/30 hover:bg-yellow-500/5 transition-colors text-left"
+              >
                 <h3 className="text-lg font-bold text-yellow-400">API Reference</h3>
-                <p className="text-gray-400 text-sm">Coming soon - Full API documentation</p>
-              </div>
+                <p className="text-gray-400 text-sm">Full API documentation - 🔔 Get notified</p>
+              </button>
             </div>
           </div>
         )}
@@ -203,8 +208,11 @@ export default function ScatterTXTPage() {
                     <p className="text-gray-400 text-sm mb-4">
                       Start with a pre-built template to quickly create your game
                     </p>
-                    <button className="w-full glass-panel py-2 rounded hover:chroma-glow transition-all text-neon-cyan">
-                      Coming Soon
+                    <button 
+                      onClick={() => showComingSoon('Quick Start Templates', 'Pre-built game templates to jumpstart your ScatterTXT game development.')}
+                      className="w-full glass-panel py-2 rounded hover:bg-neon-cyan/10 transition-all text-neon-cyan"
+                    >
+                      🔔 Get Notified
                     </button>
                   </div>
                   
@@ -213,8 +221,11 @@ export default function ScatterTXTPage() {
                     <p className="text-gray-400 text-sm mb-4">
                       Build from scratch with full control over your game
                     </p>
-                    <button className="w-full glass-panel py-2 rounded hover:chroma-glow transition-all text-neon-magenta">
-                      Coming Soon
+                    <button 
+                      onClick={() => showComingSoon('Custom Game Builder', 'Full control game builder for creating unique ScatterTXT experiences from scratch.')}
+                      className="w-full glass-panel py-2 rounded hover:bg-neon-magenta/10 transition-all text-neon-magenta"
+                    >
+                      🔔 Get Notified
                     </button>
                   </div>
                 </div>
@@ -253,6 +264,9 @@ export default function ScatterTXTPage() {
           </div>
         </div>
       </div>
+      
+      {/* Coming Soon Modal */}
+      <ComingSoonModal />
     </main>
   );
 }

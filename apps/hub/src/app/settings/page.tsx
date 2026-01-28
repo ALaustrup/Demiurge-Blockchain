@@ -6,6 +6,7 @@ import { useVoiceOptional } from '@/contexts/VoiceContext';
 import { qorAuth } from '@demiurge/qor-sdk';
 import Link from 'next/link';
 import { PermissionButton } from '@/components/voice';
+import { useComingSoon } from '@/components/ComingSoonModal';
 
 type SettingsTab = 'account' | 'security' | 'email' | 'notifications' | 'voice';
 
@@ -14,6 +15,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('account');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const { showComingSoon, ComingSoonModal } = useComingSoon();
   
   // Form states
   const [displayName, setDisplayName] = useState('');
@@ -285,8 +287,11 @@ export default function SettingsPage() {
                   <p className="text-sm text-gray-400 mb-4">
                     Add an extra layer of security to your account.
                   </p>
-                  <button className="glass-panel py-2 px-4 rounded-lg text-gray-400 cursor-not-allowed">
-                    Coming Soon
+                  <button 
+                    onClick={() => showComingSoon('Two-Factor Authentication', 'Add an extra layer of security with TOTP, hardware keys, or biometric verification.')}
+                    className="glass-panel py-2 px-4 rounded-lg text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+                  >
+                    🔔 Get Notified
                   </button>
                 </div>
               </div>
@@ -326,9 +331,15 @@ export default function SettingsPage() {
                   
                   {emailEnabled && (
                     <div className="mt-4 p-3 bg-neon-green/10 border border-neon-green/30 rounded-lg">
-                      <p className="text-neon-green text-sm">
-                        Email service coming soon! You'll be notified when it's ready.
+                      <p className="text-neon-green text-sm mb-2">
+                        Email service coming soon!
                       </p>
+                      <button
+                        onClick={() => showComingSoon('On-Chain Email', 'Send and receive encrypted messages stored on the blockchain. Full privacy, no servers.')}
+                        className="text-xs text-neon-cyan hover:underline"
+                      >
+                        🔔 Get notified when it's ready →
+                      </button>
                     </div>
                   )}
                 </div>
@@ -346,13 +357,17 @@ export default function SettingsPage() {
                         <div className="text-xs text-gray-400">Fast, centralized storage</div>
                       </div>
                     </label>
-                    <label className="flex items-center gap-3 p-3 glass-panel rounded-lg cursor-not-allowed opacity-50">
+                    <button
+                      onClick={() => showComingSoon('IPFS Decentralized Storage', 'Store your emails fully on-chain with IPFS. Complete decentralization and censorship resistance.')}
+                      className="flex items-center gap-3 p-3 glass-panel rounded-lg cursor-pointer hover:bg-yellow-500/5 transition-colors w-full text-left"
+                    >
                       <input type="radio" name="storage" disabled className="text-neon-cyan" />
-                      <div>
+                      <div className="flex-1">
                         <div className="text-white">Decentralized (IPFS)</div>
-                        <div className="text-xs text-gray-400">Coming soon - Fully on-chain storage</div>
+                        <div className="text-xs text-gray-400">Fully on-chain storage</div>
                       </div>
-                    </label>
+                      <span className="text-xs text-yellow-400">🔔 Notify Me</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -529,13 +544,12 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-white">Sophia Voice</span>
-                      <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-400 rounded-full">Coming Soon</span>
                     </div>
                     <button 
-                      disabled
-                      className="w-12 h-6 rounded-full transition-all relative bg-dark-600 cursor-not-allowed opacity-50"
+                      onClick={() => showComingSoon('Sophia Voice Mode', 'Talk directly with Sophia using natural voice conversation. Sophia will respond with the warm, friendly Ara voice.')}
+                      className="px-3 py-1.5 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs hover:bg-yellow-500/20 transition-colors"
                     >
-                      <div className="w-5 h-5 rounded-full bg-white absolute top-0.5 left-0.5" />
+                      🔔 Get Notified
                     </button>
                   </div>
                 </div>
@@ -548,6 +562,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      
+      {/* Coming Soon Modal */}
+      <ComingSoonModal />
     </main>
   );
 }
