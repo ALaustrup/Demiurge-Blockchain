@@ -67,7 +67,7 @@ export default function PlayGamePage() {
         <div className="glass-panel p-8 rounded-lg border border-red-500">
           <div className="text-red-400 text-xl mb-4">{error || 'Game not found'}</div>
           <a
-            href="/portal"
+            href="/dashboard"
             className="glass-panel px-4 py-2 rounded hover:chroma-glow transition-all inline-block"
           >
             Return to Portal

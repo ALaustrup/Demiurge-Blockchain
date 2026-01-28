@@ -70,12 +70,14 @@ export function BlogPanel() {
     <div className="glass-panel rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-white">Blog</h3>
-        <Link 
-          href="/blog" 
+        <a 
+          href="https://demiurge.guru/blog" 
+          target="_blank"
+          rel="noopener noreferrer"
           className="text-xs text-neon-cyan hover:underline"
         >
           View All →
-        </Link>
+        </a>
       </div>
 
       <div className="space-y-4">

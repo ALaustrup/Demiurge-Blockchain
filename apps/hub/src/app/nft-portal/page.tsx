@@ -93,7 +93,7 @@ export default function NFTPortalPage() {
               </p>
             </Link>
             <Link
-              href="/profile"
+              href="/social/profile"
               className="glass-panel p-6 rounded-lg hover:chroma-glow transition-all cascade-menu-item"
             >
               <h3 className="text-lg font-bold text-neon-green mb-2">Profile</h3>
@@ -102,10 +102,10 @@ export default function NFTPortalPage() {
               </p>
             </Link>
             <Link
-              href="/nft-portal/gallery"
+              href="/forge"
               className="glass-panel p-6 rounded-lg hover:chroma-glow transition-all cascade-menu-item"
             >
-              <h3 className="text-lg font-bold text-neon-magenta mb-2">Gallery</h3>
+              <h3 className="text-lg font-bold text-neon-magenta mb-2">NFT Gallery</h3>
               <p className="text-gray-400 text-sm">
                 A curated view of your collection. The finest creations, displayed with honor.
               </p>

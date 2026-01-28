@@ -48,12 +48,14 @@ export default function ScatterTXTPage() {
               >
                 LAUNCH DEMO
               </Link>
-              <Link
-                href="/docs/scatter3d"
+              <a
+                href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/scatter3d.md"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="glass-panel border border-neon-cyan/50 text-neon-cyan font-bold py-3 px-8 rounded-lg hover:border-neon-cyan hover:chroma-glow transition-all"
               >
                 DOCUMENTATION
-              </Link>
+              </a>
               {isAuthenticated && (
                 <button
                   onClick={() => setActiveTab('create')}
@@ -148,13 +150,15 @@ export default function ScatterTXTPage() {
             <h2 className="text-2xl font-bold text-neon-cyan mb-6">Documentation</h2>
             
             <div className="space-y-4">
-              <Link
-                href="/docs/scatter3d"
+              <a
+                href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/scatter3d.md"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="block glass-panel p-4 rounded-lg hover:chroma-glow transition-all"
               >
                 <h3 className="text-lg font-bold text-white">Engine Architecture</h3>
                 <p className="text-gray-400 text-sm">Learn how ScatterTXT renders 3D worlds in ASCII</p>
-              </Link>
+              </a>
               
               <Link
                 href="/development"

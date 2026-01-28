@@ -3,28 +3,25 @@ import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const token = request.cookies.get('qor_token');
   
-  // Redirect /portal to / (single dashboard consolidation)
+  // Redirect /portal to /dashboard (legacy route support)
   if (pathname === '/portal' || pathname.startsWith('/portal/')) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   
-  // Admin route protection
-  const token = request.cookies.get('qor_token');
+  // Admin route protection - redirect to home if not authenticated
   if (pathname.startsWith('/admin') && !token) {
     return NextResponse.redirect(new URL('/', request.url));
   }
   
-  // Redirect /login to / (AuthGate handles authentication)
-  // This prevents logged-in users from seeing login page
-  if (pathname === '/login' || pathname === '/register') {
-    const hasToken = request.cookies.get('qor_token');
-    if (hasToken) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-    // For non-authenticated users, redirect to home (AuthGate will show login)
-    return NextResponse.redirect(new URL('/', request.url));
+  // Redirect authenticated users away from login/register to dashboard
+  if ((pathname === '/login' || pathname === '/register') && token) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
+  
+  // Allow unauthenticated users to access login/register (AuthGate handles display)
+  // Don't redirect them - just let the page load
   
   return NextResponse.next();
 }

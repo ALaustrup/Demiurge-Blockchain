@@ -87,7 +87,7 @@ export function DemiurgeGate({
               LOGIN WITH QOR ID
             </Link>
             <Link
-              href="/portal"
+              href="/dashboard"
               className="glass-panel px-6 py-3 rounded-lg hover:chroma-glow transition-all text-gray-400"
             >
               RETURN TO PORTAL
@@ -165,7 +165,7 @@ export function DemiurgeGate({
               STAKE NOW
             </Link>
             <Link
-              href="/portal"
+              href="/dashboard"
               className="glass-panel px-6 py-3 rounded-lg hover:chroma-glow transition-all text-gray-400"
             >
               RETURN TO PORTAL

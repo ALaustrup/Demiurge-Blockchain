@@ -316,34 +316,42 @@ export default function GameSubmitPage() {
                 Our SDK enables DRC-369 NFT assets, wallet inventories, achievements, and player XP towards QOR levels.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link 
-                  href="/docs/developers/PHASER_INTEGRATION" 
+                <a 
+                  href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/developers/PHASER_INTEGRATION.md" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="launcher-button px-4 py-2 text-sm rounded-lg"
                   style={{ textShadow: '0 0 8px rgba(0, 212, 255, 0.5)' }}
                 >
                   📖 Phaser Integration Guide
-                </Link>
-                <Link 
-                  href="/docs/developers/DRC_SDK" 
+                </a>
+                <a 
+                  href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/developers/DRC_SDK.md" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="launcher-button px-4 py-2 text-sm rounded-lg"
                   style={{ textShadow: '0 0 8px rgba(0, 212, 255, 0.5)' }}
                 >
                   🔗 DRC-369 SDK
-                </Link>
-                <Link 
-                  href="/docs/developers/game-achievements" 
+                </a>
+                <a 
+                  href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/developers/game-achievements.md" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="launcher-button px-4 py-2 text-sm rounded-lg"
                   style={{ textShadow: '0 0 8px rgba(0, 212, 255, 0.5)' }}
                 >
                   🏆 Achievements API
-                </Link>
-                <Link 
-                  href="/docs/developers/player-xp" 
+                </a>
+                <a 
+                  href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/developers/player-xp.md" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="launcher-button px-4 py-2 text-sm rounded-lg"
                   style={{ textShadow: '0 0 8px rgba(0, 212, 255, 0.5)' }}
                 >
                   ⚡ Player XP System
-                </Link>
+                </a>
               </div>
             </div>
           </div>
@@ -681,13 +689,13 @@ export default function GameSubmitPage() {
                 <span className="text-sm text-lavender">
                   I confirm that I own the rights to this game, it does not contain malicious code,
                   and I agree to the{' '}
-                  <Link href="/docs/terms" className="text-data-cyan hover:underline">
+                  <a href="https://demiurge.guru/terms" target="_blank" rel="noopener noreferrer" className="text-data-cyan hover:underline">
                     Terms of Service
-                  </Link>
+                  </a>
                   {' '}and{' '}
-                  <Link href="/docs/game-guidelines" className="text-data-cyan hover:underline">
+                  <a href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/game-guidelines.md" target="_blank" rel="noopener noreferrer" className="text-data-cyan hover:underline">
                     Game Submission Guidelines
-                  </Link>.
+                  </a>.
                 </span>
               </label>
             </div>
@@ -720,9 +728,9 @@ export default function GameSubmitPage() {
               <p className="text-sm text-lavender mt-1">
                 Let players earn, trade, and use NFT items in your game. Swords, skins, collectibles.
               </p>
-              <Link href="/docs/developers/drc-sdk" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
+              <a href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/developers/DRC_SDK.md" target="_blank" rel="noopener noreferrer" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
                 View SDK Documentation →
-              </Link>
+              </a>
             </div>
             <div className="p-4 bg-ultraviolet/20 rounded-lg border border-lavender/20">
               <div className="text-2xl mb-2">💼</div>
@@ -730,9 +738,9 @@ export default function GameSubmitPage() {
               <p className="text-sm text-lavender mt-1">
                 Connect player wallets to sync game inventories with their on-chain assets.
               </p>
-              <Link href="/docs/developers/wallet-integration" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
+              <a href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/developers/wallet-integration.md" target="_blank" rel="noopener noreferrer" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
                 View Integration Guide →
-              </Link>
+              </a>
             </div>
             <div className="p-4 bg-ultraviolet/20 rounded-lg border border-lavender/20">
               <div className="text-2xl mb-2">🏆</div>
@@ -740,9 +748,9 @@ export default function GameSubmitPage() {
               <p className="text-sm text-lavender mt-1">
                 Award permanent on-chain achievements that players can show off across the ecosystem.
               </p>
-              <Link href="/docs/developers/achievements" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
+              <a href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/developers/achievements.md" target="_blank" rel="noopener noreferrer" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
                 View Achievements API →
-              </Link>
+              </a>
             </div>
             <div className="p-4 bg-ultraviolet/20 rounded-lg border border-lavender/20">
               <div className="text-2xl mb-2">⚡</div>
@@ -750,9 +758,9 @@ export default function GameSubmitPage() {
               <p className="text-sm text-lavender mt-1">
                 Players earn XP towards their QOR Level by playing your game. Higher levels unlock perks.
               </p>
-              <Link href="/docs/developers/qor-xp" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
+              <a href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/developers/qor-xp.md" target="_blank" rel="noopener noreferrer" className="text-xs text-data-cyan hover:underline mt-2 inline-block">
                 View XP System →
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -761,20 +769,24 @@ export default function GameSubmitPage() {
         <div className="mt-8 holo-panel p-6 rounded-xl">
           <h3 className="font-bold text-holographic mb-4">Need Help?</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link
-              href="/docs/developers"
+            <a
+              href="https://github.com/ALaustrup/Demiurge-Blockchain/tree/main/docs/developers"
+              target="_blank"
+              rel="noopener noreferrer"
               className="p-4 bg-ultraviolet/20 rounded-lg hover:bg-ultraviolet/40 transition-all border border-lavender/20"
             >
               <div className="font-bold text-data-cyan">Developer Guide</div>
               <div className="text-sm text-lavender">Learn how to build games for Demiurge</div>
-            </Link>
-            <Link
-              href="/docs/developers/PHASER_INTEGRATION"
+            </a>
+            <a
+              href="https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/developers/PHASER_INTEGRATION.md"
+              target="_blank"
+              rel="noopener noreferrer"
               className="p-4 bg-ultraviolet/20 rounded-lg hover:bg-ultraviolet/40 transition-all border border-lavender/20"
             >
               <div className="font-bold text-data-cyan">Phaser.js Guide</div>
               <div className="text-sm text-lavender">Add blockchain features to Phaser games</div>
-            </Link>
+            </a>
             <Link
               href="/development"
               className="p-4 bg-ultraviolet/20 rounded-lg hover:bg-ultraviolet/40 transition-all border border-lavender/20"

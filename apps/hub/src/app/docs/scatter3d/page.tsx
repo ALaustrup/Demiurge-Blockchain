@@ -15,7 +15,7 @@ export default function Scatter3DDocsPage() {
       <div className="max-w-4xl mx-auto font-mono">
         <div className="mb-8">
           <Link
-            href="/portal"
+            href="/dashboard"
             className="text-demiurge-cyan hover:text-demiurge-magenta transition-colors"
           >
             ← Return to Portal

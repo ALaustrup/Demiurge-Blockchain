@@ -114,7 +114,7 @@ export function GameActivityWidget() {
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-grunge text-neon-green">🎮 Game Activity</h3>
-          <Link href="/portal" className="text-xs text-neon-green hover:underline">
+          <Link href="/dashboard" className="text-xs text-neon-green hover:underline">
             All Games →
           </Link>
         </div>
@@ -197,7 +197,7 @@ export function GameActivityWidget() {
 
             {/* Quick Play */}
             <Link
-              href="/portal"
+              href="/dashboard"
               className="mt-4 block w-full text-center py-3 bg-gradient-to-r from-neon-green/20 to-neon-cyan/20 rounded-lg border border-neon-green/30 hover:border-neon-green/50 transition-all font-grunge text-neon-green"
             >
               🕹️ PLAY NOW
