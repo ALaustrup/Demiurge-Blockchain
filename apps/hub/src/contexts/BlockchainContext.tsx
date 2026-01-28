@@ -1,7 +1,8 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useCallback, ReactNode } from 'react';
 import { demiurgeRpc } from '@/lib/demiurge-rpc';
+import { useChainStore, selectConnectionStatus } from '@/store/chainStore';
 import type { EnergyInfo, ConsensusStatus, ValidatorInfo, StakingPoolInfo, EraInfo } from '@/lib/demiurge-rpc';
 
 interface BlockchainContextType {
@@ -33,37 +34,25 @@ interface BlockchainContextType {
 const BlockchainContext = createContext<BlockchainContextType | null>(null);
 
 export function BlockchainProvider({ children }: { children: ReactNode }) {
-  const [isConnected, setIsConnected] = useState(false);
+  // Use chainStore as single source of truth for connection status
+  const connectionStatus = useChainStore(selectConnectionStatus);
+  const chainConnect = useChainStore(state => state.connect);
+  const chainDisconnect = useChainStore(state => state.disconnect);
+  
+  const isConnected = connectionStatus === 'connected';
 
   const connect = useCallback(async () => {
-    try {
-      // Check connection by calling health endpoint
-      const health = await demiurgeRpc.getHealth();
-      setIsConnected(health.connected);
-    } catch (error: any) {
-      console.warn('Blockchain connection warning:', error.message);
-      setIsConnected(false);
-    }
-  }, []);
+    await chainConnect();
+  }, [chainConnect]);
 
   const disconnect = useCallback(async () => {
-    setIsConnected(false);
-  }, []);
+    chainDisconnect();
+  }, [chainDisconnect]);
 
   useEffect(() => {
-    // Auto-connect on mount
+    // Auto-connect via chainStore on mount (single source of truth)
     connect();
-    
-    // Poll connection status periodically
-    const statusInterval = setInterval(() => {
-      connect();
-    }, 5000); // Check every 5 seconds
-    
-    return () => {
-      clearInterval(statusInterval);
-      disconnect();
-    };
-  }, [connect, disconnect]);
+  }, [connect]);
 
   const getBalance = async (address: string): Promise<string> => {
     if (!isConnected) {

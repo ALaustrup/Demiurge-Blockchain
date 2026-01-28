@@ -136,7 +136,7 @@ export function ProfileCard() {
             View Profile
           </Link>
           <Link 
-            href="/social/settings"
+            href="/settings"
             className="glass-panel py-2 px-3 rounded-lg text-sm hover:border-neon-cyan/50 transition-colors"
           >
             ⚙️

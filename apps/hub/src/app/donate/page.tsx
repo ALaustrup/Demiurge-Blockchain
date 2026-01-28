@@ -1,16 +1,41 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { qorAuth } from '@demiurge/qor-sdk';
-import { 
-  DonationTierCard, 
-  SubscriptionTierCard, 
-  PaymentToggle,
-  DonorStatusCard,
-  DonationProgress 
-} from '@/components/donate';
 import { DONATION_TIERS, SUBSCRIPTION_TIERS, formatAmount } from '@/lib/donation-tiers';
+
+// Dynamically import framer-motion components to avoid SSR issues
+const MotionDiv = dynamic(
+  () => import('framer-motion').then((mod) => mod.motion.div),
+  { ssr: false }
+);
+
+// Dynamically import donate components
+const DonationTierCard = dynamic(
+  () => import('@/components/donate').then((mod) => mod.DonationTierCard),
+  { ssr: false, loading: () => <div className="h-64 bg-gray-800/50 rounded-2xl animate-pulse" /> }
+);
+
+const SubscriptionTierCard = dynamic(
+  () => import('@/components/donate').then((mod) => mod.SubscriptionTierCard),
+  { ssr: false, loading: () => <div className="h-64 bg-gray-800/50 rounded-2xl animate-pulse" /> }
+);
+
+const PaymentToggle = dynamic(
+  () => import('@/components/donate').then((mod) => mod.PaymentToggle),
+  { ssr: false, loading: () => <div className="h-12 w-64 bg-gray-800/50 rounded-xl animate-pulse mx-auto" /> }
+);
+
+const DonorStatusCard = dynamic(
+  () => import('@/components/donate').then((mod) => mod.DonorStatusCard),
+  { ssr: false }
+);
+
+const DonationProgress = dynamic(
+  () => import('@/components/donate').then((mod) => mod.DonationProgress),
+  { ssr: false }
+);
 
 type PaymentMode = 'one-time' | 'subscription';
 
@@ -153,11 +178,7 @@ export default function DonatePage() {
     <div className="min-h-screen pt-24 pb-16 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
+        <div className="text-center mb-12 animate-fade-in">
           <h1 className="text-5xl md:text-6xl font-bold mb-4">
             <span className="bg-gradient-to-r from-data-cyan via-holographic to-data-magenta bg-clip-text text-transparent">
               Support the Demiurge
@@ -167,55 +188,32 @@ export default function DonatePage() {
             Fuel the future of decentralized gaming. Every contribution unlocks exclusive 
             rewards, staking bonuses, and eternal recognition on-chain.
           </p>
-        </motion.div>
+        </div>
 
         {/* Current Donor Status */}
         {donorStatus?.isDonor && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-12"
-          >
+          <div className="mb-12 animate-fade-in">
             <DonorStatusCard status={donorStatus} />
-          </motion.div>
+          </div>
         )}
 
         {/* Payment Mode Toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex justify-center mb-8"
-        >
+        <div className="flex justify-center mb-8 animate-fade-in">
           <PaymentToggle mode={paymentMode} onChange={setPaymentMode} />
-        </motion.div>
+        </div>
 
         {/* Error Display */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="max-w-2xl mx-auto mb-8"
-            >
-              <div className="bg-red-900/30 border border-red-500/50 rounded-xl p-4 text-red-400 text-center">
-                {error}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {error && (
+          <div className="max-w-2xl mx-auto mb-8">
+            <div className="bg-red-900/30 border border-red-500/50 rounded-xl p-4 text-red-400 text-center">
+              {error}
+            </div>
+          </div>
+        )}
 
         {/* One-Time Donation */}
-        <AnimatePresence mode="wait">
-          {paymentMode === 'one-time' && (
-            <motion.div
-              key="one-time"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-            >
+        {paymentMode === 'one-time' && (
+          <div className="animate-fade-in">
               {/* Custom Amount Input */}
               <div className="max-w-2xl mx-auto mb-8">
                 <div className="holo-panel p-6 rounded-2xl">
@@ -269,33 +267,23 @@ export default function DonatePage() {
 
               {/* Tier Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                {DONATION_TIERS.map((tier, index) => (
-                  <motion.div
-                    key={tier.level}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
-                  >
+                {DONATION_TIERS.map((tier) => (
+                  <div key={tier.level} className="animate-fade-in">
                     <DonationTierCard
                       tier={tier}
                       isCurrentTier={donorStatus?.currentTier?.level === tier.level}
                       onSelect={() => handleDonate(tier.minAmount)}
                       disabled={loading}
                     />
-                  </motion.div>
+                  </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           )}
 
           {/* Subscription */}
           {paymentMode === 'subscription' && (
-            <motion.div
-              key="subscription"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
+            <div className="animate-fade-in">
               {/* Subscription Benefits Banner */}
               <div className="max-w-3xl mx-auto mb-12">
                 <div className="holo-panel p-6 rounded-2xl border-2 border-data-cyan/30">
@@ -331,13 +319,8 @@ export default function DonatePage() {
 
               {/* Subscription Tier Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                {SUBSCRIPTION_TIERS.map((tier, index) => (
-                  <motion.div
-                    key={tier.level}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
-                  >
+                {SUBSCRIPTION_TIERS.map((tier) => (
+                  <div key={tier.level} className="animate-fade-in">
                     <SubscriptionTierCard
                       tier={tier}
                       effectiveTier={DONATION_TIERS.find(t => t.level === tier.effectiveTier)}
@@ -345,7 +328,7 @@ export default function DonatePage() {
                       onSelect={() => handleSubscribe(tier.level)}
                       disabled={loading || donorStatus?.subscription?.status === 'active'}
                     />
-                  </motion.div>
+                  </div>
                 ))}
               </div>
 
@@ -365,33 +348,22 @@ export default function DonatePage() {
                   </div>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
 
         {/* Progress to Next Tier */}
         {donorStatus?.nextTier && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="max-w-2xl mx-auto mt-12"
-          >
+          <div className="max-w-2xl mx-auto mt-12 animate-fade-in">
             <DonationProgress
               currentAmount={donorStatus.lifetimeCents}
               nextTier={donorStatus.nextTier}
             />
-          </motion.div>
+          </div>
         )}
 
         {/* Not Logged In CTA */}
         {!isAuthenticated && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="max-w-xl mx-auto mt-12 text-center"
-          >
+          <div className="max-w-xl mx-auto mt-12 text-center animate-fade-in">
             <div className="holo-panel p-8 rounded-2xl">
               <h3 className="text-xl font-bold text-holographic mb-4">Login to Donate</h3>
               <p className="text-gray-400 mb-6">
@@ -404,7 +376,7 @@ export default function DonatePage() {
                 Login / Register
               </a>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>
