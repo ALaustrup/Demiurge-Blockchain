@@ -50,24 +50,26 @@ export default function NFTPortalPage() {
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Link
-                  href="/nft-portal/mint"
-                  className="glass-panel p-6 rounded-lg hover:chroma-glow transition-all cascade-menu-item"
+                <button
+                  onClick={() => alert('DRC-369 NFT minting coming soon! The ancient forge is being prepared...')}
+                  className="glass-panel p-6 rounded-lg hover:chroma-glow transition-all cascade-menu-item text-left"
                 >
                   <h3 className="text-xl font-bold text-neon-green mb-2">Mint DRC-369 NFT</h3>
                   <p className="text-gray-400 text-sm">
                     Create stateful NFTs that evolve, gain XP, and level up. The ancient power flows through you.
                   </p>
-                </Link>
-                <Link
-                  href="/nft-portal/mint-game-asset"
-                  className="glass-panel p-6 rounded-lg hover:chroma-glow transition-all cascade-menu-item"
+                  <span className="inline-block mt-2 text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded">Coming Soon</span>
+                </button>
+                <button
+                  onClick={() => alert('Game Asset minting coming soon! The forge awaits your creation...')}
+                  className="glass-panel p-6 rounded-lg hover:chroma-glow transition-all cascade-menu-item text-left"
                 >
                   <h3 className="text-xl font-bold text-neon-magenta mb-2">Mint Game Asset</h3>
                   <p className="text-gray-400 text-sm">
                     Forge items for your games. Cross-game compatibility, true ownership, revenue sharing.
                   </p>
-                </Link>
+                  <span className="inline-block mt-2 text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded">Coming Soon</span>
+                </button>
               </div>
             </div>
           )}

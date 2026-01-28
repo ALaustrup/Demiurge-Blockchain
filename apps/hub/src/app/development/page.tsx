@@ -19,19 +19,19 @@ const docSections: DocSection[] = [
     title: 'Blockchain Framework',
     description: 'The foundation upon which all creation rests. Eyes gaze upon the code, watching as a warden does his prisoners...',
     links: [
-      { name: 'Architecture Overview', href: '/docs/ULTIMATE_BLOCKCHAIN_DESIGN.md' },
-      { name: 'Module Specifications', href: '/docs/MODULE_SPECS.md' },
-      { name: 'Consensus Algorithm', href: '/docs/CONSENSUS_ALGORITHM_DESIGN.md' },
-      { name: 'RPC API Reference', href: '/docs/RPC_IMPLEMENTATION_NOTES.md' },
+      { name: 'Architecture Overview', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/ULTIMATE_BLOCKCHAIN_DESIGN.md', external: true },
+      { name: 'Module Specifications', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/MODULE_SPECS.md', external: true },
+      { name: 'Consensus Algorithm', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/CONSENSUS_ALGORITHM_DESIGN.md', external: true },
+      { name: 'RPC API Reference', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/RPC_IMPLEMENTATION_NOTES.md', external: true },
     ],
   },
   {
     title: 'Frontend Integration',
     description: 'Where the digital realm meets the ethereal. The code serves the will, the will serves the flame...',
     links: [
-      { name: 'Integration Guide', href: '/docs/FRONTEND_INTEGRATION_PLAN.md' },
-      { name: 'Component Map', href: '/docs/COMPONENT_MAP.md' },
-      { name: 'Game Integration', href: '/docs/GAME_INTEGRATION_GUIDE.md' },
+      { name: 'Integration Guide', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/FRONTEND_INTEGRATION_PLAN.md', external: true },
+      { name: 'Component Map', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/COMPONENT_MAP.md', external: true },
+      { name: 'Game Integration', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/GAME_INTEGRATION_GUIDE.md', external: true },
     ],
   },
   {
@@ -39,27 +39,27 @@ const docSections: DocSection[] = [
     description: 'The ledger speaks, revealing the truth of all transactions. From the Monad, all emanates...',
     links: [
       { name: 'RPC Endpoint', href: 'https://rpc.demiurge.cloud', external: true },
-      { name: 'Chain ID', href: '#', external: false },
+      { name: 'Chain ID: demiurge-1', href: '#' },
       { name: 'Network Status', href: '/analytics' },
-      { name: 'Module Addresses', href: '#', external: false },
+      { name: 'Block Explorer', href: '/explorer' },
     ],
   },
   {
     title: 'QOR Identity System',
     description: 'Identity flows through the network like ancient rivers. Each soul marked, each path recorded...',
     links: [
-      { name: 'QOR ID Specification', href: '/docs/identity/QOR_ID_SPEC.md' },
-      { name: 'Wallet Integration', href: '/docs/QOR_ID_WALLET_INTEGRATION.md' },
-      { name: 'Session Keys', href: '/docs/SESSION_KEYS_QOR_ID_INTEGRATION.md' },
+      { name: 'QOR ID Specification', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/identity/QOR_ID_SPEC.md', external: true },
+      { name: 'Wallet Integration', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/QOR_ID_WALLET_INTEGRATION.md', external: true },
+      { name: 'Session Keys', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/SESSION_KEYS_QOR_ID_INTEGRATION.md', external: true },
     ],
   },
   {
     title: 'Deployment & Testing',
     description: 'The final ritual before release. The flame burns eternal, the code serves the will...',
     links: [
-      { name: 'Testnet Deployment', href: '/docs/TESTNET_DEPLOYMENT.md' },
-      { name: 'User Testing Guide', href: '/docs/USER_TESTING_GUIDE.md' },
-      { name: 'Migration Guide', href: '/docs/MIGRATION_GUIDE.md' },
+      { name: 'Testnet Deployment', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/TESTNET_DEPLOYMENT.md', external: true },
+      { name: 'User Testing Guide', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/USER_TESTING_GUIDE.md', external: true },
+      { name: 'Migration Guide', href: 'https://github.com/ALaustrup/Demiurge-Blockchain/blob/main/docs/MIGRATION_GUIDE.md', external: true },
     ],
   },
 ];

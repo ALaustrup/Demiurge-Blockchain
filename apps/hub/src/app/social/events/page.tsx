@@ -367,53 +367,53 @@ export default function EventsPage() {
           onClick={() => setShowCreateModal(false)}
         >
           <div 
-            className="glass-panel liquid-border w-full max-w-lg rounded-xl overflow-hidden"
+            className="glass-panel liquid-border w-full max-w-lg rounded-xl overflow-hidden max-h-[85vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-800">
-              <h2 className="font-grunge text-2xl text-yellow-400">📅 Create Event</h2>
-              <p className="text-gray-400 text-sm mt-1">Host a tournament, drop, or meetup</p>
+            <div className="p-4 border-b border-gray-800 flex-shrink-0">
+              <h2 className="font-grunge text-xl text-yellow-400">📅 Create Event</h2>
+              <p className="text-gray-400 text-xs mt-1">Host a tournament, drop, or meetup</p>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-3 overflow-y-auto flex-1">
               <div>
-                <label className="text-gray-400 text-sm mb-2 block">Event Title</label>
+                <label className="text-gray-400 text-xs mb-1 block">Event Title</label>
                 <input
                   type="text"
                   placeholder="My Awesome Event"
-                  className="w-full bg-blockchain-light/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-yellow-400/50 focus:outline-none"
+                  className="w-full bg-white/90 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:border-yellow-400/50 focus:outline-none"
                 />
               </div>
               
               <div>
-                <label className="text-gray-400 text-sm mb-2 block">Description</label>
+                <label className="text-gray-400 text-xs mb-1 block">Description</label>
                 <textarea
                   placeholder="What's this event about?"
-                  rows={3}
-                  className="w-full bg-blockchain-light/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-yellow-400/50 focus:outline-none resize-none"
+                  rows={2}
+                  className="w-full bg-white/90 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:border-yellow-400/50 focus:outline-none resize-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Date</label>
+                  <label className="text-gray-400 text-xs mb-1 block">Date</label>
                   <input
                     type="date"
-                    className="w-full bg-blockchain-light/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-yellow-400/50 focus:outline-none"
+                    className="w-full bg-white/90 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:border-yellow-400/50 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Time</label>
+                  <label className="text-gray-400 text-xs mb-1 block">Time</label>
                   <input
                     type="time"
-                    className="w-full bg-blockchain-light/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-yellow-400/50 focus:outline-none"
+                    className="w-full bg-white/90 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:border-yellow-400/50 focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-gray-400 text-sm mb-2 block">Event Type</label>
-                <select className="w-full bg-blockchain-light/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-yellow-400/50 focus:outline-none">
+                <label className="text-gray-400 text-xs mb-1 block">Event Type</label>
+                <select className="w-full bg-white/90 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm focus:border-yellow-400/50 focus:outline-none">
                   <option value="tournament">🏆 Tournament</option>
                   <option value="drop">💎 NFT Drop</option>
                   <option value="ama">💬 AMA</option>
@@ -424,14 +424,14 @@ export default function EventsPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-800 flex gap-3">
+            <div className="p-4 border-t border-gray-800 flex gap-3 flex-shrink-0">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="flex-1 glass-panel py-2 rounded-lg"
+                className="flex-1 glass-panel py-2 rounded-lg text-sm"
               >
                 Cancel
               </button>
-              <button className="flex-1 neon-button py-2 rounded-lg">
+              <button className="flex-1 neon-button py-2 rounded-lg text-sm">
                 Create Event
               </button>
             </div>

@@ -68,13 +68,29 @@ export function generateAddressFromQorId(qorId: string): string {
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
   
   // Create a deterministic seed from QOR ID
-  // Format: "QOR_ID:{qorId}"
-  const seed = `QOR_ID:${qorId}`;
+  // Use double-slash prefix for derivation path (required by Polkadot keyring)
+  // Hash the QOR ID to create a valid derivation path
+  const sanitizedId = qorId.replace(/[^a-zA-Z0-9]/g, '_');
+  const derivationPath = `//${sanitizedId}`;
   
-  // Generate keypair from seed
-  const pair = keyring.addFromUri(seed, {}, 'sr25519');
-  
-  return pair.address;
+  try {
+    // Generate keypair from derivation path
+    const pair = keyring.addFromUri(derivationPath, { name: qorId }, 'sr25519');
+    return pair.address;
+  } catch (error) {
+    // Fallback: use a mnemonic-based approach if derivation fails
+    console.warn('Derivation path failed, using fallback:', error);
+    // Create a deterministic 32-byte seed from QOR ID
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`DEMIURGE_QOR_ID:${qorId}`);
+    // Simple hash-like function for seed generation
+    const seed = new Uint8Array(32);
+    for (let i = 0; i < data.length; i++) {
+      seed[i % 32] ^= data[i];
+    }
+    const pair = keyring.addFromSeed(seed, { name: qorId }, 'sr25519');
+    return pair.address;
+  }
 }
 
 /**
@@ -128,8 +144,23 @@ export async function getOrCreateAddressForQorId(
  */
 export function getKeypairForQorId(qorId: string): KeyringPair {
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
-  const seed = `QOR_ID:${qorId}`;
-  return keyring.addFromUri(seed, {}, 'sr25519');
+  
+  // Use double-slash prefix for derivation path (required by Polkadot keyring)
+  const sanitizedId = qorId.replace(/[^a-zA-Z0-9]/g, '_');
+  const derivationPath = `//${sanitizedId}`;
+  
+  try {
+    return keyring.addFromUri(derivationPath, { name: qorId }, 'sr25519');
+  } catch (error) {
+    // Fallback: use seed-based approach
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`DEMIURGE_QOR_ID:${qorId}`);
+    const seed = new Uint8Array(32);
+    for (let i = 0; i < data.length; i++) {
+      seed[i % 32] ^= data[i];
+    }
+    return keyring.addFromSeed(seed, { name: qorId }, 'sr25519');
+  }
 }
 
 /**

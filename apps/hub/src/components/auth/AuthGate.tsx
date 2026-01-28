@@ -46,102 +46,137 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   // ─────────────────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-void relative overflow-hidden">
-        {/* Background gradient layers */}
+      <div className="h-screen bg-void relative overflow-hidden flex flex-col">
+        {/* Animated background gradient */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-radial from-neon-cyan/[0.03] via-transparent to-transparent" 
-            style={{ transform: 'translate(-30%, -30%)' }} />
-          <div className="absolute inset-0 bg-gradient-radial from-neon-purple/[0.02] via-transparent to-transparent"
-            style={{ transform: 'translate(30%, 30%)' }} />
+          <div 
+            className="absolute inset-0 animate-breathing"
+            style={{
+              background: `
+                radial-gradient(ellipse 80% 50% at 20% 40%, rgba(0, 229, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 60%, rgba(157, 78, 221, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse 40% 30% at 50% 80%, rgba(0, 229, 255, 0.04) 0%, transparent 40%)
+              `
+            }}
+          />
+          {/* Moving gradient orbs */}
+          <div 
+            className="absolute w-[600px] h-[600px] rounded-full opacity-30"
+            style={{
+              background: 'radial-gradient(circle, rgba(0, 229, 255, 0.15) 0%, transparent 70%)',
+              left: '10%',
+              top: '20%',
+              animation: 'float-subtle 20s ease-in-out infinite',
+              filter: 'blur(60px)',
+            }}
+          />
+          <div 
+            className="absolute w-[500px] h-[500px] rounded-full opacity-20"
+            style={{
+              background: 'radial-gradient(circle, rgba(157, 78, 221, 0.15) 0%, transparent 70%)',
+              right: '5%',
+              bottom: '10%',
+              animation: 'float-subtle 25s ease-in-out infinite reverse',
+              filter: 'blur(80px)',
+            }}
+          />
         </div>
         
-        {/* Sacred geometry grid */}
-        <div className="absolute inset-0 opacity-[0.02]"
+        {/* Sacred geometry grid - more visible */}
+        <div className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(0, 229, 255, 0.5) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0, 229, 255, 0.5) 1px, transparent 1px)
+              linear-gradient(rgba(0, 229, 255, 0.6) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0, 229, 255, 0.6) 1px, transparent 1px)
             `,
-            backgroundSize: '60px 60px',
-            transform: 'perspective(500px) rotateX(60deg)',
+            backgroundSize: '80px 80px',
+            transform: 'perspective(800px) rotateX(65deg)',
             transformOrigin: 'center top',
           }}
         />
         
-        {/* Floating particles */}
+        {/* Floating particles - more of them */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {Array.from({ length: 15 }).map((_, i) => (
+          {Array.from({ length: 30 }).map((_, i) => (
             <div
               key={i}
-              className="absolute w-0.5 h-0.5 bg-neon-cyan/40 rounded-full"
+              className="absolute rounded-full"
               style={{
-                left: `${10 + Math.random() * 80}%`,
-                top: `${10 + Math.random() * 80}%`,
-                animation: `float-subtle ${8 + Math.random() * 6}s cubic-bezier(0.87, 0, 0.13, 1) infinite`,
+                width: `${2 + Math.random() * 3}px`,
+                height: `${2 + Math.random() * 3}px`,
+                background: i % 3 === 0 ? 'rgba(0, 229, 255, 0.6)' : i % 3 === 1 ? 'rgba(157, 78, 221, 0.5)' : 'rgba(255, 255, 255, 0.4)',
+                left: `${5 + Math.random() * 90}%`,
+                top: `${5 + Math.random() * 90}%`,
+                animation: `float-subtle ${6 + Math.random() * 8}s cubic-bezier(0.87, 0, 0.13, 1) infinite`,
                 animationDelay: `${Math.random() * 5}s`,
+                boxShadow: i % 3 === 0 ? '0 0 8px rgba(0, 229, 255, 0.8)' : i % 3 === 1 ? '0 0 8px rgba(157, 78, 221, 0.8)' : 'none',
               }}
             />
           ))}
         </div>
 
-        {/* Main content */}
-        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4">
-          {/* Logo and branding */}
-          <div className="text-center mb-10">
-            <div className="relative inline-block mb-4">
-              {/* Logo box */}
-              <div className="w-16 h-16 rounded-lg bg-white/[0.02] border border-neon-cyan/20
-                flex items-center justify-center mx-auto mb-6">
-                <div className="absolute top-0 left-0 w-4 h-4 border-l border-t border-neon-cyan/50" />
-                <div className="absolute bottom-0 right-0 w-4 h-4 border-r border-b border-neon-cyan/50" />
-                <span className="font-display text-2xl text-neon-cyan">D</span>
+        {/* Main content - vertically centered and compact */}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-6">
+          {/* Logo and branding - condensed */}
+          <div className="text-center mb-6">
+            {/* Logo box with hover glow */}
+            <div className="relative inline-block group cursor-pointer mb-4">
+              <div className="w-14 h-14 rounded-lg bg-white/[0.03] border border-neon-cyan/30
+                flex items-center justify-center mx-auto
+                transition-all duration-500 group-hover:border-neon-cyan/60 group-hover:shadow-neon-cyan group-hover:bg-white/[0.05]">
+                <div className="absolute top-0 left-0 w-3 h-3 border-l border-t border-neon-cyan/50 transition-all group-hover:border-neon-cyan group-hover:w-4 group-hover:h-4" />
+                <div className="absolute bottom-0 right-0 w-3 h-3 border-r border-b border-neon-cyan/50 transition-all group-hover:border-neon-cyan group-hover:w-4 group-hover:h-4" />
+                <span className="font-display text-2xl text-neon-cyan transition-all group-hover:text-shadow-neon-cyan">D</span>
               </div>
             </div>
             
-            <h1 className="font-display text-4xl md:text-5xl tracking-[0.15em] mb-3">
+            <h1 className="font-display text-3xl md:text-4xl tracking-[0.15em] mb-1">
               <span className="text-neon-gradient">DEMIURGE</span>
             </h1>
-            <p className="font-mono text-[11px] text-text-tertiary tracking-[0.2em] uppercase">
+            <p className="font-mono text-[10px] text-text-tertiary tracking-[0.2em] uppercase">
               Command Terminal v2.0
             </p>
           </div>
 
-          {/* Auth Flow Container */}
-          <div className="w-full max-w-md">
-            <QorIdAuthFlow
-              isOpen={true}
-              onClose={() => {}} // Cannot close - must authenticate
-              onSuccess={() => {
-                // AuthContext is now updated via refreshUser() in QorIdAuthFlow
-                // No page reload needed - React will re-render with authenticated state
+          {/* Auth Flow Container - with hover glow effect on edges */}
+          <div className="w-full max-w-md relative group">
+            {/* Neon glow border on hover */}
+            <div className="absolute -inset-[1px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.3), rgba(157, 78, 221, 0.3), rgba(0, 229, 255, 0.3))',
+                filter: 'blur(4px)',
               }}
-              variant="page"
             />
+            <div className="relative">
+              <QorIdAuthFlow
+                isOpen={true}
+                onClose={() => {}}
+                onSuccess={() => {}}
+                variant="page"
+              />
+            </div>
           </div>
 
-          {/* "What is Demiurge?" link */}
-          <div className="mt-10 text-center">
+          {/* Links row - more compact */}
+          <div className="mt-6 flex items-center gap-4">
             <a
               href="https://demiurge.guru"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md
-                border border-white/[0.06] bg-white/[0.02]
-                font-mono text-[10px] text-text-secondary tracking-wider
-                hover:border-neon-cyan/30 hover:text-neon-cyan
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md
+                border border-white/[0.08] bg-white/[0.02]
+                font-mono text-[9px] text-text-secondary tracking-wider
+                hover:border-neon-cyan/40 hover:text-neon-cyan hover:bg-neon-cyan/5 hover:shadow-neon-cyan/20
                 transition-all duration-300"
             >
-              <span>What is Demiurge Blockchain?</span>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span>Learn More</span>
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
-          </div>
-
-          {/* Footer */}
-          <div className="mt-12 text-center">
-            <p className="font-mono text-[9px] text-text-tertiary/60 tracking-widest uppercase">
-              Ed25519 · WASM Signing · Zero Extensions
+            <span className="text-text-tertiary/40 text-[8px]">·</span>
+            <p className="font-mono text-[8px] text-text-tertiary/50 tracking-widest uppercase">
+              Ed25519 · WASM · Zero Extensions
             </p>
           </div>
         </div>
