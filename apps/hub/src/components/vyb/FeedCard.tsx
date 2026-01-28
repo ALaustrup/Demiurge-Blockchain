@@ -254,7 +254,7 @@ export function FeedCard({ item }: FeedCardProps) {
                 placeholder="Amount in CGT"
                 min="0.01"
                 step="0.01"
-                className="w-full bg-blockchain-light/50 border border-neon-cyan/30 rounded-lg px-4 py-2 text-white"
+                className="w-full bg-white/90 border border-gray-300 rounded-lg px-4 py-2 text-gray-900"
               />
             </div>
             <div className="flex gap-2">

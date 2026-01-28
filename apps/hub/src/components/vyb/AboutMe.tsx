@@ -103,7 +103,7 @@ export function AboutMe({
           <textarea
             value={editData.bio}
             onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
-            className="w-full bg-blockchain-light/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-neon-cyan/50 focus:outline-none resize-none"
+            className="w-full bg-white/90 border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:border-neon-cyan/50 focus:outline-none resize-none"
             rows={5}
             maxLength={500}
             placeholder="Tell the world about yourself..."
@@ -156,7 +156,7 @@ export function AboutMe({
               ...editData,
               skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
             })}
-            className="w-full bg-blockchain-light/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-neon-cyan/50 focus:outline-none"
+            className="w-full bg-white/90 border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:border-neon-cyan/50 focus:outline-none"
             placeholder="Rust, React, Game Design..."
           />
         </div>

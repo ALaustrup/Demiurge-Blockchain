@@ -297,7 +297,7 @@ export function ProfileWall({
                         value={commentInputs[post.id] || ''}
                         onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
                         placeholder="Write a comment..."
-                        className="flex-1 bg-blockchain-light/50 border border-gray-700 rounded-full px-4 py-2 text-white text-sm focus:border-neon-cyan/50 focus:outline-none"
+                        className="flex-1 bg-white/90 border border-gray-300 rounded-full px-4 py-2 text-gray-900 text-sm focus:border-neon-cyan/50 focus:outline-none"
                         onKeyDown={(e) => e.key === 'Enter' && handleComment(post.id)}
                       />
                       <button

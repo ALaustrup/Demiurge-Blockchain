@@ -176,7 +176,7 @@ export function MoodStatus({
           onChange={(e) => setStatus(e.target.value)}
           placeholder="Share a quick thought..."
           maxLength={100}
-          className="w-full bg-blockchain-light/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-neon-cyan/50 focus:outline-none"
+          className="w-full bg-white/90 border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:border-neon-cyan/50 focus:outline-none"
         />
         <span className="text-xs text-gray-500 mt-1 block text-right">{status.length}/100</span>
       </div>
@@ -190,7 +190,7 @@ export function MoodStatus({
           onChange={(e) => setWorking(e.target.value)}
           placeholder="e.g., New NFT collection, Game update..."
           maxLength={50}
-          className="w-full bg-blockchain-light/50 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-neon-cyan/50 focus:outline-none"
+          className="w-full bg-white/90 border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:border-neon-cyan/50 focus:outline-none"
         />
       </div>
 

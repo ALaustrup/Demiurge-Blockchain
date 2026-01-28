@@ -300,7 +300,7 @@ export function MediaGallery() {
                   type="text"
                   value={mintModal.name}
                   onChange={(e) => setMintModal({ ...mintModal, name: e.target.value })}
-                  className="w-full bg-blockchain-light/50 border border-neon-cyan/30 rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-white/90 border border-gray-300 rounded-lg px-4 py-2 text-gray-900"
                   placeholder="My Awesome NFT"
                 />
               </div>
@@ -310,7 +310,7 @@ export function MediaGallery() {
                 <textarea
                   value={mintModal.description}
                   onChange={(e) => setMintModal({ ...mintModal, description: e.target.value })}
-                  className="w-full bg-blockchain-light/50 border border-neon-cyan/30 rounded-lg px-4 py-2 text-white resize-none h-20"
+                  className="w-full bg-white/90 border border-gray-300 rounded-lg px-4 py-2 text-gray-900 resize-none h-20"
                   placeholder="Describe your NFT..."
                 />
               </div>
@@ -323,7 +323,7 @@ export function MediaGallery() {
                   onChange={(e) => setMintModal({ ...mintModal, royaltyPercent: Number(e.target.value) })}
                   min="0"
                   max="50"
-                  className="w-full bg-blockchain-light/50 border border-neon-cyan/30 rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-white/90 border border-gray-300 rounded-lg px-4 py-2 text-gray-900"
                 />
                 <p className="text-xs text-gray-500 mt-1">You'll earn {mintModal.royaltyPercent}% on future sales</p>
               </div>
