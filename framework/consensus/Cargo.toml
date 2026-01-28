@@ -21,6 +21,7 @@ hex = "0.4"
 # Internal dependencies
 demiurge-core = { path = "../core" }
 demiurge-storage = { path = "../storage" }
+demiurge-cvp = { path = "../modules/cvp" }
 
 [dev-dependencies]
 tokio = { workspace = true }

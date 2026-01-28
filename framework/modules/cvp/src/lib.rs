@@ -33,6 +33,7 @@ pub mod error;
 pub mod integration;
 pub mod drc369;
 pub mod consensus_hook;
+pub mod test_harness;
 
 pub use semantic_ir::*;
 pub use compiler::{PolymorphicCompiler, Bytecode};
@@ -49,6 +50,7 @@ pub use integration::{
 };
 pub use drc369::{build_drc369_semantic_ir, create_cvp_drc369, Drc369CvpConfig};
 pub use consensus_hook::{CvpBlockExtension, integrate_era_transition, validate_block_cvp};
+pub use test_harness::{AttackSimulator, SimulationStats, attacks, scenarios};
 
 /// CVP version for compatibility tracking
 pub const CVP_VERSION: &str = "0.1.0";

@@ -48,4 +48,7 @@ pub enum ConsensusError {
 
     #[error("Core error: {0}")]
     CoreError(#[from] CoreError),
+    
+    #[error("CVP error: {0}")]
+    CvpError(String),
 }

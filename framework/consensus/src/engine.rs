@@ -1,15 +1,26 @@
 //! Consensus engine - Hybrid PoS + BFT
+//!
+//! Includes Consensus-Verified Polymorphism (CVP) for dynamic bytecode mutation.
 
 use crate::{Finality, Result, Validator, ValidatorSet, ConsensusError, SlashingTracker, StakingPool};
 use demiurge_core::{Block, Transaction};
 use demiurge_storage::Storage;
+use demiurge_cvp::{
+    CvpConsensusIntegration, CvpConfig, TransactionInfo, 
+    Threat, ThreatSeverity, SemanticIR, ContractId,
+};
 use codec::{Encode, Decode};
 use std::collections::HashMap;
 use ed25519_dalek::{SigningKey, Signature, Signer, Verifier};
 use hex;
-use tracing::warn;
+use tracing::{warn, info, error};
 
 /// Consensus engine combining PoS and BFT
+/// 
+/// Includes CVP (Consensus-Verified Polymorphism) for dynamic security:
+/// - Automatic bytecode mutation at epoch boundaries
+/// - Attack pattern detection and response
+/// - ZK proof verification for semantic equivalence
 pub struct ConsensusEngine<S: Storage> {
     pub validators: ValidatorSet,
     finality: Finality,
@@ -21,6 +32,11 @@ pub struct ConsensusEngine<S: Storage> {
     slashing: SlashingTracker, // Slashing tracker
     pub staking_pools: HashMap<[u8; 32], StakingPool>, // Validator -> staking pool
     transaction_fees: u128, // Accumulated transaction fees for current era
+    
+    // CVP - Consensus-Verified Polymorphism
+    cvp: CvpConsensusIntegration,
+    cvp_enabled: bool,
+    recent_block_hashes: Vec<[u8; 32]>, // For CVP epoch seed generation
 }
 
 impl<S: Storage> ConsensusEngine<S> {
@@ -28,6 +44,15 @@ impl<S: Storage> ConsensusEngine<S> {
     pub fn new(storage: S, block_time_ms: u64) -> Self {
         // Try to load current era from storage
         let current_era = Self::load_current_era(&storage).unwrap_or(0);
+        
+        // Initialize CVP with default configuration
+        // Mutation epoch aligns with era length for consistency
+        let cvp_config = CvpConfig {
+            mutation_epoch_length: 100, // Mutate every 100 blocks (~10 minutes at 6s blocks)
+            enabled: true,
+            log_mutations: true,
+            ..Default::default()
+        };
         
         Self {
             validators: ValidatorSet::new(),
@@ -40,7 +65,76 @@ impl<S: Storage> ConsensusEngine<S> {
             slashing: SlashingTracker::new(),
             staking_pools: HashMap::new(),
             transaction_fees: 0,
+            cvp: CvpConsensusIntegration::new(cvp_config),
+            cvp_enabled: true,
+            recent_block_hashes: Vec::with_capacity(10),
         }
+    }
+    
+    /// Create consensus engine with CVP disabled (for testing)
+    pub fn new_without_cvp(storage: S, block_time_ms: u64) -> Self {
+        let current_era = Self::load_current_era(&storage).unwrap_or(0);
+        
+        let cvp_config = CvpConfig {
+            enabled: false,
+            ..Default::default()
+        };
+        
+        Self {
+            validators: ValidatorSet::new(),
+            finality: Finality::new(),
+            storage,
+            current_era,
+            block_time: block_time_ms,
+            era_length: 1000,
+            validator_keys: HashMap::new(),
+            slashing: SlashingTracker::new(),
+            staking_pools: HashMap::new(),
+            transaction_fees: 0,
+            cvp: CvpConsensusIntegration::new(cvp_config),
+            cvp_enabled: false,
+            recent_block_hashes: Vec::new(),
+        }
+    }
+    
+    /// Enable or disable CVP
+    pub fn set_cvp_enabled(&mut self, enabled: bool) {
+        self.cvp_enabled = enabled;
+        info!("CVP {} ", if enabled { "enabled" } else { "disabled" });
+    }
+    
+    /// Check if CVP is enabled
+    pub fn is_cvp_enabled(&self) -> bool {
+        self.cvp_enabled
+    }
+    
+    /// Register a contract for CVP protection
+    pub fn register_cvp_contract(
+        &self,
+        contract_id: ContractId,
+        semantic_ir: SemanticIR,
+        bytecode: Vec<u8>,
+    ) -> Result<()> {
+        if !self.cvp_enabled {
+            return Ok(());
+        }
+        
+        self.cvp.register_contract(contract_id, semantic_ir, bytecode)
+            .map_err(|e| ConsensusError::CvpError(format!("{}", e)))
+    }
+    
+    /// Get CVP-protected bytecode for a contract
+    pub fn get_cvp_bytecode(&self, contract_id: &ContractId) -> Option<Vec<u8>> {
+        if !self.cvp_enabled {
+            return None;
+        }
+        
+        self.cvp.get_bytecode(contract_id).ok().flatten()
+    }
+    
+    /// Get CVP statistics
+    pub fn cvp_stats(&self) -> demiurge_cvp::integration::CvpStats {
+        self.cvp.stats()
     }
 
     /// Register a validator with their signing key
@@ -267,11 +361,178 @@ impl<S: Storage> ConsensusEngine<S> {
         // Finalize block
         self.finality.finalize(block)?;
 
+        // CVP: Process block for attack detection and epoch transitions
+        if self.cvp_enabled {
+            self.process_cvp_block(block)?;
+        }
+
         // Check if era transition is needed
         if self.should_transition_era() {
             self.transition_era()?;
         }
 
+        Ok(())
+    }
+    
+    /// Process block through CVP system
+    /// 
+    /// This handles:
+    /// - Transaction analysis for attack patterns
+    /// - Epoch transition mutations
+    /// - Threat response (including emergency mutations)
+    fn process_cvp_block(&mut self, block: &Block) -> Result<()> {
+        let block_hash = block.hash();
+        let block_number = block.header.block_number;
+        
+        // Store block hash for epoch seed generation
+        self.recent_block_hashes.push(block_hash);
+        if self.recent_block_hashes.len() > 10 {
+            self.recent_block_hashes.remove(0);
+        }
+        
+        // Convert transactions to CVP format
+        let tx_infos: Vec<TransactionInfo> = block.transactions
+            .iter()
+            .map(|tx| self.transaction_to_cvp_info(tx, block.header.timestamp))
+            .collect();
+        
+        // Process through CVP
+        let cvp_result = self.cvp.on_block_finalized(
+            block_number,
+            block_hash,
+            &tx_infos,
+        ).map_err(|e| ConsensusError::CvpError(format!("{}", e)))?;
+        
+        // Handle detected threats
+        for threat in &cvp_result.threats_detected {
+            self.handle_cvp_threat(threat, block_number)?;
+        }
+        
+        // Log mutation results
+        if !cvp_result.epoch_mutations.is_empty() {
+            info!(
+                "CVP: Epoch transition at block {} - {} contracts mutated",
+                block_number,
+                cvp_result.epoch_mutations.len()
+            );
+        }
+        
+        if !cvp_result.emergency_mutations.is_empty() {
+            warn!(
+                "CVP: Emergency mutations triggered - {} contracts",
+                cvp_result.emergency_mutations.len()
+            );
+        }
+        
+        Ok(())
+    }
+    
+    /// Convert a transaction to CVP TransactionInfo
+    fn transaction_to_cvp_info(&self, tx: &Transaction, timestamp: u64) -> TransactionInfo {
+        use blake2::{Blake2b512, Digest};
+        
+        // Compute transaction hash
+        let tx_hash = {
+            let encoded = tx.encode();
+            let mut hasher = Blake2b512::new();
+            hasher.update(&encoded);
+            let hash = hasher.finalize();
+            let mut result = [0u8; 32];
+            result.copy_from_slice(&hash[..32]);
+            result
+        };
+        
+        // Extract relevant info based on transaction data type
+        let (target_contract, function_selector, value) = match &tx.data {
+            demiurge_core::TransactionData::ModuleCall { module, call } => {
+                // For module calls, extract function selector from call data
+                let selector = if call.len() >= 4 {
+                    let mut sel = [0u8; 4];
+                    sel.copy_from_slice(&call[..4]);
+                    Some(sel)
+                } else {
+                    None
+                };
+                // Module name can be hashed to create a "contract" identifier
+                let contract_id = {
+                    let mut hasher = Blake2b512::new();
+                    hasher.update(module.as_bytes());
+                    let hash = hasher.finalize();
+                    let mut id = [0u8; 32];
+                    id.copy_from_slice(&hash[..32]);
+                    Some(id)
+                };
+                (contract_id, selector, 0u128)
+            }
+            demiurge_core::TransactionData::Transfer { to, amount } => {
+                // For transfers, target is the recipient
+                (Some(*to), None, *amount)
+            }
+        };
+        
+        TransactionInfo {
+            hash: tx_hash,
+            sender: tx.from,
+            target_contract,
+            function_selector,
+            gas_used: 100_000, // Placeholder - actual usage would come from execution
+            value,
+            success: true, // Would come from execution result
+            call_depth: 1, // Would come from execution trace
+            timestamp,
+        }
+    }
+    
+    /// Handle a CVP threat detection
+    fn handle_cvp_threat(&mut self, threat: &Threat, block_number: u64) -> Result<()> {
+        match threat.severity {
+            ThreatSeverity::Info => {
+                // Just log
+                info!(
+                    "CVP Info [block {}]: {} - {:?}",
+                    block_number,
+                    threat.description,
+                    threat.threat_type
+                );
+            }
+            ThreatSeverity::Low => {
+                info!(
+                    "CVP Low Threat [block {}]: {} - {:?}",
+                    block_number,
+                    threat.description,
+                    threat.threat_type
+                );
+            }
+            ThreatSeverity::Medium => {
+                warn!(
+                    "CVP Medium Threat [block {}]: {} - {:?}",
+                    block_number,
+                    threat.description,
+                    threat.threat_type
+                );
+            }
+            ThreatSeverity::High => {
+                warn!(
+                    "CVP HIGH THREAT [block {}]: {} - {:?} - Contract: {:?}",
+                    block_number,
+                    threat.description,
+                    threat.threat_type,
+                    threat.target_contract.map(|c| hex::encode(&c[..8]))
+                );
+                // Could trigger early epoch transition here
+            }
+            ThreatSeverity::Critical => {
+                error!(
+                    "CVP CRITICAL THREAT [block {}]: {} - {:?} - Contract: {:?}",
+                    block_number,
+                    threat.description,
+                    threat.threat_type,
+                    threat.target_contract.map(|c| hex::encode(&c[..8]))
+                );
+                // Emergency mutation already triggered by CVP engine
+            }
+        }
+        
         Ok(())
     }
 
