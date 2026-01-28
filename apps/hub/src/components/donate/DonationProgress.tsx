@@ -1,7 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
-
 interface DonationProgressProps {
   currentAmount: number; // cents
   nextTier: {
@@ -23,18 +21,14 @@ export function DonationProgress({ currentAmount, nextTier }: DonationProgressPr
 
       {/* Progress Bar */}
       <div className="relative h-4 bg-void rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.min(100, nextTier.progress)}%` }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-          className="absolute inset-y-0 left-0 bg-gradient-to-r from-data-cyan via-holographic to-data-magenta rounded-full"
+        <div
+          style={{ width: `${Math.min(100, nextTier.progress)}%` }}
+          className="absolute inset-y-0 left-0 bg-gradient-to-r from-data-cyan via-holographic to-data-magenta rounded-full transition-all duration-1000 ease-out"
         />
         {/* Glow effect */}
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.min(100, nextTier.progress)}%` }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-          className="absolute inset-y-0 left-0 bg-gradient-to-r from-data-cyan/50 via-holographic/50 to-data-magenta/50 rounded-full blur-sm"
+        <div
+          style={{ width: `${Math.min(100, nextTier.progress)}%` }}
+          className="absolute inset-y-0 left-0 bg-gradient-to-r from-data-cyan/50 via-holographic/50 to-data-magenta/50 rounded-full blur-sm transition-all duration-1000 ease-out"
         />
       </div>
 

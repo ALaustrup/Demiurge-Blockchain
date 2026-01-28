@@ -1,7 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
-
 interface DonorBadgeProps {
   tierLevel: number;
   tierName: string;
@@ -39,11 +37,7 @@ export function DonorBadge({ tierLevel, tierName, isSubscriber, size = 'md' }: D
   const sizes = sizeClasses[size];
 
   return (
-    <motion.div
-      className="relative"
-      whileHover={{ scale: 1.05 }}
-      transition={{ type: 'spring', stiffness: 300 }}
-    >
+    <div className="relative hover:scale-105 transition-transform duration-200">
       {/* Glow effect for high tiers */}
       {tierLevel >= 4 && (
         <div
@@ -79,17 +73,16 @@ export function DonorBadge({ tierLevel, tierName, isSubscriber, size = 'md' }: D
         )}
       </div>
 
-      {/* Animated ring for Godsent tier */}
+      {/* Animated ring for Godsent tier (CSS animation) */}
       {tierLevel === 5 && (
-        <motion.div
-          className={`absolute inset-0 ${sizes.container} rounded-full border-2 border-transparent`}
+        <div
+          className={`absolute inset-0 ${sizes.container} rounded-full border-2 border-transparent animate-spin-slow`}
           style={{
             background: 'linear-gradient(white, white) padding-box, linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #8b00ff, #ff0000) border-box',
+            animationDuration: '8s',
           }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
         />
       )}
-    </motion.div>
+    </div>
   );
 }

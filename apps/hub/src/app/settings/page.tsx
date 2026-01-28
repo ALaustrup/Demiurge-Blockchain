@@ -196,10 +196,20 @@ export default function SettingsPage() {
                 <button
                   onClick={handleSaveProfile}
                   disabled={saving}
-                  className="bg-neon-cyan text-black font-bold py-3 px-6 rounded-lg hover:bg-neon-cyan/80 transition-all disabled:opacity-50"
+                  className="bg-neon-cyan text-black font-bold py-3 px-6 rounded-lg hover:bg-neon-cyan/80 transition-all disabled:opacity-50 flex items-center gap-2"
                 >
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? (
+                    <>
+                      <span className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
+                      Saving...
+                    </>
+                  ) : 'Save Changes'}
                 </button>
+                
+                <p className="text-xs text-gray-500 mt-2">
+                  Note: Profile updates require backend support. 
+                  <span className="text-yellow-400 ml-1">Coming Soon</span>
+                </p>
               </div>
             )}
 
@@ -253,10 +263,20 @@ export default function SettingsPage() {
                     <button
                       onClick={handleChangePin}
                       disabled={saving || !currentPin || !newPin || !confirmPin}
-                      className="bg-yellow-500 text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition-all disabled:opacity-50"
+                      className="bg-yellow-500 text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-400 transition-all disabled:opacity-50 flex items-center gap-2"
                     >
-                      {saving ? 'Changing...' : 'Change PIN'}
+                      {saving ? (
+                        <>
+                          <span className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
+                          Changing...
+                        </>
+                      ) : 'Change PIN'}
                     </button>
+                    
+                    <p className="text-xs text-gray-500">
+                      Note: PIN change functionality requires backend support. 
+                      <span className="text-yellow-400 ml-1">Coming Soon</span>
+                    </p>
                   </div>
                 </div>
                 
@@ -371,12 +391,24 @@ export default function SettingsPage() {
               <div className="space-y-6">
                 <h2 className="text-xl font-bold text-white mb-4">Voice Settings</h2>
                 
-                {/* Microphone Permission */}
+                {/* Master Voice Toggle */}
                 <div className="glass-panel p-4 rounded-lg border border-neon-cyan/30">
-                  <h3 className="font-semibold text-white mb-2">Microphone Access</h3>
-                  <p className="text-sm text-gray-400 mb-4">
-                    Voice features require microphone access for Sophia voice mode and user-to-user voice chat.
-                  </p>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-white">Voice Chat</h3>
+                      <p className="text-xs text-gray-400">Enable microphone for voice features</p>
+                    </div>
+                    <button 
+                      onClick={() => voice?.requestMicrophonePermission()}
+                      className={`w-12 h-6 rounded-full transition-all relative ${
+                        voice?.microphonePermission === 'granted' ? 'bg-neon-cyan' : 'bg-dark-600'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${
+                        voice?.microphonePermission === 'granted' ? 'left-6' : 'left-0.5'
+                      }`} />
+                    </button>
+                  </div>
                   <PermissionButton 
                     permissionState={voice?.microphonePermission || 'unknown'}
                     onClick={() => voice?.requestMicrophonePermission()}
@@ -389,15 +421,21 @@ export default function SettingsPage() {
                   <select
                     value={inputDevice}
                     onChange={(e) => setInputDevice(e.target.value)}
-                    className="w-full glass-panel px-4 py-3 rounded-lg text-white bg-transparent border border-dark-600 focus:border-neon-cyan outline-none"
+                    className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-neon-cyan outline-none"
+                    style={{ color: 'white', backgroundColor: '#1f2937' }}
                   >
-                    <option value="default">System Default</option>
+                    <option value="default" style={{ color: 'white', backgroundColor: '#1f2937' }}>System Default</option>
                     {audioDevices.inputs.map((device) => (
-                      <option key={device.deviceId} value={device.deviceId}>
+                      <option key={device.deviceId} value={device.deviceId} style={{ color: 'white', backgroundColor: '#1f2937' }}>
                         {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
                       </option>
                     ))}
                   </select>
+                  {audioDevices.inputs.length === 0 && (
+                    <p className="text-xs text-yellow-400 mt-1">
+                      No microphones detected. Grant microphone permission to see devices.
+                    </p>
+                  )}
                 </div>
                 
                 {/* Output Device */}
@@ -406,11 +444,12 @@ export default function SettingsPage() {
                   <select
                     value={outputDevice}
                     onChange={(e) => setOutputDevice(e.target.value)}
-                    className="w-full glass-panel px-4 py-3 rounded-lg text-white bg-transparent border border-dark-600 focus:border-neon-cyan outline-none"
+                    className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-neon-cyan outline-none"
+                    style={{ color: 'white', backgroundColor: '#1f2937' }}
                   >
-                    <option value="default">System Default</option>
+                    <option value="default" style={{ color: 'white', backgroundColor: '#1f2937' }}>System Default</option>
                     {audioDevices.outputs.map((device) => (
-                      <option key={device.deviceId} value={device.deviceId}>
+                      <option key={device.deviceId} value={device.deviceId} style={{ color: 'white', backgroundColor: '#1f2937' }}>
                         {device.label || `Speaker ${device.deviceId.slice(0, 8)}`}
                       </option>
                     ))}
@@ -488,16 +527,15 @@ export default function SettingsPage() {
                     Sophia will respond with the warm, friendly Ara voice.
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="text-white">Sophia Voice Enabled</span>
+                    <div>
+                      <span className="text-white">Sophia Voice</span>
+                      <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-400 rounded-full">Coming Soon</span>
+                    </div>
                     <button 
-                      onClick={() => voice?.toggleSophiaVoice()}
-                      className={`w-12 h-6 rounded-full transition-all relative ${
-                        voice?.sophiaVoiceEnabled ? 'bg-yellow-500' : 'bg-dark-600'
-                      }`}
+                      disabled
+                      className="w-12 h-6 rounded-full transition-all relative bg-dark-600 cursor-not-allowed opacity-50"
                     >
-                      <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${
-                        voice?.sophiaVoiceEnabled ? 'left-6' : 'left-0.5'
-                      }`} />
+                      <div className="w-5 h-5 rounded-full bg-white absolute top-0.5 left-0.5" />
                     </button>
                   </div>
                 </div>

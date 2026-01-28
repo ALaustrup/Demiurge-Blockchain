@@ -1,41 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import { qorAuth } from '@demiurge/qor-sdk';
 import { DONATION_TIERS, SUBSCRIPTION_TIERS, formatAmount } from '@/lib/donation-tiers';
-
-// Dynamically import framer-motion components to avoid SSR issues
-const MotionDiv = dynamic(
-  () => import('framer-motion').then((mod) => mod.motion.div),
-  { ssr: false }
-);
-
-// Dynamically import donate components
-const DonationTierCard = dynamic(
-  () => import('@/components/donate').then((mod) => mod.DonationTierCard),
-  { ssr: false, loading: () => <div className="h-64 bg-gray-800/50 rounded-2xl animate-pulse" /> }
-);
-
-const SubscriptionTierCard = dynamic(
-  () => import('@/components/donate').then((mod) => mod.SubscriptionTierCard),
-  { ssr: false, loading: () => <div className="h-64 bg-gray-800/50 rounded-2xl animate-pulse" /> }
-);
-
-const PaymentToggle = dynamic(
-  () => import('@/components/donate').then((mod) => mod.PaymentToggle),
-  { ssr: false, loading: () => <div className="h-12 w-64 bg-gray-800/50 rounded-xl animate-pulse mx-auto" /> }
-);
-
-const DonorStatusCard = dynamic(
-  () => import('@/components/donate').then((mod) => mod.DonorStatusCard),
-  { ssr: false }
-);
-
-const DonationProgress = dynamic(
-  () => import('@/components/donate').then((mod) => mod.DonationProgress),
-  { ssr: false }
-);
+import { 
+  DonationTierCard, 
+  SubscriptionTierCard, 
+  PaymentToggle,
+  DonorStatusCard,
+  DonationProgress 
+} from '@/components/donate';
 
 type PaymentMode = 'one-time' | 'subscription';
 

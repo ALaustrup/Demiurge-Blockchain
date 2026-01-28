@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { formatAmount, formatBps, type SubscriptionTier, type DonationTier } from '@/lib/donation-tiers';
 
 interface SubscriptionTierCardProps {
@@ -29,9 +28,8 @@ export function SubscriptionTierCard({
   const isTopTier = tier.level === 5;
 
   return (
-    <motion.div
-      whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -4 }}
-      className="relative h-full"
+    <div
+      className={`relative h-full transition-transform duration-200 ${!disabled ? 'hover:scale-[1.02] hover:-translate-y-1' : ''}`}
     >
       {/* Tier-up bonus badge */}
       <div className="absolute -top-3 -right-2 z-10">
@@ -133,6 +131,6 @@ export function SubscriptionTierCard({
           {isCurrentSubscription ? 'Current Plan' : `Subscribe ${formatAmount(tier.biWeeklyAmount)}/2wk`}
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }

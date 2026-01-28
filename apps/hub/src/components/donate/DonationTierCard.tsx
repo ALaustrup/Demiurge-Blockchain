@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { formatAmount, formatBps, type DonationTier } from '@/lib/donation-tiers';
 
 interface DonationTierCardProps {
@@ -22,9 +21,8 @@ export function DonationTierCard({ tier, isCurrentTier, onSelect, disabled }: Do
   const isGodsent = tier.level === 5;
 
   return (
-    <motion.div
-      whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -4 }}
-      className={`relative h-full ${isGodsent ? 'col-span-1' : ''}`}
+    <div
+      className={`relative h-full transition-transform duration-200 ${isGodsent ? 'col-span-1' : ''} ${!disabled ? 'hover:scale-[1.02] hover:-translate-y-1' : ''}`}
     >
       {/* Current tier badge */}
       {isCurrentTier && (
@@ -130,6 +128,6 @@ export function DonationTierCard({ tier, isCurrentTier, onSelect, disabled }: Do
           {isCurrentTier ? 'Current Tier' : `Donate ${formatAmount(tier.minAmount)}+`}
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }
