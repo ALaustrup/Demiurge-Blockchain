@@ -30,13 +30,22 @@ pub mod mutation;
 pub mod proof;
 pub mod engine;
 pub mod error;
+pub mod integration;
+pub mod drc369;
+pub mod consensus_hook;
 
 pub use semantic_ir::*;
-pub use compiler::PolymorphicCompiler;
-pub use mutation::MutationStrategy;
-pub use proof::{EquivalenceProof, ProofGenerator, ProofVerifier};
-pub use engine::CvpEngine;
+pub use compiler::{PolymorphicCompiler, Bytecode};
+pub use mutation::{MutationStrategy, MutationConfig, CompositeMutation};
+pub use proof::{EquivalenceProof, ProofGenerator, ProofVerifier, ProofSystem};
+pub use engine::{CvpEngine, CvpConfig, MutationResult};
 pub use error::{CvpError, Result};
+pub use integration::{
+    CvpConsensusIntegration, CvpBlockResult, TransactionInfo,
+    AttackDetector, Threat, ThreatType, ThreatSeverity,
+};
+pub use drc369::{build_drc369_semantic_ir, create_cvp_drc369, Drc369CvpConfig};
+pub use consensus_hook::{CvpBlockExtension, integrate_era_transition, validate_block_cvp};
 
 /// CVP version for compatibility tracking
 pub const CVP_VERSION: &str = "0.1.0";
