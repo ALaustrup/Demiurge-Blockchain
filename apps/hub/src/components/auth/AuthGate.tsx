@@ -7,7 +7,7 @@ import { QorIdAuthFlow } from './QorIdAuthFlow';
  * AuthGate Component
  * 
  * Master authentication gate for the Demiurge ecosystem.
- * Dark-Mode Ethereal Glassmorphism design.
+ * "The Architect" design - Cyber-Industrial Command Center aesthetic.
  * 
  * SECURITY PRINCIPLE:
  * - Users MUST authenticate with QOR ID BEFORE accessing ANY on-chain features
@@ -18,23 +18,49 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading, isAuthenticated } = useAuth();
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Loading State - Minimal spinner with void background
+  // Loading State - Industrial spinner
   // ─────────────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-void">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0B0C10' }}>
         <div className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-6">
-            {/* Spinning ring */}
-            <div className="absolute inset-0 rounded-lg border border-neon-cyan/30 animate-spin"
-              style={{ animationDuration: '3s' }} />
+            {/* Spinning ring - sharp corners */}
+            <div 
+              className="absolute inset-0 border animate-spin"
+              style={{ 
+                borderColor: 'rgba(102, 252, 241, 0.3)',
+                animationDuration: '3s',
+                borderRadius: '2px',
+              }} 
+            />
             {/* Inner glow */}
-            <div className="absolute inset-3 rounded-md bg-neon-cyan/10 animate-breathing" />
+            <div 
+              className="absolute inset-3 animate-breathing"
+              style={{ 
+                backgroundColor: 'rgba(102, 252, 241, 0.1)',
+                borderRadius: '2px',
+              }} 
+            />
             {/* Center dot */}
-            <div className="absolute inset-[45%] rounded-full bg-neon-cyan shadow-neon-cyan" />
+            <div 
+              className="absolute inset-[45%]"
+              style={{ 
+                backgroundColor: '#66FCF1',
+                boxShadow: '0 0 12px rgba(102, 252, 241, 0.5)',
+                borderRadius: '2px',
+              }} 
+            />
           </div>
-          <p className="font-mono text-[11px] text-text-tertiary tracking-widest uppercase">
-            Initializing...
+          <p 
+            className="text-xs tracking-widest uppercase"
+            style={{ 
+              fontFamily: "'Rajdhani', sans-serif",
+              color: '#7B8794',
+              letterSpacing: '2px',
+            }}
+          >
+            INITIALIZING SYSTEM...
           </p>
         </div>
       </div>
@@ -42,147 +68,246 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Unauthenticated State - Full-screen login flow
+  // Unauthenticated State - Command Center Login
   // ─────────────────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
-      <div className="h-screen bg-void relative overflow-hidden flex flex-col">
-        {/* Animated background gradient */}
-        <div className="absolute inset-0">
-          <div 
-            className="absolute inset-0 animate-breathing"
-            style={{
-              background: `
-                radial-gradient(ellipse 80% 50% at 20% 40%, rgba(0, 229, 255, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse 60% 40% at 80% 60%, rgba(157, 78, 221, 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse 40% 30% at 50% 80%, rgba(0, 229, 255, 0.04) 0%, transparent 40%)
-              `
-            }}
-          />
-          {/* Moving gradient orbs */}
-          <div 
-            className="absolute w-[600px] h-[600px] rounded-full opacity-30"
-            style={{
-              background: 'radial-gradient(circle, rgba(0, 229, 255, 0.15) 0%, transparent 70%)',
-              left: '10%',
-              top: '20%',
-              animation: 'float-subtle 20s ease-in-out infinite',
-              filter: 'blur(60px)',
-            }}
-          />
-          <div 
-            className="absolute w-[500px] h-[500px] rounded-full opacity-20"
-            style={{
-              background: 'radial-gradient(circle, rgba(157, 78, 221, 0.15) 0%, transparent 70%)',
-              right: '5%',
-              bottom: '10%',
-              animation: 'float-subtle 25s ease-in-out infinite reverse',
-              filter: 'blur(80px)',
-            }}
-          />
-        </div>
-        
-        {/* Sacred geometry grid - more visible */}
-        <div className="absolute inset-0 opacity-[0.04]"
+      <div 
+        className="h-screen relative overflow-hidden flex flex-col"
+        style={{ backgroundColor: '#0B0C10' }}
+      >
+        {/* Industrial grid background */}
+        <div 
+          className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(0, 229, 255, 0.6) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0, 229, 255, 0.6) 1px, transparent 1px)
+              linear-gradient(rgba(102, 252, 241, 0.5) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(102, 252, 241, 0.5) 1px, transparent 1px)
             `,
-            backgroundSize: '80px 80px',
-            transform: 'perspective(800px) rotateX(65deg)',
-            transformOrigin: 'center top',
+            backgroundSize: '60px 60px',
           }}
         />
         
-        {/* Floating particles - more of them */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {Array.from({ length: 30 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                width: `${2 + Math.random() * 3}px`,
-                height: `${2 + Math.random() * 3}px`,
-                background: i % 3 === 0 ? 'rgba(0, 229, 255, 0.6)' : i % 3 === 1 ? 'rgba(157, 78, 221, 0.5)' : 'rgba(255, 255, 255, 0.4)',
-                left: `${5 + Math.random() * 90}%`,
-                top: `${5 + Math.random() * 90}%`,
-                animation: `float-subtle ${6 + Math.random() * 8}s cubic-bezier(0.87, 0, 0.13, 1) infinite`,
-                animationDelay: `${Math.random() * 5}s`,
-                boxShadow: i % 3 === 0 ? '0 0 8px rgba(0, 229, 255, 0.8)' : i % 3 === 1 ? '0 0 8px rgba(157, 78, 221, 0.8)' : 'none',
-              }}
-            />
-          ))}
+        {/* Subtle radial gradient for depth */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 80% 60% at 50% 20%, rgba(102, 252, 241, 0.04) 0%, transparent 50%),
+              radial-gradient(ellipse 60% 40% at 50% 80%, rgba(69, 162, 158, 0.03) 0%, transparent 40%)
+            `
+          }}
+        />
+        
+        {/* Corner brackets - top left */}
+        <div className="absolute top-8 left-8">
+          <div className="w-12 h-12" style={{ borderLeft: '1px solid #45A29E', borderTop: '1px solid #45A29E' }} />
+        </div>
+        {/* Corner brackets - top right */}
+        <div className="absolute top-8 right-8">
+          <div className="w-12 h-12" style={{ borderRight: '1px solid #45A29E', borderTop: '1px solid #45A29E' }} />
+        </div>
+        {/* Corner brackets - bottom left */}
+        <div className="absolute bottom-8 left-8">
+          <div className="w-12 h-12" style={{ borderLeft: '1px solid #45A29E', borderBottom: '1px solid #45A29E' }} />
+        </div>
+        {/* Corner brackets - bottom right */}
+        <div className="absolute bottom-8 right-8">
+          <div className="w-12 h-12" style={{ borderRight: '1px solid #45A29E', borderBottom: '1px solid #45A29E' }} />
         </div>
 
-        {/* Main content - vertically centered and compact */}
+        {/* Main content - vertically centered */}
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-6">
-          {/* Logo and branding - condensed */}
-          <div className="text-center mb-6">
-            {/* Logo box with hover glow */}
+          {/* Logo and branding */}
+          <div className="text-center mb-8">
+            {/* Logo box - sharp industrial */}
             <div className="relative inline-block group cursor-pointer mb-4">
-              <div className="w-14 h-14 rounded-lg bg-white/[0.03] border border-neon-cyan/30
-                flex items-center justify-center mx-auto
-                transition-all duration-500 group-hover:border-neon-cyan/60 group-hover:shadow-neon-cyan group-hover:bg-white/[0.05]">
-                <div className="absolute top-0 left-0 w-3 h-3 border-l border-t border-neon-cyan/50 transition-all group-hover:border-neon-cyan group-hover:w-4 group-hover:h-4" />
-                <div className="absolute bottom-0 right-0 w-3 h-3 border-r border-b border-neon-cyan/50 transition-all group-hover:border-neon-cyan group-hover:w-4 group-hover:h-4" />
-                <span className="font-display text-2xl text-neon-cyan transition-all group-hover:text-shadow-neon-cyan">D</span>
+              <div 
+                className="w-16 h-16 flex items-center justify-center mx-auto transition-all duration-300"
+                style={{ 
+                  backgroundColor: '#1F2833',
+                  border: '1px solid #333333',
+                  borderRadius: '2px',
+                }}
+              >
+                {/* Corner accents */}
+                <div className="absolute -top-px -left-px w-4 h-4" style={{ borderLeft: '2px solid #66FCF1', borderTop: '2px solid #66FCF1' }} />
+                <div className="absolute -bottom-px -right-px w-4 h-4" style={{ borderRight: '2px solid #66FCF1', borderBottom: '2px solid #66FCF1' }} />
+                <span 
+                  className="text-3xl font-semibold"
+                  style={{ 
+                    fontFamily: "'Rajdhani', sans-serif",
+                    color: '#66FCF1',
+                    letterSpacing: '2px',
+                  }}
+                >
+                  D
+                </span>
               </div>
             </div>
             
-            <h1 className="font-display text-3xl md:text-4xl tracking-[0.15em] mb-1">
-              <span className="text-neon-gradient">DEMIURGE</span>
+            <h1 
+              className="text-4xl md:text-5xl mb-2"
+              style={{ 
+                fontFamily: "'Rajdhani', sans-serif",
+                fontWeight: 700,
+                letterSpacing: '4px',
+                color: '#FFFFFF',
+              }}
+            >
+              DEMIURGE
             </h1>
-            <p className="font-mono text-[10px] text-text-tertiary tracking-[0.2em] uppercase">
-              Command Terminal v2.0
+            <p 
+              className="text-xs tracking-widest uppercase"
+              style={{ 
+                fontFamily: "'JetBrains Mono', monospace",
+                color: '#7B8794',
+                letterSpacing: '3px',
+              }}
+            >
+              COMMAND TERMINAL v2.0
             </p>
           </div>
 
-          {/* Auth Flow Container - with hover glow effect on edges */}
-          <div className="w-full max-w-md relative group">
-            {/* Neon glow border on hover */}
-            <div className="absolute -inset-[1px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          {/* Auth Flow Container */}
+          <div className="w-full max-w-md relative">
+            {/* Panel with industrial border */}
+            <div 
+              className="relative p-1"
               style={{
-                background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.3), rgba(157, 78, 221, 0.3), rgba(0, 229, 255, 0.3))',
-                filter: 'blur(4px)',
+                background: 'linear-gradient(135deg, rgba(102, 252, 241, 0.2) 0%, transparent 50%, rgba(102, 252, 241, 0.1) 100%)',
+                borderRadius: '2px',
               }}
-            />
-            <div className="relative">
-              <QorIdAuthFlow
-                isOpen={true}
-                onClose={() => {}}
-                onSuccess={() => {}}
-                variant="page"
-              />
+            >
+              <div 
+                style={{ 
+                  backgroundColor: '#1F2833',
+                  borderRadius: '2px',
+                }}
+              >
+                <QorIdAuthFlow
+                  isOpen={true}
+                  onClose={() => {}}
+                  onSuccess={() => {}}
+                  variant="page"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Links row - more compact */}
-          <div className="mt-6 flex items-center gap-4">
+          {/* Status indicators */}
+          <div className="mt-8 flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-2 h-2"
+                style={{ 
+                  backgroundColor: '#03DAC6',
+                  boxShadow: '0 0 8px #03DAC6',
+                  borderRadius: '2px',
+                }}
+              />
+              <span 
+                className="text-xs uppercase"
+                style={{ 
+                  fontFamily: "'Rajdhani', sans-serif",
+                  color: '#7B8794',
+                  letterSpacing: '1px',
+                }}
+              >
+                SYSTEM ONLINE
+              </span>
+            </div>
+            <div 
+              className="h-4 w-px"
+              style={{ backgroundColor: '#333333' }}
+            />
+            <span 
+              className="text-xs"
+              style={{ 
+                fontFamily: "'JetBrains Mono', monospace",
+                color: '#4A5568',
+                letterSpacing: '1px',
+              }}
+            >
+              Ed25519 · WASM · SECURE
+            </span>
+          </div>
+
+          {/* Learn more link */}
+          <div className="mt-6">
             <a
               href="https://demiurge.guru"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md
-                border border-white/[0.08] bg-white/[0.02]
-                font-mono text-[9px] text-text-secondary tracking-wider
-                hover:border-neon-cyan/40 hover:text-neon-cyan hover:bg-neon-cyan/5 hover:shadow-neon-cyan/20
-                transition-all duration-300"
+              className="inline-flex items-center gap-2 px-4 py-2 transition-all duration-200"
+              style={{ 
+                fontFamily: "'Rajdhani', sans-serif",
+                fontSize: '12px',
+                fontWeight: 600,
+                letterSpacing: '1.5px',
+                color: '#66FCF1',
+                backgroundColor: 'transparent',
+                border: '1px solid #45A29E',
+                borderRadius: '0',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#66FCF1';
+                e.currentTarget.style.color = '#0B0C10';
+                e.currentTarget.style.borderColor = '#66FCF1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#66FCF1';
+                e.currentTarget.style.borderColor = '#45A29E';
+              }}
             >
-              <span>Learn More</span>
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              <span>LEARN MORE</span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
-            <span className="text-text-tertiary/40 text-[8px]">·</span>
-            <p className="font-mono text-[8px] text-text-tertiary/50 tracking-widest uppercase">
-              Ed25519 · WASM · Zero Extensions
-            </p>
           </div>
         </div>
         
-        {/* Noise overlay */}
-        <div className="noise-overlay" />
+        {/* Bottom status bar */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-8 flex items-center justify-center gap-8"
+          style={{ 
+            backgroundColor: 'rgba(31, 40, 51, 0.8)',
+            borderTop: '1px solid #333333',
+          }}
+        >
+          <span 
+            className="text-xs"
+            style={{ 
+              fontFamily: "'JetBrains Mono', monospace",
+              color: '#4A5568',
+              letterSpacing: '1px',
+            }}
+          >
+            v2.0.0
+          </span>
+          <span 
+            className="text-xs"
+            style={{ 
+              fontFamily: "'JetBrains Mono', monospace",
+              color: '#4A5568',
+              letterSpacing: '1px',
+            }}
+          >
+            MAINNET
+          </span>
+          <span 
+            className="text-xs"
+            style={{ 
+              fontFamily: "'JetBrains Mono', monospace",
+              color: '#4A5568',
+              letterSpacing: '1px',
+            }}
+          >
+            © 2026 DEMIURGE
+          </span>
+        </div>
       </div>
     );
   }

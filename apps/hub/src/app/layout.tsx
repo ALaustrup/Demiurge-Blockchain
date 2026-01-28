@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Orbitron, Rajdhani, Space_Grotesk } from 'next/font/google'
+import { Rajdhani, Barlow, JetBrains_Mono } from 'next/font/google'
 import { BlockchainProvider } from '@/contexts/BlockchainContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { MusicProvider } from '@/contexts/MusicContext'
@@ -12,30 +12,31 @@ import './globals.css'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DEMIURGE OS - Root Layout
-// Deep Space Cyber-Noir aesthetic with persistent 3D background
+// "The Architect" - Cyber-Industrial Command Center Aesthetic
+// Typography: Rajdhani (Headings) + Barlow (Body) + JetBrains Mono (Data)
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Primary display font
-const orbitron = Orbitron({ 
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800', '900'],
-  variable: '--font-orbitron',
-  display: 'swap',
-})
-
-// Secondary display font
+// Display/Heading font - Sharp, tactical, uppercase-friendly
 const rajdhani = Rajdhani({ 
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['500', '600', '700'],
   variable: '--font-rajdhani',
   display: 'swap',
 })
 
-// Body font
-const spaceGrotesk = Space_Grotesk({ 
+// Body font - Humanist grotesque for perfect legibility
+const barlow = Barlow({ 
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-space-grotesk',
+  weight: ['400', '500', '600'],
+  variable: '--font-barlow',
+  display: 'swap',
+})
+
+// Monospace font - For data, addresses, code
+const jetbrainsMono = JetBrains_Mono({ 
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-mono',
   display: 'swap',
 })
 
@@ -59,10 +60,10 @@ export default function RootLayout({
   return (
     <html 
       lang="en" 
-      className={`${orbitron.variable} ${rajdhani.variable} ${spaceGrotesk.variable}`}
+      className={`${rajdhani.variable} ${barlow.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
-      <body className={`${spaceGrotesk.className} font-body`}>
+      <body className={`${barlow.className} font-body antialiased`}>
         <AuthProvider>
           {/* AuthGate: Users MUST authenticate before accessing ANY chain features */}
           <AuthGate>

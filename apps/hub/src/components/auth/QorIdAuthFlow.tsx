@@ -193,303 +193,410 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
 
   if (!isOpen) return null;
 
-  // Page variant: simple layout without modal overlay
+  // Page variant: Industrial Command Center layout
   if (variant === 'page') {
     return (
-      <main className="min-h-screen flex items-center justify-center p-8">
-        <div className="glass-panel p-8 max-w-md w-full">
-          {/* Login Step */}
-          {step === 'login' && (
-            <div className="space-y-6">
-              <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
-                Login to Demiurge
-              </h1>
+      <div className="p-6 md:p-8">
+        {/* Login Step */}
+        {step === 'login' && (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 
+                className="text-xl md:text-2xl mb-2"
+                style={{ 
+                  fontFamily: "'Rajdhani', sans-serif",
+                  fontWeight: 600,
+                  letterSpacing: '2px',
+                  color: '#FFFFFF',
+                  textTransform: 'uppercase',
+                }}
+              >
+                AUTHENTICATE
+              </h2>
+              <p 
+                className="text-sm"
+                style={{ 
+                  fontFamily: "'Barlow', sans-serif",
+                  color: '#7B8794',
+                }}
+              >
+                Enter your QOR ID credentials
+              </p>
+            </div>
 
-              <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-300">
-                    Email or Username
-                  </label>
-                  <input
-                    type="text"
-                    name="qor-username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter your email or username"
-                    className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
-                    autoComplete="username"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    required
-                  />
+            <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
+              <div>
+                <label 
+                  className="block text-xs mb-2 uppercase"
+                  style={{ 
+                    fontFamily: "'Rajdhani', sans-serif",
+                    letterSpacing: '1px',
+                    color: '#7B8794',
+                  }}
+                >
+                  USERNAME OR EMAIL
+                </label>
+                <input
+                  type="text"
+                  name="qor-username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your QOR ID"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    fontFamily: "'Barlow', sans-serif",
+                    fontSize: '15px',
+                    color: '#FFFFFF',
+                    backgroundColor: '#151A21',
+                    border: '1px solid #333333',
+                    borderRadius: '0',
+                    outline: 'none',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#66FCF1';
+                    e.target.style.boxShadow = '0 0 0 1px #66FCF1';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                  autoComplete="username"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  required
+                />
+              </div>
+
+              <div>
+                <label 
+                  className="block text-xs mb-2 uppercase"
+                  style={{ 
+                    fontFamily: "'Rajdhani', sans-serif",
+                    letterSpacing: '1px',
+                    color: '#7B8794',
+                  }}
+                >
+                  CHAIN PIN
+                </label>
+                <input
+                  type="password"
+                  name="qor-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your Chain PIN"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    fontFamily: "'Barlow', sans-serif",
+                    fontSize: '15px',
+                    color: '#FFFFFF',
+                    backgroundColor: '#151A21',
+                    border: '1px solid #333333',
+                    borderRadius: '0',
+                    outline: 'none',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#66FCF1';
+                    e.target.style.boxShadow = '0 0 0 1px #66FCF1';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+
+              {error && (
+                <div 
+                  className="p-3"
+                  style={{
+                    backgroundColor: 'rgba(207, 102, 121, 0.1)',
+                    border: '1px solid rgba(207, 102, 121, 0.5)',
+                    borderRadius: '0',
+                    color: '#CF6679',
+                    fontFamily: "'Barlow', sans-serif",
+                    fontSize: '14px',
+                  }}
+                >
+                  {error}
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-300">
-                    Chain PIN
-                  </label>
-                  <input
-                    type="password"
-                    name="qor-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your Chain PIN"
-                    className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
-                    autoComplete="current-password"
-                    required
-                  />
+              <button
+                type="submit"
+                disabled={isLoading || !username || !password}
+                style={{
+                  width: '100%',
+                  padding: '14px 24px',
+                  fontFamily: "'Rajdhani', sans-serif",
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  color: isLoading || !username || !password ? '#4A5568' : '#0B0C10',
+                  backgroundColor: isLoading || !username || !password ? '#252D3A' : '#66FCF1',
+                  border: '1px solid',
+                  borderColor: isLoading || !username || !password ? '#333333' : '#66FCF1',
+                  borderRadius: '0',
+                  cursor: isLoading || !username || !password ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading && username && password) {
+                    e.currentTarget.style.backgroundColor = '#FFFFFF';
+                    e.currentTarget.style.borderColor = '#FFFFFF';
+                    e.currentTarget.style.boxShadow = '0 0 20px rgba(102, 252, 241, 0.3)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading && username && password) {
+                    e.currentTarget.style.backgroundColor = '#66FCF1';
+                    e.currentTarget.style.borderColor = '#66FCF1';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }
+                }}
+              >
+                {isLoading ? 'CONNECTING...' : 'LOGIN'}
+              </button>
+            </form>
+
+            <div 
+              className="mt-6 pt-4 text-center"
+              style={{ borderTop: '1px solid #333333' }}
+            >
+              <button
+                type="button"
+                onClick={() => setStep('register-username')}
+                style={{
+                  fontFamily: "'Barlow', sans-serif",
+                  fontSize: '14px',
+                  color: '#66FCF1',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#FFFFFF'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#66FCF1'}
+              >
+                Don't have an account? <span style={{ fontWeight: 600 }}>CREATE QOR ID</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Registration steps */}
+        {step === 'register-username' && (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: '2px', color: '#FFFFFF', textTransform: 'uppercase' }}>
+                CREATE QOR ID
+              </h2>
+              <p style={{ fontFamily: "'Barlow', sans-serif", color: '#7B8794', fontSize: '14px' }}>
+                Step 1 of 3: Choose your on-chain username
+              </p>
+            </div>
+
+            <form onSubmit={handleUsernameSubmit} className="space-y-4">
+              <div>
+                <label style={{ display: 'block', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '1px', color: '#7B8794', fontSize: '12px', marginBottom: '8px', textTransform: 'uppercase' }}>
+                  USERNAME
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                  placeholder="3-20 characters, alphanumeric and _"
+                  style={{ width: '100%', padding: '14px 16px', fontFamily: "'Barlow', sans-serif", fontSize: '15px', color: '#FFFFFF', backgroundColor: '#151A21', border: '1px solid #333333', borderRadius: '0' }}
+                  required
+                  minLength={3}
+                  maxLength={20}
+                />
+                {usernameStatus === 'checking' && (
+                  <div style={{ fontSize: '12px', color: '#66FCF1', marginTop: '8px' }}>Checking availability...</div>
+                )}
+                {usernameStatus === 'available' && (
+                  <div style={{ fontSize: '12px', color: '#03DAC6', marginTop: '8px' }}>✓ Username available</div>
+                )}
+                {usernameStatus === 'taken' && (
+                  <div style={{ fontSize: '12px', color: '#CF6679', marginTop: '8px' }}>✗ Username already taken</div>
+                )}
+                {usernameStatus === 'invalid' && username.length > 0 && (
+                  <div style={{ fontSize: '12px', color: '#CF6679', marginTop: '8px' }}>Invalid format (3-20 alphanumeric characters)</div>
+                )}
+              </div>
+              {error && (
+                <div style={{ padding: '12px', backgroundColor: 'rgba(207, 102, 121, 0.1)', border: '1px solid rgba(207, 102, 121, 0.5)', color: '#CF6679', fontSize: '14px' }}>{error}</div>
+              )}
+              <button
+                type="submit"
+                disabled={usernameStatus !== 'available'}
+                style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: usernameStatus === 'available' ? '#0B0C10' : '#4A5568', backgroundColor: usernameStatus === 'available' ? '#66FCF1' : '#252D3A', border: '1px solid', borderColor: usernameStatus === 'available' ? '#66FCF1' : '#333333', cursor: usernameStatus === 'available' ? 'pointer' : 'not-allowed' }}
+              >
+                CONTINUE
+              </button>
+              <button type="button" onClick={() => setStep('login')} style={{ width: '100%', background: 'none', border: 'none', color: '#66FCF1', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
+                ← Back to Login
+              </button>
+            </form>
+          </div>
+        )}
+
+        {step === 'register-email' && (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: '2px', color: '#FFFFFF', textTransform: 'uppercase' }}>
+                ADD EMAIL
+              </h2>
+              <p style={{ fontFamily: "'Barlow', sans-serif", color: '#7B8794', fontSize: '14px' }}>
+                Step 2 of 3: Optional but recommended
+              </p>
+            </div>
+
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div style={{ padding: '16px', backgroundColor: 'rgba(230, 168, 23, 0.1)', border: '1px solid rgba(230, 168, 23, 0.3)' }}>
+                <div style={{ color: '#E6A817', fontWeight: 600, marginBottom: '8px', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '1px' }}>BONUS OFFER</div>
+                <div style={{ color: '#C5C6C7', fontSize: '14px', fontFamily: "'Barlow', sans-serif" }}>
+                  Add your email and receive <strong style={{ color: '#E6A817' }}>5 CGT</strong> welcome bonus!
                 </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '1px', color: '#7B8794', fontSize: '12px', marginBottom: '8px', textTransform: 'uppercase' }}>
+                  EMAIL ADDRESS <span style={{ color: '#4A5568' }}>(OPTIONAL)</span>
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  style={{ width: '100%', padding: '14px 16px', fontFamily: "'Barlow', sans-serif", fontSize: '15px', color: '#FFFFFF', backgroundColor: '#151A21', border: '1px solid #333333', borderRadius: '0' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button type="submit" style={{ flex: 1, padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', color: '#0B0C10', backgroundColor: '#66FCF1', border: '1px solid #66FCF1', cursor: 'pointer' }}>
+                  CONTINUE
+                </button>
+                <button type="button" onClick={handleSkipEmail} style={{ padding: '14px 20px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '1px', color: '#7B8794', backgroundColor: 'transparent', border: '1px solid #333333', cursor: 'pointer' }}>
+                  SKIP
+                </button>
+              </div>
+              <button type="button" onClick={() => setStep('register-username')} style={{ width: '100%', background: 'none', border: 'none', color: '#66FCF1', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
+                ← Back
+              </button>
+            </form>
+          </div>
+        )}
 
-                {error && (
-                  <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400">
-                    {error}
+        {step === 'register-pin' && (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: '2px', color: '#FFFFFF', textTransform: 'uppercase' }}>
+                SET CHAIN PIN
+              </h2>
+              <p style={{ fontFamily: "'Barlow', sans-serif", color: '#7B8794', fontSize: '14px' }}>
+                Step 3 of 3: Secure your account
+              </p>
+            </div>
+
+            <form onSubmit={handlePinSubmit} className="space-y-4">
+              <div>
+                <label style={{ display: 'block', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '1px', color: '#7B8794', fontSize: '12px', marginBottom: '8px', textTransform: 'uppercase' }}>
+                  CHAIN PIN (PASSWORD)
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  style={{ width: '100%', padding: '14px 16px', fontFamily: "'Barlow', sans-serif", fontSize: '15px', color: '#FFFFFF', backgroundColor: '#151A21', border: '1px solid #333333', borderRadius: '0' }}
+                  required
+                  minLength={6}
+                />
+                {password.length > 0 && (
+                  <div style={{ fontSize: '12px', color: password.length >= 6 ? '#03DAC6' : '#CF6679', marginTop: '8px' }}>
+                    {password.length >= 6 ? '✓ Chain PIN accepted' : `Minimum 6 characters (${password.length}/6)`}
                   </div>
                 )}
+              </div>
+              {error && (
+                <div style={{ padding: '12px', backgroundColor: 'rgba(207, 102, 121, 0.1)', border: '1px solid rgba(207, 102, 121, 0.5)', color: '#CF6679', fontSize: '14px' }}>{error}</div>
+              )}
+              <button
+                type="submit"
+                disabled={password.length < 6 || isLoading}
+                style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: password.length >= 6 && !isLoading ? '#0B0C10' : '#4A5568', backgroundColor: password.length >= 6 && !isLoading ? '#66FCF1' : '#252D3A', border: '1px solid', borderColor: password.length >= 6 && !isLoading ? '#66FCF1' : '#333333', cursor: password.length >= 6 && !isLoading ? 'pointer' : 'not-allowed' }}
+              >
+                {isLoading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
+              </button>
+              <button type="button" onClick={() => setStep('register-email')} style={{ width: '100%', background: 'none', border: 'none', color: '#66FCF1', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
+                ← Back
+              </button>
+            </form>
+          </div>
+        )}
 
-                <button
-                  type="submit"
-                  disabled={isLoading || !username || !password}
-                  className="w-full glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold disabled:opacity-50"
-                >
-                  {isLoading ? 'Logging in...' : 'Login'}
-                </button>
-              </form>
+        {step === 'backup-code' && backupCode && (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: '2px', color: '#FFFFFF', textTransform: 'uppercase' }}>
+                SAVE BACKUP CODE
+              </h2>
+            </div>
+            <div style={{ padding: '16px', backgroundColor: 'rgba(230, 168, 23, 0.1)', border: '1px solid rgba(230, 168, 23, 0.3)' }}>
+              <div style={{ color: '#E6A817', fontWeight: 600, marginBottom: '8px', fontFamily: "'Rajdhani', sans-serif" }}>⚠️ IMPORTANT</div>
+              <div style={{ color: '#C5C6C7', fontSize: '14px', fontFamily: "'Barlow', sans-serif", marginBottom: '16px' }}>
+                This backup code is your only way to recover your account. Save it securely!
+              </div>
+              <div style={{ padding: '16px', backgroundColor: '#0B0C10', border: '1px solid rgba(230, 168, 23, 0.3)' }}>
+                <div style={{ fontSize: '11px', color: '#7B8794', marginBottom: '4px', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '1px' }}>BACKUP CODE</div>
+                <div style={{ fontSize: '24px', fontFamily: "'JetBrains Mono', monospace", color: '#E6A817', textAlign: 'center', letterSpacing: '2px' }}>
+                  {backupCode}
+                </div>
+              </div>
+              <button
+                onClick={() => navigator.clipboard.writeText(backupCode)}
+                style={{ width: '100%', marginTop: '12px', padding: '10px', fontFamily: "'Rajdhani', sans-serif", fontSize: '12px', letterSpacing: '1px', color: '#E6A817', backgroundColor: 'rgba(230, 168, 23, 0.1)', border: '1px solid rgba(230, 168, 23, 0.3)', cursor: 'pointer' }}
+              >
+                COPY TO CLIPBOARD
+              </button>
+            </div>
+            <button
+              onClick={handleBackupCodeAcknowledged}
+              style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', color: '#0B0C10', backgroundColor: '#66FCF1', border: '1px solid #66FCF1', cursor: 'pointer' }}
+            >
+              I'VE SAVED MY CODE
+            </button>
+          </div>
+        )}
 
-              <div className="mt-6 text-center">
-                <a
-                  href="/login?step=register"
-                  className="text-demiurge-cyan hover:text-demiurge-violet"
-                >
-                  Don't have an account? Register
-                </a>
+        {step === 'email-verification' && email && (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: '2px', color: '#FFFFFF', textTransform: 'uppercase' }}>
+                VERIFY EMAIL
+              </h2>
+            </div>
+            <div style={{ padding: '16px', backgroundColor: 'rgba(69, 162, 158, 0.1)', border: '1px solid rgba(69, 162, 158, 0.3)' }}>
+              <div style={{ color: '#45A29E', fontWeight: 600, marginBottom: '8px', fontFamily: "'Rajdhani', sans-serif" }}>📧 EMAIL VERIFICATION</div>
+              <div style={{ color: '#C5C6C7', fontSize: '14px', fontFamily: "'Barlow', sans-serif" }}>
+                We've sent a verification link to <strong style={{ color: '#66FCF1' }}>{email}</strong>. Check your inbox.
               </div>
             </div>
-          )}
-
-          {/* Registration steps - same styling but in page layout */}
-          {step !== 'login' && (
-            <div className="space-y-6">
-              {/* Register Username Step */}
-              {step === 'register-username' && (
-                <>
-                  <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
-                    Create QOR ID
-                  </h1>
-                  <form onSubmit={handleUsernameSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-300">Username</label>
-                      <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                        placeholder="3-20 characters, alphanumeric and _"
-                        className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
-                        required
-                        minLength={3}
-                        maxLength={20}
-                        pattern="[a-zA-Z0-9_]{3,20}"
-                      />
-                      {usernameStatus === 'checking' && (
-                        <div className="text-xs text-demiurge-cyan mt-2 animate-pulse">Checking availability...</div>
-                      )}
-                      {usernameStatus === 'available' && (
-                        <div className="text-xs text-green-400 mt-2">✓ Username available</div>
-                      )}
-                      {usernameStatus === 'taken' && (
-                        <div className="text-xs text-red-400 mt-2">✗ Username already taken</div>
-                      )}
-                      {usernameStatus === 'invalid' && username.length > 0 && (
-                        <div className="text-xs text-red-400 mt-2">Invalid format (3-20 alphanumeric characters)</div>
-                      )}
-                    </div>
-                    {error && (
-                      <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400">
-                        {error}
-                      </div>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={usernameStatus !== 'available'}
-                      className="w-full glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold disabled:opacity-50"
-                    >
-                      CONTINUE
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStep('login')}
-                      className="w-full text-demiurge-cyan hover:text-demiurge-violet text-sm"
-                    >
-                      Back to Login
-                    </button>
-                  </form>
-                </>
-              )}
-
-              {/* Register Email Step */}
-              {step === 'register-email' && (
-                <>
-                  <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
-                    Add Email (Optional)
-                  </h1>
-                  <form onSubmit={handleEmailSubmit} className="space-y-4">
-                    <div className="bg-gradient-to-r from-yellow-900/30 to-yellow-800/30 border border-yellow-500/50 rounded-lg p-4">
-                      <div className="text-yellow-300 font-semibold mb-2">🎁 BONUS OFFER</div>
-                      <div className="text-yellow-200 text-sm">
-                        Add your email address and receive <strong className="text-yellow-300">5 CGT</strong> as a welcome bonus!
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-300">
-                        Email Address <span className="text-gray-500">(Optional)</span>
-                      </label>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="submit"
-                        className="flex-1 glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold"
-                      >
-                        CONTINUE
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSkipEmail}
-                        className="px-4 py-3 glass-panel rounded-lg hover:chroma-glow transition-all"
-                      >
-                        Skip
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setStep('register-username')}
-                      className="w-full text-demiurge-cyan hover:text-demiurge-violet text-sm"
-                    >
-                      ← Back
-                    </button>
-                  </form>
-                </>
-              )}
-
-              {/* Register PIN Step */}
-              {step === 'register-pin' && (
-                <>
-                  <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
-                    Set Chain PIN
-                  </h1>
-                  <form onSubmit={handlePinSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-300">Chain PIN (Password)</label>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Minimum 6 characters"
-                        className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
-                        required
-                        minLength={6}
-                      />
-                      {password.length > 0 && (
-                        <div className={`text-xs mt-2 ${password.length >= 6 ? 'text-green-400' : 'text-red-400'}`}>
-                          {password.length >= 6 ? '✓ Chain PIN accepted' : `Minimum 6 characters (${password.length}/6)`}
-                        </div>
-                      )}
-                    </div>
-                    {error && (
-                      <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400">
-                        {error}
-                      </div>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={password.length < 6 || isLoading}
-                      className="w-full glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold disabled:opacity-50"
-                    >
-                      {isLoading ? 'Creating Account...' : 'GET IT NOW'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStep('register-email')}
-                      className="w-full text-demiurge-cyan hover:text-demiurge-violet text-sm"
-                    >
-                      ← Back
-                    </button>
-                  </form>
-                </>
-              )}
-
-              {/* Backup Code Step */}
-              {step === 'backup-code' && backupCode && (
-                <>
-                  <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
-                    Save Your Backup Code
-                  </h1>
-                  <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 mb-4">
-                    <div className="text-yellow-300 font-semibold mb-2">⚠️ IMPORTANT</div>
-                    <div className="text-yellow-200 text-sm mb-4">
-                      You did not provide an email address. This backup code is your only way to reset your Chain PIN if you forget it.
-                      <strong className="block mt-2 text-yellow-300">Save this code in a safe place!</strong>
-                    </div>
-                    <div className="bg-black/50 p-4 rounded border border-yellow-500/30">
-                      <div className="text-xs text-gray-400 mb-1">BACKUP CODE</div>
-                      <div className="text-2xl font-mono font-bold text-yellow-300 tracking-wider text-center py-2">
-                        {backupCode}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(backupCode)}
-                      className="w-full mt-3 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 py-2 rounded transition-colors text-sm"
-                    >
-                      Copy to Clipboard
-                    </button>
-                  </div>
-                  <button
-                    onClick={handleBackupCodeAcknowledged}
-                    className="w-full glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold"
-                  >
-                    I'VE SAVED MY CODE
-                  </button>
-                </>
-              )}
-
-              {/* Email Verification Step */}
-              {step === 'email-verification' && email && (
-                <>
-                  <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-demiurge-cyan to-demiurge-violet bg-clip-text text-transparent">
-                    Check Your Email
-                  </h1>
-                  <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4 mb-4">
-                    <div className="text-blue-300 font-semibold mb-2">📧 Email Verification Required</div>
-                    <div className="text-blue-200 text-sm">
-                      We've sent a verification email to <strong className="text-blue-300">{email}</strong>.
-                      Please check your inbox and click the verification link to activate your account.
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleEmailVerificationAcknowledged}
-                    className="w-full glass-panel py-3 rounded-lg hover:chroma-glow transition-all font-bold"
-                  >
-                    GOT IT - I'LL VERIFY MY EMAIL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStep('login')}
-                    className="w-full text-demiurge-cyan hover:text-demiurge-violet text-sm mt-2"
-                  >
-                    Back to Login
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </main>
+            <button
+              onClick={handleEmailVerificationAcknowledged}
+              style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', color: '#0B0C10', backgroundColor: '#66FCF1', border: '1px solid #66FCF1', cursor: 'pointer' }}
+            >
+              I'LL VERIFY MY EMAIL
+            </button>
+            <button type="button" onClick={() => setStep('login')} style={{ width: '100%', background: 'none', border: 'none', color: '#66FCF1', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
+              Back to Login
+            </button>
+          </div>
+        )}
+      </div>
     );
   }
 
