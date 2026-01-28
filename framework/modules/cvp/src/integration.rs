@@ -5,7 +5,7 @@
 
 use crate::{
     CvpEngine, CvpConfig, EquivalenceProof, MutationResult,
-    ContractId, SemanticIR, Result, CvpError,
+    ContractId, SemanticIR, Result,
 };
 use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
@@ -265,11 +265,21 @@ impl AttackDetector {
     
     /// Register default threat patterns
     fn register_default_patterns(&mut self) {
+        // Core attack patterns
         self.patterns.push(Box::new(HighFrequencyPattern::new()));
         self.patterns.push(Box::new(ReentrancyPattern::new()));
         self.patterns.push(Box::new(FlashLoanPattern::new()));
         self.patterns.push(Box::new(AnomalousGasPattern::new()));
         self.patterns.push(Box::new(SandwichAttackPattern::new()));
+        
+        // Advanced attack patterns
+        self.patterns.push(Box::new(PriceManipulationPattern::new()));
+        self.patterns.push(Box::new(GovernanceAttackPattern::new()));
+        self.patterns.push(Box::new(FrontRunningPattern::new()));
+        self.patterns.push(Box::new(AccessControlProbePattern::new()));
+        self.patterns.push(Box::new(TimeManipulationPattern::new()));
+        self.patterns.push(Box::new(LargeValueTransferPattern::new()));
+        self.patterns.push(Box::new(ContractCreationSpamPattern::new()));
     }
     
     /// Analyze a block for threats
@@ -376,10 +386,20 @@ pub enum ThreatType {
     AnomalousGas,
     /// Sandwich attack (front/back running)
     SandwichAttack,
-    /// Price manipulation
+    /// Price manipulation / Oracle manipulation
     PriceManipulation,
-    /// Access control probe
+    /// Access control probe (repeated auth failures)
     AccessControlProbe,
+    /// Governance attack (flash loan + vote)
+    GovernanceAttack,
+    /// Front-running / MEV extraction
+    FrontRunning,
+    /// Time manipulation (timestamp dependency)
+    TimeManipulation,
+    /// Large value transfer anomaly
+    LargeValueTransfer,
+    /// Contract creation spam
+    ContractCreationSpam,
     /// Unknown pattern
     Unknown,
 }
@@ -735,17 +755,17 @@ impl ThreatPattern for FlashLoanPattern {
 /// Anomalous gas pattern
 /// Detects unusual gas consumption that may indicate exploit
 pub struct AnomalousGasPattern {
-    /// Baseline average gas (will be learned)
-    baseline_gas: u64,
-    /// Standard deviation threshold
-    std_dev_threshold: f64,
+    /// Baseline average gas (will be learned, reserved for future use)
+    _baseline_gas: u64,
+    /// Standard deviation threshold (reserved for future use)
+    _std_dev_threshold: f64,
 }
 
 impl AnomalousGasPattern {
     pub fn new() -> Self {
         Self {
-            baseline_gas: 100_000,
-            std_dev_threshold: 3.0,
+            _baseline_gas: 100_000,
+            _std_dev_threshold: 3.0,
         }
     }
 }
@@ -868,6 +888,642 @@ impl ThreatPattern for SandwichAttackPattern {
                         recommended_action: RecommendedAction::Alert,
                     });
                 }
+            }
+        }
+        
+        threats
+    }
+}
+
+// ============================================================================
+// NEW ATTACK PATTERNS
+// ============================================================================
+
+/// Price manipulation / Oracle manipulation pattern
+/// Detects rapid price changes that may indicate oracle manipulation
+pub struct PriceManipulationPattern {
+    /// Known price oracle selectors
+    oracle_selectors: Vec<[u8; 4]>,
+    /// Known swap/trade selectors
+    swap_selectors: Vec<[u8; 4]>,
+    /// Threshold for suspicious value ratio (reserved for future use)
+    _value_ratio_threshold: f64,
+}
+
+impl PriceManipulationPattern {
+    pub fn new() -> Self {
+        Self {
+            oracle_selectors: vec![
+                [0x50, 0xd2, 0x5b, 0xcd], // latestAnswer
+                [0xfe, 0xaf, 0x96, 0x8c], // latestRoundData
+                [0x8a, 0xc7, 0x23, 0x04], // getPrice
+                [0x66, 0x31, 0xab, 0xd9], // consult
+            ],
+            swap_selectors: vec![
+                [0x7f, 0xf3, 0x6a, 0xb5], // swap
+                [0x38, 0xed, 0x17, 0x39], // swapExactTokensForTokens
+                [0x02, 0x2c, 0x0d, 0x9f], // swap (Uniswap V2)
+                [0xa9, 0x05, 0x9c, 0xbb], // transfer (often part of manipulation)
+            ],
+            _value_ratio_threshold: 10.0, // 10x value change is suspicious
+        }
+    }
+}
+
+impl Default for PriceManipulationPattern {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ThreatPattern for PriceManipulationPattern {
+    fn name(&self) -> &str {
+        "PriceManipulation"
+    }
+    
+    fn detect(
+        &self,
+        block_number: u64,
+        transactions: &[TransactionInfo],
+        history: &TransactionHistory,
+    ) -> Vec<Threat> {
+        let mut threats = Vec::new();
+        
+        // Look for pattern: oracle read -> large swap -> oracle read
+        // within same sender's transactions
+        
+        for tx in transactions {
+            if let Some(selector) = tx.function_selector {
+                // Check if this is an oracle-related call with high value
+                let _is_oracle_call = self.oracle_selectors.contains(&selector);
+                let is_swap_call = self.swap_selectors.contains(&selector);
+                
+                if is_swap_call && tx.value > 0 {
+                    // Check historical transactions from same sender
+                    let sender_history = history.get_sender_transactions(
+                        &tx.sender,
+                        block_number.saturating_sub(5), // Last 5 blocks
+                    );
+                    
+                    // Count oracle reads before this swap
+                    let oracle_reads_before: Vec<_> = sender_history
+                        .iter()
+                        .filter(|t| {
+                            t.function_selector
+                                .map(|s| self.oracle_selectors.contains(&s))
+                                .unwrap_or(false)
+                        })
+                        .collect();
+                    
+                    // If sender read oracle recently and now swapping large value
+                    if !oracle_reads_before.is_empty() && tx.value > 1_000_000_000 {
+                        threats.push(Threat {
+                            threat_type: ThreatType::PriceManipulation,
+                            severity: ThreatSeverity::High,
+                            description: format!(
+                                "Potential price manipulation: {} oracle reads followed by {} CGT swap",
+                                oracle_reads_before.len(),
+                                tx.value / 1_000_000_000
+                            ),
+                            target_contract: tx.target_contract,
+                            related_transactions: vec![tx.hash],
+                            block_number,
+                            recommended_action: RecommendedAction::ScheduleMutation,
+                        });
+                    }
+                }
+            }
+        }
+        
+        threats
+    }
+}
+
+/// Governance attack pattern
+/// Detects flash loan + governance vote combination
+pub struct GovernanceAttackPattern {
+    /// Known governance vote selectors
+    vote_selectors: Vec<[u8; 4]>,
+    /// Known proposal selectors
+    proposal_selectors: Vec<[u8; 4]>,
+    /// Flash loan selectors (reuse from FlashLoanPattern)
+    flash_loan_selectors: Vec<[u8; 4]>,
+}
+
+impl GovernanceAttackPattern {
+    pub fn new() -> Self {
+        Self {
+            vote_selectors: vec![
+                [0x15, 0x37, 0x3e, 0xb3], // vote
+                [0x56, 0x78, 0x13, 0x88], // castVote
+                [0x1e, 0xc0, 0xc9, 0x10], // castVoteWithReason
+                [0xa3, 0xc1, 0xbb, 0xa4], // submitVote
+            ],
+            proposal_selectors: vec![
+                [0xda, 0x95, 0x69, 0x1a], // propose
+                [0x2d, 0x63, 0xf6, 0x93], // createProposal
+                [0xc5, 0x7d, 0x99, 0x5a], // execute
+            ],
+            flash_loan_selectors: vec![
+                [0x5c, 0xef, 0xf6, 0x20], // flashLoan
+                [0xab, 0x9c, 0x4b, 0x5d], // executeOperation
+            ],
+        }
+    }
+}
+
+impl Default for GovernanceAttackPattern {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ThreatPattern for GovernanceAttackPattern {
+    fn name(&self) -> &str {
+        "GovernanceAttack"
+    }
+    
+    fn detect(
+        &self,
+        block_number: u64,
+        transactions: &[TransactionInfo],
+        _history: &TransactionHistory,
+    ) -> Vec<Threat> {
+        let mut threats = Vec::new();
+        
+        // Look for flash loan followed by governance action in same block
+        let mut flash_loan_senders: HashMap<[u8; 32], Vec<[u8; 32]>> = HashMap::new();
+        
+        // First pass: identify flash loan users
+        for tx in transactions {
+            if let Some(selector) = tx.function_selector {
+                if self.flash_loan_selectors.contains(&selector) {
+                    flash_loan_senders
+                        .entry(tx.sender)
+                        .or_insert_with(Vec::new)
+                        .push(tx.hash);
+                }
+            }
+        }
+        
+        // Second pass: check if flash loan users also vote
+        for tx in transactions {
+            if let Some(selector) = tx.function_selector {
+                let is_governance_action = self.vote_selectors.contains(&selector)
+                    || self.proposal_selectors.contains(&selector);
+                
+                if is_governance_action {
+                    if let Some(flash_loans) = flash_loan_senders.get(&tx.sender) {
+                        // Flash loan + governance action = attack!
+                        let mut related = flash_loans.clone();
+                        related.push(tx.hash);
+                        
+                        threats.push(Threat {
+                            threat_type: ThreatType::GovernanceAttack,
+                            severity: ThreatSeverity::Critical,
+                            description: format!(
+                                "GOVERNANCE ATTACK: Flash loan holder {} voted/proposed in same block",
+                                hex::encode(&tx.sender[..8])
+                            ),
+                            target_contract: tx.target_contract,
+                            related_transactions: related,
+                            block_number,
+                            recommended_action: RecommendedAction::EmergencyMutation,
+                        });
+                    }
+                }
+            }
+        }
+        
+        threats
+    }
+}
+
+/// Front-running / MEV extraction pattern
+/// Detects general MEV extraction attempts
+pub struct FrontRunningPattern {
+    /// Minimum value difference to consider profitable front-running (reserved)
+    _min_profit_threshold: u128,
+    /// Time window for detecting front-running (reserved)
+    _window_size: usize,
+}
+
+impl FrontRunningPattern {
+    pub fn new() -> Self {
+        Self {
+            _min_profit_threshold: 100_000_000, // 0.1 CGT
+            _window_size: 5,
+        }
+    }
+}
+
+impl Default for FrontRunningPattern {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ThreatPattern for FrontRunningPattern {
+    fn name(&self) -> &str {
+        "FrontRunning"
+    }
+    
+    fn detect(
+        &self,
+        block_number: u64,
+        transactions: &[TransactionInfo],
+        _history: &TransactionHistory,
+    ) -> Vec<Threat> {
+        let mut threats = Vec::new();
+        
+        // Detect pattern: high gas transaction immediately before similar transaction
+        // This is a more general MEV detection than sandwich attacks
+        
+        if transactions.len() < 2 {
+            return threats;
+        }
+        
+        for i in 0..transactions.len() - 1 {
+            let tx1 = &transactions[i];
+            let tx2 = &transactions[i + 1];
+            
+            // Same contract, same function, different senders
+            if tx1.target_contract == tx2.target_contract
+                && tx1.function_selector == tx2.function_selector
+                && tx1.sender != tx2.sender
+            {
+                // First transaction used significantly more gas (paid premium)
+                if tx1.gas_used > tx2.gas_used * 3 / 2 {
+                    // And first sender made a profit (value out > value in)
+                    // This is a heuristic - real MEV detection would check actual profit
+                    if let Some(contract) = tx1.target_contract {
+                        threats.push(Threat {
+                            threat_type: ThreatType::FrontRunning,
+                            severity: ThreatSeverity::Medium,
+                            description: format!(
+                                "Possible front-running: {} paid {}% more gas to execute before {}",
+                                hex::encode(&tx1.sender[..8]),
+                                (tx1.gas_used * 100 / tx2.gas_used.max(1)) - 100,
+                                hex::encode(&tx2.sender[..8])
+                            ),
+                            target_contract: Some(contract),
+                            related_transactions: vec![tx1.hash, tx2.hash],
+                            block_number,
+                            recommended_action: RecommendedAction::Alert,
+                        });
+                    }
+                }
+            }
+        }
+        
+        threats
+    }
+}
+
+/// Access control probing pattern
+/// Detects repeated failed authorization attempts
+pub struct AccessControlProbePattern {
+    /// Known admin/privileged function selectors
+    privileged_selectors: Vec<[u8; 4]>,
+    /// Threshold for number of failed attempts to trigger alert
+    failure_threshold: usize,
+}
+
+impl AccessControlProbePattern {
+    pub fn new() -> Self {
+        Self {
+            privileged_selectors: vec![
+                [0xf2, 0xfb, 0xe2, 0xb8], // renounceOwnership
+                [0x71, 0x5e, 0x0e, 0xd1], // transferOwnership
+                [0x8d, 0xa5, 0xcb, 0x5b], // setAdmin
+                [0x2f, 0x54, 0xbf, 0x6e], // pause
+                [0x3f, 0x4b, 0xa8, 0x3a], // unpause
+                [0x40, 0xc1, 0x0f, 0x19], // mint
+                [0x42, 0x96, 0x6c, 0x68], // burn
+                [0x47, 0xe7, 0xef, 0x24], // setFee
+                [0x09, 0x5e, 0xa7, 0xb3], // approve (when called by non-owner)
+            ],
+            failure_threshold: 3,
+        }
+    }
+}
+
+impl Default for AccessControlProbePattern {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ThreatPattern for AccessControlProbePattern {
+    fn name(&self) -> &str {
+        "AccessControlProbe"
+    }
+    
+    fn detect(
+        &self,
+        block_number: u64,
+        transactions: &[TransactionInfo],
+        history: &TransactionHistory,
+    ) -> Vec<Threat> {
+        let mut threats = Vec::new();
+        
+        // Count failed privileged function calls per sender
+        let mut failed_attempts: HashMap<[u8; 32], Vec<TransactionInfo>> = HashMap::new();
+        
+        for tx in transactions {
+            if !tx.success {
+                if let Some(selector) = tx.function_selector {
+                    if self.privileged_selectors.contains(&selector) {
+                        failed_attempts
+                            .entry(tx.sender)
+                            .or_insert_with(Vec::new)
+                            .push(tx.clone());
+                    }
+                }
+            }
+        }
+        
+        // Also check history for persistent probing
+        for (sender, attempts) in &mut failed_attempts {
+            let historical = history.get_sender_transactions(
+                sender,
+                block_number.saturating_sub(10),
+            );
+            
+            let historical_failures: usize = historical
+                .iter()
+                .filter(|t| !t.success && t.function_selector
+                    .map(|s| self.privileged_selectors.contains(&s))
+                    .unwrap_or(false))
+                .count();
+            
+            let total_failures = attempts.len() + historical_failures;
+            
+            if total_failures >= self.failure_threshold {
+                threats.push(Threat {
+                    threat_type: ThreatType::AccessControlProbe,
+                    severity: if total_failures >= self.failure_threshold * 3 {
+                        ThreatSeverity::High
+                    } else {
+                        ThreatSeverity::Medium
+                    },
+                    description: format!(
+                        "Access control probing: {} failed privileged calls from {}",
+                        total_failures,
+                        hex::encode(&sender[..8])
+                    ),
+                    target_contract: attempts.first().and_then(|t| t.target_contract),
+                    related_transactions: attempts.iter().map(|t| t.hash).collect(),
+                    block_number,
+                    recommended_action: RecommendedAction::Alert,
+                });
+            }
+        }
+        
+        threats
+    }
+}
+
+/// Time manipulation pattern
+/// Detects transactions that may be exploiting timestamp dependencies
+pub struct TimeManipulationPattern {
+    /// Known time-sensitive function selectors
+    time_sensitive_selectors: Vec<[u8; 4]>,
+    /// Suspicious timestamp patterns (reserved for future use)
+    _boundary_threshold_ms: u64,
+}
+
+impl TimeManipulationPattern {
+    pub fn new() -> Self {
+        Self {
+            time_sensitive_selectors: vec![
+                [0xa2, 0xe6, 0x20, 0x45], // unlock
+                [0xb6, 0x54, 0x9f, 0x75], // vest
+                [0x2e, 0x1a, 0x7d, 0x4d], // claim
+                [0x37, 0x2f, 0x85, 0x7a], // redeem
+                [0x39, 0x0d, 0x01, 0x13], // execute (timelock)
+                [0xc7, 0xcd, 0xea, 0x37], // release
+            ],
+            _boundary_threshold_ms: 1000, // 1 second
+        }
+    }
+}
+
+impl Default for TimeManipulationPattern {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ThreatPattern for TimeManipulationPattern {
+    fn name(&self) -> &str {
+        "TimeManipulation"
+    }
+    
+    fn detect(
+        &self,
+        block_number: u64,
+        transactions: &[TransactionInfo],
+        _history: &TransactionHistory,
+    ) -> Vec<Threat> {
+        let mut threats = Vec::new();
+        
+        // Group time-sensitive transactions by sender
+        let mut time_sensitive_txs: HashMap<[u8; 32], Vec<&TransactionInfo>> = HashMap::new();
+        
+        for tx in transactions {
+            if let Some(selector) = tx.function_selector {
+                if self.time_sensitive_selectors.contains(&selector) {
+                    time_sensitive_txs
+                        .entry(tx.sender)
+                        .or_insert_with(Vec::new)
+                        .push(tx);
+                }
+            }
+        }
+        
+        // Check for suspicious patterns
+        for (sender, txs) in time_sensitive_txs {
+            if txs.len() >= 2 {
+                // Multiple time-sensitive transactions from same sender in one block
+                // This could indicate trying to exploit timestamp dependencies
+                
+                let total_value: u128 = txs.iter().map(|t| t.value).sum();
+                
+                if total_value > 1_000_000_000 { // > 1 CGT
+                    threats.push(Threat {
+                        threat_type: ThreatType::TimeManipulation,
+                        severity: ThreatSeverity::Medium,
+                        description: format!(
+                            "Multiple time-sensitive transactions ({}) from {} with {} CGT total",
+                            txs.len(),
+                            hex::encode(&sender[..8]),
+                            total_value / 1_000_000_000
+                        ),
+                        target_contract: txs.first().and_then(|t| t.target_contract),
+                        related_transactions: txs.iter().map(|t| t.hash).collect(),
+                        block_number,
+                        recommended_action: RecommendedAction::Alert,
+                    });
+                }
+            }
+        }
+        
+        threats
+    }
+}
+
+/// Large value transfer anomaly pattern
+/// Detects unusually large transfers that may indicate exploit extraction
+pub struct LargeValueTransferPattern {
+    /// Threshold for "large" transfer (in base units)
+    large_threshold: u128,
+    /// Historical average multiplier for anomaly
+    anomaly_multiplier: u64,
+}
+
+impl LargeValueTransferPattern {
+    pub fn new() -> Self {
+        Self {
+            large_threshold: 100_000_000_000, // 100 CGT
+            anomaly_multiplier: 10, // 10x average is anomalous
+        }
+    }
+}
+
+impl Default for LargeValueTransferPattern {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ThreatPattern for LargeValueTransferPattern {
+    fn name(&self) -> &str {
+        "LargeValueTransfer"
+    }
+    
+    fn detect(
+        &self,
+        block_number: u64,
+        transactions: &[TransactionInfo],
+        history: &TransactionHistory,
+    ) -> Vec<Threat> {
+        let mut threats = Vec::new();
+        
+        for tx in transactions {
+            if tx.value >= self.large_threshold {
+                // Check if this is anomalous for this contract
+                if let Some(contract) = tx.target_contract {
+                    let historical = history.get_contract_transactions(
+                        &contract,
+                        block_number.saturating_sub(100),
+                    );
+                    
+                    if historical.len() >= 5 {
+                        let avg_value: u128 = historical.iter().map(|t| t.value).sum::<u128>()
+                            / historical.len() as u128;
+                        
+                        if tx.value > avg_value * self.anomaly_multiplier as u128 {
+                            threats.push(Threat {
+                                threat_type: ThreatType::LargeValueTransfer,
+                                severity: ThreatSeverity::High,
+                                description: format!(
+                                    "Anomalous large transfer: {} CGT ({}x average) to contract {}",
+                                    tx.value / 1_000_000_000,
+                                    tx.value / avg_value.max(1),
+                                    hex::encode(&contract[..8])
+                                ),
+                                target_contract: Some(contract),
+                                related_transactions: vec![tx.hash],
+                                block_number,
+                                recommended_action: RecommendedAction::ScheduleMutation,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        
+        threats
+    }
+}
+
+/// Contract creation spam pattern
+/// Detects rapid contract deployment that may indicate attack setup
+pub struct ContractCreationSpamPattern {
+    /// Threshold for contracts created by same sender
+    spam_threshold: usize,
+    /// Time window in blocks
+    window_blocks: u64,
+}
+
+impl ContractCreationSpamPattern {
+    pub fn new() -> Self {
+        Self {
+            spam_threshold: 5,
+            window_blocks: 10,
+        }
+    }
+}
+
+impl Default for ContractCreationSpamPattern {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ThreatPattern for ContractCreationSpamPattern {
+    fn name(&self) -> &str {
+        "ContractCreationSpam"
+    }
+    
+    fn detect(
+        &self,
+        block_number: u64,
+        transactions: &[TransactionInfo],
+        history: &TransactionHistory,
+    ) -> Vec<Threat> {
+        let mut threats = Vec::new();
+        
+        // Count contract creations (target_contract is None for creates)
+        let mut creation_counts: HashMap<[u8; 32], usize> = HashMap::new();
+        
+        for tx in transactions {
+            if tx.target_contract.is_none() && tx.success {
+                // This is likely a contract creation
+                *creation_counts.entry(tx.sender).or_insert(0) += 1;
+            }
+        }
+        
+        // Check historical creations
+        for (sender, current_count) in creation_counts {
+            let historical = history.get_sender_transactions(
+                &sender,
+                block_number.saturating_sub(self.window_blocks),
+            );
+            
+            let historical_creates = historical
+                .iter()
+                .filter(|t| t.target_contract.is_none() && t.success)
+                .count();
+            
+            let total_creates = current_count + historical_creates;
+            
+            if total_creates >= self.spam_threshold {
+                threats.push(Threat {
+                    threat_type: ThreatType::ContractCreationSpam,
+                    severity: ThreatSeverity::Medium,
+                    description: format!(
+                        "Contract creation spam: {} contracts deployed by {} in {} blocks",
+                        total_creates,
+                        hex::encode(&sender[..8]),
+                        self.window_blocks
+                    ),
+                    target_contract: None,
+                    related_transactions: vec![], // Would need to track these
+                    block_number,
+                    recommended_action: RecommendedAction::Alert,
+                });
             }
         }
         

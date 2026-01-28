@@ -45,6 +45,15 @@ export interface User {
   on_chain_address?: string; // Legacy field name
 }
 
+// Response from the QOR Auth API
+export interface ApiTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  token_type: string;
+}
+
+// Convenience interface for SDK users
 export interface LoginResponse {
   token: string;
   refresh_token: string;
@@ -140,16 +149,37 @@ export class QorAuthClient {
   }
 
   async login(identifier: string, password: string): Promise<LoginResponse> {
-    const response = await this.client.post<LoginResponse>('/auth/login', {
+    const response = await this.client.post<ApiTokenResponse>('/auth/login', {
       identifier, // Can be email or username
       password,
     });
     
-    if (response.data.token) {
-      this.setToken(response.data.token);
+    const { access_token, refresh_token } = response.data;
+    
+    if (access_token) {
+      this.setToken(access_token);
     }
     
-    return response.data;
+    // Fetch user profile to complete the login response
+    let user: User;
+    try {
+      user = await this.getProfile();
+    } catch (e) {
+      // If profile fetch fails, create a minimal user object from token
+      const tokenData = this.getTokenData();
+      user = {
+        id: tokenData?.user_id || '',
+        qor_id: tokenData?.qor_id || identifier,
+        email: '',
+        role: (tokenData?.role as User['role']) || 'user',
+      };
+    }
+    
+    return {
+      token: access_token,
+      refresh_token,
+      user,
+    };
   }
 
   async register(data: RegisterRequest): Promise<RegisterResponse> {
@@ -251,15 +281,35 @@ export class QorAuthClient {
   }
 
   async refreshToken(refreshToken: string): Promise<LoginResponse> {
-    const response = await this.client.post<LoginResponse>('/auth/refresh', {
+    const response = await this.client.post<ApiTokenResponse>('/auth/refresh', {
       refresh_token: refreshToken,
     });
     
-    if (response.data.token) {
-      this.setToken(response.data.token);
+    const { access_token, refresh_token: newRefreshToken } = response.data;
+    
+    if (access_token) {
+      this.setToken(access_token);
     }
     
-    return response.data;
+    // Fetch updated user profile
+    let user: User;
+    try {
+      user = await this.getProfile();
+    } catch (e) {
+      const tokenData = this.getTokenData();
+      user = {
+        id: tokenData?.user_id || '',
+        qor_id: tokenData?.qor_id || '',
+        email: '',
+        role: (tokenData?.role as User['role']) || 'user',
+      };
+    }
+    
+    return {
+      token: access_token,
+      refresh_token: newRefreshToken,
+      user,
+    };
   }
 
   async logout(): Promise<void> {

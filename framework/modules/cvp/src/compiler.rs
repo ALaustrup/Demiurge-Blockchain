@@ -6,7 +6,7 @@
 use crate::{
     SemanticIR, SemanticFunction, Effect, Expression, Condition,
     MutationConfig, MutationStrategy, CompositeMutation,
-    Result, CvpError,
+    Result,
 };
 use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
@@ -81,8 +81,8 @@ pub struct CompilationMetadata {
 
 /// Polymorphic compiler that generates bytecode variants
 pub struct PolymorphicCompiler {
-    /// Mutation configuration
-    config: MutationConfig,
+    /// Mutation configuration (retained for future use)
+    _config: MutationConfig,
     
     /// The mutation strategy to use
     mutation: CompositeMutation,
@@ -93,13 +93,13 @@ impl PolymorphicCompiler {
     pub fn new() -> Self {
         let config = MutationConfig::default();
         let mutation = CompositeMutation::from_config(&config);
-        Self { config, mutation }
+        Self { _config: config, mutation }
     }
     
     /// Create compiler with custom configuration
     pub fn with_config(config: MutationConfig) -> Self {
         let mutation = CompositeMutation::from_config(&config);
-        Self { config, mutation }
+        Self { _config: config, mutation }
     }
     
     /// Compile Semantic IR to bytecode
@@ -300,7 +300,7 @@ impl PolymorphicCompiler {
                 // ... transfer logic
             }
             
-            Effect::Emit { event_id, data } => {
+            Effect::Emit { event_id: _, data } => {
                 // Generate LOG instruction
                 for datum in data {
                     code.extend(self.generate_expression(datum)?);

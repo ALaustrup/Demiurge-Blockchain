@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { qorAuth } from '@demiurge/qor-sdk';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface QorIdAuthFlowProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface QorIdAuthFlowProps {
 type AuthStep = 'login' | 'register-username' | 'register-email' | 'register-pin' | 'backup-code' | 'email-verification';
 
 export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', initialStep }: QorIdAuthFlowProps) {
+  const { refreshUser } = useAuth();
   const [step, setStep] = useState<AuthStep>(initialStep || 'login');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -27,7 +29,6 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
 
   useEffect(() => {
     if (!isOpen) {
-      // Reset state when modal closes
       setStep('login');
       setEmail('');
       setUsername('');
@@ -75,24 +76,52 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    if (isLoading) return;
+    
+    const currentUsername = username;
+    const currentPassword = password;
+    
     setError(null);
     setIsLoading(true);
 
     try {
-      const response = await qorAuth.login(username, password);
-      // Set cookie for middleware (needed for page variant)
-      if (variant === 'page') {
-        document.cookie = `qor_token=${response.token}; path=/; max-age=86400`;
+      const response = await qorAuth.login(currentUsername, currentPassword);
+      
+      if (response.token) {
+        document.cookie = `qor_token=${response.token}; path=/; max-age=86400; SameSite=Lax`;
       }
+      
+      try {
+        await refreshUser();
+      } catch {
+        // Continue even if refresh fails - token is already set
+      }
+      
       onSuccess();
       if (variant === 'modal') {
         onClose();
       }
     } catch (err: any) {
-      setError(err.message || err.response?.data?.message || 'Login failed. Please check your credentials.');
-    } finally {
+      setUsername(currentUsername);
+      setPassword(currentPassword);
+      
+      let errorMessage = 'Login failed. Please check your credentials.';
+      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+        errorMessage = 'Cannot connect to auth service. Please try again later.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      setError(errorMessage);
       setIsLoading(false);
+      return;
     }
+    
+    setIsLoading(false);
   };
 
   const handleUsernameSubmit = (e: React.FormEvent) => {
@@ -176,17 +205,22 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                 Login to Demiurge
               </h1>
 
-              <form onSubmit={handleLogin} className="space-y-4">
+              <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-300">
                     Email or Username
                   </label>
                   <input
                     type="text"
+                    name="qor-username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Enter your email or username"
                     className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
+                    autoComplete="username"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     required
                   />
                 </div>
@@ -197,10 +231,12 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                   </label>
                   <input
                     type="password"
+                    name="qor-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your Chain PIN"
                     className="w-full glass-panel px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-demiurge-cyan"
+                    autoComplete="current-password"
                     required
                   />
                 </div>
@@ -479,15 +515,20 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
               <p className="text-gray-400 font-body">Enter the Demiurge ecosystem</p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
               <div>
                 <label className="block text-sm text-gray-300 mb-2 font-body">Username or Email</label>
                 <input
                   type="text"
+                  name="qor-username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter your QOR ID or email"
                   className="w-full bg-gray-900/50 border-2 border-gray-700 rounded-lg p-4 text-white placeholder-gray-500 focus:border-neon-cyan focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 transition-all"
+                  autoComplete="username"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   required
                 />
               </div>
@@ -496,10 +537,12 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                 <label className="block text-sm text-gray-300 mb-2 font-body">Chain PIN</label>
                 <input
                   type="password"
+                  name="qor-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your Chain PIN"
                   className="w-full bg-gray-900/50 border-2 border-gray-700 rounded-lg p-4 text-white placeholder-gray-500 focus:border-neon-cyan focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 transition-all"
+                  autoComplete="current-password"
                   required
                 />
               </div>

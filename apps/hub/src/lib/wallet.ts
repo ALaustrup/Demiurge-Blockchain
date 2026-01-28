@@ -17,18 +17,16 @@ async function loadWalletWasm(): Promise<WalletWasm> {
   }
 
   if (!walletWasmPromise) {
-    // Use dynamic import with type assertion to avoid TypeScript errors
-    // The package may not exist at build time, so we handle it gracefully
+    // Use standard dynamic import - Next.js will handle this correctly
     walletWasmPromise = (async () => {
       try {
-        // Use Function constructor to create a truly dynamic import that Next.js can't analyze
-        const importFn = new Function('specifier', 'return import(specifier)');
+        // Dynamic import using standard syntax
         // @ts-ignore - wallet-wasm may not be built yet
-        const wasm = await importFn('@demiurge/wallet-wasm');
+        const wasm = await import('@demiurge/wallet-wasm');
         return wasm as WalletWasm;
       } catch (error) {
         // Fallback: wallet-wasm may not be built yet, use stub implementation
-        console.warn('wallet-wasm not available, using stub implementation');
+        console.warn('wallet-wasm not available, using stub implementation:', error);
         return {
           generate_mnemonic: () => { throw new Error('wallet-wasm not built'); },
           validate_mnemonic: () => false,

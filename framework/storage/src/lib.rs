@@ -3,5 +3,5 @@
 pub mod backend;
 pub mod merkle;
 
-pub use backend::{Storage, StorageBackend};
+pub use backend::{Storage, StorageBackend, MemoryStorage, StorageError};
 pub use merkle::MerkleTree;

@@ -5,7 +5,7 @@
 
 use crate::{
     CvpConsensusIntegration, CvpConfig, TransactionInfo,
-    Threat, ThreatType, ThreatSeverity,
+    Threat, ThreatType,
     SemanticIR, ContractId,
 };
 use std::collections::HashMap;
@@ -410,7 +410,7 @@ pub mod scenarios {
         // Block 10: Epoch transition (mutations should occur)
         println!("\nBlock 10: Epoch transition...");
         let txs = normal_traffic(3);
-        let threats = sim.process_block(txs);
+        let _threats = sim.process_block(txs);
         
         // Blocks 11-15: More normal traffic
         println!("\nBlocks 11-15: Post-mutation normal traffic...");

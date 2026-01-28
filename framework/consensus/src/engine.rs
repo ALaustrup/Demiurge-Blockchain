@@ -8,6 +8,7 @@ use demiurge_storage::Storage;
 use demiurge_cvp::{
     CvpConsensusIntegration, CvpConfig, TransactionInfo, 
     Threat, ThreatSeverity, SemanticIR, ContractId,
+    drc369::build_drc369_semantic_ir,
 };
 use codec::{Encode, Decode};
 use std::collections::HashMap;
@@ -54,7 +55,7 @@ impl<S: Storage> ConsensusEngine<S> {
             ..Default::default()
         };
         
-        Self {
+        let engine = Self {
             validators: ValidatorSet::new(),
             finality: Finality::new(),
             storage,
@@ -68,7 +69,14 @@ impl<S: Storage> ConsensusEngine<S> {
             cvp: CvpConsensusIntegration::new(cvp_config),
             cvp_enabled: true,
             recent_block_hashes: Vec::with_capacity(10),
+        };
+        
+        // Auto-register DRC-369 with CVP for polymorphic protection
+        if let Err(e) = engine.initialize_drc369_cvp() {
+            error!("Failed to initialize DRC-369 CVP: {}", e);
         }
+        
+        engine
     }
     
     /// Create consensus engine with CVP disabled (for testing)
@@ -135,6 +143,73 @@ impl<S: Storage> ConsensusEngine<S> {
     /// Get CVP statistics
     pub fn cvp_stats(&self) -> demiurge_cvp::integration::CvpStats {
         self.cvp.stats()
+    }
+    
+    /// Initialize DRC-369 with CVP protection
+    /// 
+    /// This should be called during chain initialization to ensure DRC-369
+    /// contracts are protected by Consensus-Verified Polymorphism from the start.
+    pub fn initialize_drc369_cvp(&self) -> Result<()> {
+        if !self.cvp_enabled {
+            info!("CVP disabled, skipping DRC-369 CVP registration");
+            return Ok(());
+        }
+        
+        // Generate deterministic contract ID for DRC-369
+        use blake2::{Blake2b512, Digest};
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"DRC369_MODULE_CONTRACT_V1");
+        let hash = hasher.finalize();
+        let mut contract_id = [0u8; 32];
+        contract_id.copy_from_slice(&hash[..32]);
+        
+        // Build semantic IR
+        let semantic_ir = build_drc369_semantic_ir(contract_id);
+        
+        // Generate initial bytecode
+        let bytecode = Self::generate_drc369_bytecode();
+        
+        // Register with CVP
+        self.register_cvp_contract(contract_id, semantic_ir, bytecode)?;
+        
+        info!(
+            "DRC-369 registered with CVP - Contract ID: {} - The most secure NFT standard",
+            hex::encode(&contract_id[..8])
+        );
+        
+        Ok(())
+    }
+    
+    /// Generate DRC-369 bytecode for CVP mutations
+    fn generate_drc369_bytecode() -> Vec<u8> {
+        let mut bytecode = Vec::new();
+        
+        // Function dispatcher (EVM-style)
+        bytecode.extend_from_slice(&[0x60, 0x00, 0x35]); // PUSH1 0 CALLDATALOAD
+        bytecode.extend_from_slice(&[0x60, 0xE0, 0x1C]); // PUSH1 0xE0 SHR
+        
+        // mint selector (0x40c10f19)
+        bytecode.extend_from_slice(&[0x63, 0x40, 0xc1, 0x0f, 0x19]);
+        bytecode.extend_from_slice(&[0x14, 0x61, 0x00, 0x40, 0x57]); // EQ PUSH2 0x0040 JUMPI
+        
+        // transfer selector (0xa9059cbb)
+        bytecode.extend_from_slice(&[0x63, 0xa9, 0x05, 0x9c, 0xbb]);
+        bytecode.extend_from_slice(&[0x14, 0x61, 0x00, 0x80, 0x57]); // EQ PUSH2 0x0080 JUMPI
+        
+        // approve selector (0x095ea7b3)
+        bytecode.extend_from_slice(&[0x63, 0x09, 0x5e, 0xa7, 0xb3]);
+        bytecode.extend_from_slice(&[0x14, 0x61, 0x00, 0xc0, 0x57]); // EQ PUSH2 0x00c0 JUMPI
+        
+        // ownerOf selector (0x6352211e)
+        bytecode.extend_from_slice(&[0x63, 0x63, 0x52, 0x21, 0x1e]);
+        bytecode.extend_from_slice(&[0x14, 0x61, 0x01, 0x00, 0x57]); // EQ PUSH2 0x0100 JUMPI
+        
+        // Add padding for mutation space
+        for i in 0..64 {
+            bytecode.push((i * 7) as u8);
+        }
+        
+        bytecode
     }
 
     /// Register a validator with their signing key

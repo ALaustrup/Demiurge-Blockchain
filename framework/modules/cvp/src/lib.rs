@@ -41,6 +41,8 @@ pub use mutation::{MutationStrategy, MutationConfig, CompositeMutation};
 pub use proof::{
     EquivalenceProof, ProofGenerator, ProofVerifier, ProofSystem,
     PlaceholderProofGenerator, PlaceholderProofVerifier,
+    TranslationValidationGenerator, TranslationValidationVerifier,
+    MultiSystemVerifier, TranslationValidationProofData, TransformationStep, RewriteRule,
 };
 pub use engine::{CvpEngine, CvpConfig, MutationResult};
 pub use error::{CvpError, Result};

@@ -7,7 +7,7 @@ use crate::{
     SemanticIR, SemanticFunction, Effect, Expression, Condition,
     StorageSlot, Type, ConstantValue, BinaryOperator, CompareOperator,
     Invariant, CheckPoint, InvariantSeverity,
-    ContractId, Result, CvpError,
+    ContractId,
 };
 
 /// DRC-369 function selectors

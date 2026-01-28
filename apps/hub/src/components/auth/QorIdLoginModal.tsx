@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { qorAuth } from '@demiurge/qor-sdk';
+import { useAuth } from '@/contexts/AuthContext';
 import { PasswordResetModal } from './PasswordResetModal';
 
 interface QorIdLoginModalProps {
@@ -12,6 +13,7 @@ interface QorIdLoginModalProps {
 }
 
 export function QorIdLoginModal({ isOpen, onClose, onLoginSuccess, onSwitchToRegister }: QorIdLoginModalProps) {
+  const { refreshUser } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,13 @@ export function QorIdLoginModal({ isOpen, onClose, onLoginSuccess, onSwitchToReg
 
     try {
       // Login accepts email or username
-      await qorAuth.login(identifier, password);
+      const response = await qorAuth.login(identifier, password);
+      
+      // Set cookie for middleware
+      document.cookie = `qor_token=${response.token}; path=/; max-age=86400; SameSite=Lax`;
+      
+      // CRITICAL: Refresh the AuthContext state with the logged-in user
+      await refreshUser();
 
       onLoginSuccess();
       onClose();

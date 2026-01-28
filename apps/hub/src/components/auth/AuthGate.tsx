@@ -112,8 +112,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               isOpen={true}
               onClose={() => {}} // Cannot close - must authenticate
               onSuccess={() => {
-                // Refresh the page to load authenticated state
-                window.location.reload();
+                // AuthContext is now updated via refreshUser() in QorIdAuthFlow
+                // No page reload needed - React will re-render with authenticated state
               }}
               variant="page"
             />

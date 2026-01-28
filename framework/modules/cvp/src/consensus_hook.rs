@@ -156,7 +156,7 @@ pub fn integrate_era_transition(
     transactions: &[TransactionInfo],
 ) -> crate::Result<CvpBlockExtension> {
     // Process the block
-    let result = cvp.on_block_finalized(
+    let _result = cvp.on_block_finalized(
         block_number,
         block_hashes.last().copied().unwrap_or([0u8; 32]),
         transactions,

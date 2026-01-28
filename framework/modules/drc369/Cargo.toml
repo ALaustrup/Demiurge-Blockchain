@@ -5,16 +5,20 @@ authors.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "DRC-369 NFT Standard - Stateful NFTs"
+description = "DRC-369 NFT Standard - Stateful NFTs with CVP Protection"
 
 [dependencies]
 codec = { workspace = true }
 scale-info = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+blake2 = { workspace = true }
+hex = { workspace = true }
+tracing = { workspace = true }
 
 # Internal dependencies
 demiurge-storage = { path = "../../storage" }
 demiurge-modules = { path = ".." }
+demiurge-cvp = { path = "../cvp" }
 
 [dev-dependencies]

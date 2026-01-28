@@ -3,7 +3,7 @@
 //! Defines the various bytecode transformation strategies that maintain
 //! semantic equivalence while changing structural representation.
 
-use crate::{Result, CvpError};
+use crate::Result;
 use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
@@ -194,15 +194,15 @@ struct SubstitutionRule {
 pub struct MemoryRandomization {
     /// Base offset to add to memory addresses
     base_offset: u64,
-    /// Mapping of original addresses to new addresses
-    address_map: std::collections::HashMap<u64, u64>,
+    /// Mapping of original addresses to new addresses (reserved for future use)
+    _address_map: std::collections::HashMap<u64, u64>,
 }
 
 impl MemoryRandomization {
     pub fn new() -> Self {
         Self {
             base_offset: 0,
-            address_map: std::collections::HashMap::new(),
+            _address_map: std::collections::HashMap::new(),
         }
     }
     
@@ -225,12 +225,12 @@ impl MutationStrategy for MemoryRandomization {
     
     fn mutate(&self, bytecode: &[u8], seed: &[u8; 32]) -> Result<Vec<u8>> {
         // Calculate offset from seed
-        let offset = u64::from_le_bytes([
+        let _offset = u64::from_le_bytes([
             seed[0], seed[1], seed[2], seed[3],
             seed[4], seed[5], seed[6], seed[7],
         ]) % 0x1000; // Max 4KB offset
         
-        let mut result = bytecode.to_vec();
+        let result = bytecode.to_vec();
         let mut i = 0;
         
         while i < result.len() {
@@ -285,7 +285,7 @@ impl MutationStrategy for ControlFlowObfuscation {
         "ControlFlowObfuscation"
     }
     
-    fn mutate(&self, bytecode: &[u8], seed: &[u8; 32]) -> Result<Vec<u8>> {
+    fn mutate(&self, bytecode: &[u8], _seed: &[u8; 32]) -> Result<Vec<u8>> {
         // Control flow obfuscation is complex and requires full bytecode analysis
         // This is a placeholder that will be implemented with proper CFG analysis
         

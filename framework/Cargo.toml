@@ -37,6 +37,7 @@ blake2 = "0.10"
 sha2 = "0.10"
 ed25519-dalek = { version = "2.0", features = ["rand_core"] }
 secp256k1 = "0.28"
+hex = "0.4"
 
 # Async runtime
 tokio = { version = "1.43", features = ["full"] }

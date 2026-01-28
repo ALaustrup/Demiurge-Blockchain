@@ -7,7 +7,7 @@ use crate::{
     SemanticIR, ContractId, Bytecode,
     PolymorphicCompiler, MutationConfig,
     EquivalenceProof, ProofGenerator, ProofVerifier,
-    PlaceholderProofGenerator, PlaceholderProofVerifier,
+    TranslationValidationGenerator, TranslationValidationVerifier,
     Result, CvpError,
 };
 use codec::{Decode, Encode};
@@ -172,8 +172,9 @@ impl CvpEngine {
             config,
             contracts: Arc::new(RwLock::new(HashMap::new())),
             compiler,
-            proof_generator: Box::new(PlaceholderProofGenerator::new()),
-            proof_verifier: Box::new(PlaceholderProofVerifier::new()),
+            // Use TranslationValidation proof system for production security
+            proof_generator: Box::new(TranslationValidationGenerator::new()),
+            proof_verifier: Box::new(TranslationValidationVerifier::new()),
             current_epoch: 0,
             current_block: 0,
             previous_epoch_seed: [0u8; 32],
@@ -545,7 +546,7 @@ mod tests {
         assert_eq!(results[0].contract_id, id);
         
         // Bytecode should be different after mutation
-        let new_bytecode = engine.get_bytecode(&id).unwrap().unwrap();
+        let _new_bytecode = engine.get_bytecode(&id).unwrap().unwrap();
         // Note: might be same if no mutations applied
     }
 }
