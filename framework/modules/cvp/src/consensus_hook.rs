@@ -91,9 +91,10 @@ impl CvpBlockExtension {
     
     /// Create extension with proofs
     pub fn with_proofs(proofs: Vec<EquivalenceProof>, epoch: u64) -> Self {
+        let is_transition = !proofs.is_empty();
         Self {
             cvp_proofs: proofs,
-            is_epoch_transition: !proofs.is_empty(),
+            is_epoch_transition: is_transition,
             epoch,
         }
     }

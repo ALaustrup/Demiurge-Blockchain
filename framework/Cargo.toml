@@ -12,6 +12,7 @@ members = [
     "modules/session-keys",
     "modules/yield-nfts",
     "modules/zk",
+    "modules/cvp",
     "network",
     "rpc",
     "node",

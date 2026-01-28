@@ -67,10 +67,10 @@ pub struct CompilationMetadata {
     pub strategies_applied: Vec<String>,
     
     /// Original bytecode size
-    pub original_size: usize,
+    pub original_size: u64,
     
     /// Final bytecode size
-    pub final_size: usize,
+    pub final_size: u64,
     
     /// Compilation timestamp
     pub compiled_at: u64,
@@ -113,8 +113,8 @@ impl PolymorphicCompiler {
         
         let metadata = CompilationMetadata {
             strategies_applied: vec!["BaseCompilation".to_string()],
-            original_size: base_code.len(),
-            final_size: base_code.len(),
+            original_size: base_code.len() as u64,
+            final_size: base_code.len() as u64,
             compiled_at: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
@@ -167,8 +167,8 @@ impl PolymorphicCompiler {
         
         let metadata = CompilationMetadata {
             strategies_applied: vec![self.mutation.name().to_string()],
-            original_size: original.code.len(),
-            final_size: mutated_code.len(),
+            original_size: original.code.len() as u64,
+            final_size: mutated_code.len() as u64,
             compiled_at: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()

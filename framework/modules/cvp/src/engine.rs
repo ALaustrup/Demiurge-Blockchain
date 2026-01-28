@@ -31,7 +31,7 @@ pub struct CvpConfig {
     pub log_mutations: bool,
     
     /// Maximum concurrent proof generations
-    pub max_concurrent_proofs: usize,
+    pub max_concurrent_proofs: u32,
 }
 
 impl Default for CvpConfig {

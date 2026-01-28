@@ -34,6 +34,7 @@ default = []
 # zk-plonky2 = ["plonky2"]
 # zk-halo2 = ["halo2_proofs"]
 
-[[bench]]
-name = "mutation_benchmark"
-harness = false
+# Benchmarks will be added when performance tuning begins
+# [[bench]]
+# name = "mutation_benchmark"
+# harness = false

@@ -204,7 +204,7 @@ pub enum Type {
     /// Address (32 bytes)
     Address,
     /// Fixed-size bytes
-    Bytes(usize),
+    Bytes(u32),
     /// Dynamic bytes
     DynamicBytes,
     /// String
@@ -212,7 +212,7 @@ pub enum Type {
     /// Array of type
     Array(Box<Type>),
     /// Fixed-size array
-    FixedArray(Box<Type>, usize),
+    FixedArray(Box<Type>, u32),
     /// Mapping
     Mapping(Box<Type>, Box<Type>),
     /// Struct (named fields)
