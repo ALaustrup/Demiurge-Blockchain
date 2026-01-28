@@ -1,0 +1,39 @@
+[package]
+name = "demiurge-cvp"
+version = "0.1.0"
+edition = "2021"
+authors = ["Demiurge Blockchain Team"]
+description = "Consensus-Verified Polymorphism - Dynamic bytecode mutation with ZK equivalence proofs"
+license = "MIT"
+repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
+
+[dependencies]
+# Core dependencies
+blake2 = "0.10"
+codec = { package = "parity-scale-codec", version = "3.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+hex = "0.4"
+
+# Crypto dependencies
+sha2 = "0.10"
+rand = "0.8"
+
+# ZK dependencies (to be added as implementation progresses)
+# plonky2 = { version = "0.2", optional = true }
+# halo2_proofs = { version = "0.3", optional = true }
+
+[dev-dependencies]
+criterion = "0.5"
+
+[features]
+default = []
+# Enable when ZK libraries are integrated
+# zk-plonky2 = ["plonky2"]
+# zk-halo2 = ["halo2_proofs"]
+
+[[bench]]
+name = "mutation_benchmark"
+harness = false
