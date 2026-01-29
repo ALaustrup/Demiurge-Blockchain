@@ -19,10 +19,12 @@
 //! - **Delegated Permissions**: Grant specific rights without transferring ownership
 //! - **CVP Protected**: Polymorphic bytecode that morphs to resist attacks
 //! - **Physics-Ready**: Standardized physics properties for game engines
+//! - **Recursive Royalties**: Perpetual creator compensation across sales and usage
 
 pub mod nft;
 pub mod error;
 pub mod physics;
+pub mod royalty;
 
 pub use nft::{
     Drc369Module, 
@@ -39,4 +41,9 @@ pub use physics::{
     PhysicsProperties, RigidBodyProperties, CollisionShape,
     MaterialPhysics, MaterialPreset, ThermalProperties,
     DestructionProperties, FluidInteraction, DamageType,
+};
+pub use royalty::{
+    RoyaltyConfig, RoyaltyRecipient, RoyaltyRole,
+    RoyaltyRegistry, RoyaltyDistribution, RoyaltyType,
+    UsageTracker, CreatorStats, BasisPoints, MAX_TOTAL_ROYALTY_BPS,
 };

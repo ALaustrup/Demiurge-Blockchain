@@ -31,4 +31,7 @@ pub enum Drc369Error {
     
     #[error("Invalid metadata: {0}")]
     InvalidMetadata(String),
+    
+    #[error("Invalid royalty configuration: {0}")]
+    InvalidRoyalty(String),
 }
