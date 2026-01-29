@@ -35,6 +35,7 @@ pub mod wallet;
 pub mod forge;
 pub mod memory;
 pub mod vcp_circuits;
+pub mod sentinel;
 pub mod error;
 
 pub use agent_did::{
@@ -54,6 +55,13 @@ pub use forge::{
 
 pub use vcp_circuits::{
     VcpGenerator, VcpPublicInputs, VcpWitness, AttestationWitness,
+};
+
+pub use sentinel::{
+    SentinelOracle, Bounty, BountyBid, BountySolution,
+    BountyCategory, BountyPriority, BountyStatus,
+    NetworkMetrics, SentinelAlert, AlertType, AlertSeverity,
+    NetworkHealthSummary, HealthStatus, AlertThresholds,
 };
 
 pub use memory::{
