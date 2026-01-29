@@ -15,6 +15,7 @@ members = [
     "modules/zk",
     "modules/cvp",
     "modules/qor-identity",
+    "modules/agentic",
     "network",
     "rpc",
     "node",

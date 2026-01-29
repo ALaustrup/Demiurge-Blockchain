@@ -1,0 +1,39 @@
+[package]
+name = "demiurge-agentic"
+version = "0.1.0"
+edition = "2021"
+description = "Agentic Integration Layer for Demiurge Protocol - Sovereign AI Agents"
+license = "MIT"
+authors = ["Demiurge Protocol"]
+
+[dependencies]
+# Demiurge primitives
+demiurge-primitives = { path = "../../primitives" }
+demiurge-qor-identity = { path = "../qor-identity" }
+demiurge-module-drc369 = { path = "../drc369" }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+parity-scale-codec = { version = "3.6", features = ["derive"] }
+scale-info = { version = "2.10", features = ["derive"] }
+
+# Crypto
+blake3 = "1.5"
+rand = "0.8"
+hex = "0.4"
+
+# Async
+tokio = { version = "1.35", features = ["full"], optional = true }
+
+# Vector operations
+ndarray = { version = "0.15", optional = true }
+
+[features]
+default = []
+std = ["tokio"]
+vector-state = ["ndarray"]
+full = ["std", "vector-state"]
+
+[dev-dependencies]
+tokio = { version = "1.35", features = ["full", "test-util"] }
