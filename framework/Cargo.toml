@@ -44,7 +44,14 @@ tokio = { version = "1.43", features = ["full"] }
 futures = "0.3"
 
 # Networking
-libp2p = { version = "0.53", default-features = false, features = ["tcp", "dns", "noise", "yamux"] }
+libp2p = { version = "0.53", default-features = false, features = [
+    "tcp", "dns", "noise", "yamux",
+    "gossipsub", "kad", "identify",
+    "tokio", "macros", "ed25519"
+] }
+
+# Note: ZK Proofs (plonky2) are added directly in modules/cvp/Cargo.toml
+# as optional dependencies cannot be declared at workspace level
 
 # Storage
 rocksdb = "0.21"

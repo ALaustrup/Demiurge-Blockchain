@@ -1,11 +1,36 @@
-//! Network service - Main networking component
+//! Network Service - Main Networking Component (The Nervous System Controller)
 //!
 //! Manages P2P connections, block/transaction propagation, and peer discovery.
+//! This is the high-level interface that wraps the LibP2P Swarm.
+//!
+//! # Architecture
+//!
+//! ```text
+//! ┌─────────────────────────────────────────────────────────────────┐
+//! │                     NETWORK SERVICE                              │
+//! │                  (High-Level Interface)                          │
+//! ├─────────────────────────────────────────────────────────────────┤
+//! │                          │                                       │
+//! │                          ▼                                       │
+//! │                  ┌───────────────┐                               │
+//! │                  │ SWARM MANAGER │ ◄── LibP2P Integration        │
+//! │                  │  (The Heart)  │                               │
+//! │                  └───────────────┘                               │
+//! │                          │                                       │
+//! │         ┌────────────────┼────────────────┐                      │
+//! │         ▼                ▼                ▼                      │
+//! │   ┌──────────┐    ┌──────────┐    ┌──────────┐                  │
+//! │   │GOSSIPSUB │    │ KADEMLIA │    │ IDENTIFY │                  │
+//! │   │ (Blood)  │    │(Sensors) │    │  (Eyes)  │                  │
+//! │   └──────────┘    └──────────┘    └──────────┘                  │
+//! └─────────────────────────────────────────────────────────────────┘
+//! ```
 
 use crate::{Result, NetworkError, PeerDiscovery};
-use crate::discovery::{PeerState, DiscoveredPeer};
+use crate::discovery::DiscoveredPeer;
+use crate::swarm::{SwarmManager, NetworkEvent};
 use demiurge_core::Block;
-use libp2p::PeerId;
+use libp2p::{Multiaddr, PeerId};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -65,6 +90,9 @@ pub struct NetworkService {
     
     /// Local peer ID (generated or from node key)
     local_peer_id: Option<PeerId>,
+    
+    /// LibP2P Swarm Manager (The Heart)
+    swarm_manager: Option<Arc<SwarmManager>>,
 }
 
 /// Peer information
@@ -95,6 +123,24 @@ impl NetworkService {
             pending_transactions: Arc::new(RwLock::new(Vec::new())),
             running: false,
             local_peer_id: None,
+            swarm_manager: None,
+        })
+    }
+    
+    /// Create a network service with a pre-initialized SwarmManager
+    pub fn with_swarm(config: NetworkConfig, swarm: Arc<SwarmManager>) -> Result<Self> {
+        let discovery = PeerDiscovery::new(config.bootstrap_peers.clone());
+        let local_peer_id = Some(swarm.local_peer_id());
+        
+        Ok(Self {
+            config,
+            peers: Arc::new(RwLock::new(HashMap::new())),
+            discovery: Arc::new(RwLock::new(discovery)),
+            pending_blocks: Arc::new(RwLock::new(Vec::new())),
+            pending_transactions: Arc::new(RwLock::new(Vec::new())),
+            running: true,
+            local_peer_id,
+            swarm_manager: Some(swarm),
         })
     }
 
@@ -106,39 +152,117 @@ impl NetworkService {
         
         info!("Starting P2P network on {:?}", self.config.listen_addr);
         
-        // Initialize bootstrap peer connections
-        let bootstrap_addrs = {
-            let discovery = self.discovery.read().await;
-            discovery.get_bootstrap_addrs()
-        };
+        // Parse listen address to Multiaddr
+        let listen_multiaddr: Multiaddr = format!(
+            "/ip4/{}/tcp/{}",
+            self.config.listen_addr.ip(),
+            self.config.listen_addr.port()
+        ).parse().map_err(|e| NetworkError::InvalidAddress(format!("{}", e)))?;
         
-        info!("Connecting to {} bootstrap peers...", bootstrap_addrs.len());
+        // Parse bootstrap peers to Multiaddrs
+        let bootstrap_multiaddrs: Vec<Multiaddr> = self.config.bootstrap_peers
+            .iter()
+            .filter_map(|addr| addr.parse().ok())
+            .collect();
         
-        for (multiaddr, peer_id_opt) in &bootstrap_addrs {
-            info!("  Bootstrap peer: {}", multiaddr);
-            
-            // Add bootstrap peers to discovery with their addresses
-            if let Some(peer_id) = peer_id_opt {
-                let mut discovery = self.discovery.write().await;
-                discovery.add_peer_with_addr(*peer_id, multiaddr.clone(), true);
-            }
-            
-            // TODO: Initiate actual libp2p connection via swarm
-            // For now, log the connection attempt
-            debug!("Would connect to bootstrap peer: {:?}", multiaddr);
-        }
+        info!("Connecting to {} bootstrap peers...", bootstrap_multiaddrs.len());
         
-        self.running = true;
-        info!("P2P network started with {} bootstrap peers configured", bootstrap_addrs.len());
+        // Initialize the SwarmManager (The Heart)
+        let swarm = SwarmManager::new(
+            self.config.node_key,
+            listen_multiaddr,
+            bootstrap_multiaddrs,
+        ).await?;
         
-        // Start background peer discovery loop
-        let discovery_clone = self.discovery.clone();
+        self.local_peer_id = Some(swarm.local_peer_id());
+        let swarm = Arc::new(swarm);
+        self.swarm_manager = Some(swarm.clone());
+        
+        info!("Local peer ID: {:?}", self.local_peer_id);
+        
+        // Start the network event handler loop
         let peers_clone = self.peers.clone();
+        let discovery_clone = self.discovery.clone();
         tokio::spawn(async move {
-            Self::peer_discovery_loop(discovery_clone, peers_clone).await;
+            Self::network_event_loop(swarm, peers_clone, discovery_clone).await;
         });
         
+        self.running = true;
+        info!("P2P network started successfully (The Heart is beating)");
+        
         Ok(())
+    }
+    
+    /// Handle network events from the swarm
+    async fn network_event_loop(
+        swarm: Arc<SwarmManager>,
+        peers: Arc<RwLock<HashMap<PeerId, PeerInfo>>>,
+        discovery: Arc<RwLock<PeerDiscovery>>,
+    ) {
+        info!("Network event loop started");
+        
+        while swarm.is_running().await {
+            if let Some(event) = swarm.next_event().await {
+                match event {
+                    NetworkEvent::PeerConnected(peer_id) => {
+                        info!("Peer connected: {}", peer_id);
+                        
+                        let now = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs();
+                        
+                        let peer_info = PeerInfo {
+                            peer_id,
+                            address: String::new(),
+                            connected: true,
+                            last_seen: now,
+                            block_height: 0,
+                        };
+                        
+                        peers.write().await.insert(peer_id, peer_info);
+                        discovery.write().await.peer_connected(&peer_id);
+                    }
+                    
+                    NetworkEvent::PeerDisconnected(peer_id) => {
+                        warn!("Peer disconnected: {}", peer_id);
+                        
+                        if let Some(peer) = peers.write().await.get_mut(&peer_id) {
+                            peer.connected = false;
+                        }
+                        discovery.write().await.peer_disconnected(&peer_id);
+                    }
+                    
+                    NetworkEvent::BlockReceived { block, from } => {
+                        info!(
+                            "Received block #{} from {}",
+                            block.header.block_number, from
+                        );
+                        // TODO: Forward to consensus engine for validation
+                    }
+                    
+                    NetworkEvent::TransactionReceived { transaction, from } => {
+                        debug!("Received transaction from {}", from);
+                        // TODO: Forward to transaction pool
+                    }
+                    
+                    NetworkEvent::CvpMutationAnnounced { contract_id, epoch, mutation_hash, from } => {
+                        info!(
+                            "CVP mutation announced: contract {:?} epoch {} from {}",
+                            hex::encode(&contract_id[..8]), epoch, from
+                        );
+                        // TODO: Forward to CVP engine for validation
+                    }
+                    
+                    NetworkEvent::ConsensusMessage { data, from } => {
+                        debug!("Consensus message from {} ({} bytes)", from, data.len());
+                        // TODO: Forward to consensus engine
+                    }
+                }
+            }
+        }
+        
+        info!("Network event loop terminated");
     }
     
     /// Background peer discovery loop
@@ -196,41 +320,78 @@ impl NetworkService {
         Ok(())
     }
 
-    /// Broadcast a block to all peers
+    /// Broadcast a block to all peers via Gossipsub
     pub async fn broadcast_block(&mut self, block: &Block) -> Result<()> {
-        let peer_count = self.peer_count().await;
+        // Try to use swarm if available
+        if let Some(swarm) = &self.swarm_manager {
+            info!("Broadcasting block {} via Gossipsub", block.header.block_number);
+            swarm.broadcast_block(block.clone()).await?;
+            return Ok(());
+        }
         
+        // Fallback: queue for later
+        let peer_count = self.peer_count().await;
         if peer_count == 0 {
-            // Queue block for later broadcast
             self.pending_blocks.write().await.push(block.clone());
             debug!("Block {} queued for broadcast (no peers connected)", block.header.block_number);
             return Ok(());
         }
         
-        info!("Broadcasting block {} to {} peers", block.header.block_number, peer_count);
-        
-        // In a full implementation, this would serialize the block and send to all peers
-        // TODO: Implement block propagation via libp2p gossipsub
-        
+        warn!("Swarm not available, block not broadcast");
         Ok(())
     }
 
-    /// Broadcast a transaction to all peers
+    /// Broadcast a transaction to all peers via Gossipsub
     pub async fn broadcast_transaction(&mut self, tx: &demiurge_core::Transaction) -> Result<()> {
-        let peer_count = self.peer_count().await;
+        // Try to use swarm if available
+        if let Some(swarm) = &self.swarm_manager {
+            debug!("Broadcasting transaction via Gossipsub");
+            swarm.broadcast_transaction(tx.clone()).await?;
+            return Ok(());
+        }
         
+        // Fallback: queue for later
+        let peer_count = self.peer_count().await;
         if peer_count == 0 {
-            // Queue transaction for later broadcast
             self.pending_transactions.write().await.push(tx.clone());
             debug!("Transaction queued for broadcast (no peers connected)");
             return Ok(());
         }
         
-        info!("Broadcasting transaction to {} peers", peer_count);
-        
-        // TODO: Implement transaction propagation via libp2p gossipsub
-        
+        warn!("Swarm not available, transaction not broadcast");
         Ok(())
+    }
+    
+    /// Broadcast a CVP mutation announcement
+    pub async fn broadcast_cvp_mutation(
+        &self,
+        contract_id: [u8; 32],
+        epoch: u64,
+        mutation_hash: [u8; 32],
+    ) -> Result<()> {
+        if let Some(swarm) = &self.swarm_manager {
+            info!("Broadcasting CVP mutation for epoch {}", epoch);
+            swarm.broadcast_cvp_mutation(contract_id, epoch, mutation_hash).await?;
+        } else {
+            warn!("Swarm not available, CVP mutation not broadcast");
+        }
+        Ok(())
+    }
+    
+    /// Broadcast a consensus message
+    pub async fn broadcast_consensus(&self, data: Vec<u8>) -> Result<()> {
+        if let Some(swarm) = &self.swarm_manager {
+            debug!("Broadcasting consensus message ({} bytes)", data.len());
+            swarm.broadcast_consensus(data).await?;
+        } else {
+            warn!("Swarm not available, consensus message not broadcast");
+        }
+        Ok(())
+    }
+    
+    /// Get the SwarmManager if available
+    pub fn swarm(&self) -> Option<Arc<SwarmManager>> {
+        self.swarm_manager.clone()
     }
 
     /// Get connected peer count
