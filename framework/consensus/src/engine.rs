@@ -455,6 +455,7 @@ impl<S: Storage> ConsensusEngine<S> {
     /// - Transaction analysis for attack patterns
     /// - Epoch transition mutations
     /// - Threat response (including emergency mutations)
+    /// - **ZK proof verification for all mutations**
     fn process_cvp_block(&mut self, block: &Block) -> Result<()> {
         let block_hash = block.hash();
         let block_number = block.header.block_number;
@@ -483,21 +484,74 @@ impl<S: Storage> ConsensusEngine<S> {
             self.handle_cvp_threat(threat, block_number)?;
         }
         
-        // Log mutation results
+        // Verify and log epoch mutation results
         if !cvp_result.epoch_mutations.is_empty() {
             info!(
                 "CVP: Epoch transition at block {} - {} contracts mutated",
                 block_number,
                 cvp_result.epoch_mutations.len()
             );
+            
+            // Verify all mutation proofs
+            for mutation in &cvp_result.epoch_mutations {
+                self.verify_mutation_proof(mutation, block_number)?;
+            }
         }
         
+        // Verify and log emergency mutations
         if !cvp_result.emergency_mutations.is_empty() {
             warn!(
                 "CVP: Emergency mutations triggered - {} contracts",
                 cvp_result.emergency_mutations.len()
             );
+            
+            // Verify all emergency mutation proofs
+            for mutation in &cvp_result.emergency_mutations {
+                self.verify_mutation_proof(mutation, block_number)?;
+            }
         }
+        
+        Ok(())
+    }
+    
+    /// Verify a mutation's equivalence proof
+    /// 
+    /// This is the cryptographic verification that ensures mutated bytecode
+    /// is semantically equivalent to the original. Without this, an attacker
+    /// could theoretically inject malicious mutations.
+    fn verify_mutation_proof(
+        &self,
+        mutation: &demiurge_cvp::MutationResult,
+        block_number: u64,
+    ) -> Result<()> {
+        let contract_hex = hex::encode(&mutation.contract_id[..8]);
+        
+        // Verify the proof
+        let is_valid = self.cvp.verify_proof(&mutation.proof)
+            .map_err(|e| ConsensusError::CvpError(format!(
+                "Proof verification error for contract {}: {}",
+                contract_hex, e
+            )))?;
+        
+        if !is_valid {
+            error!(
+                "CVP PROOF VERIFICATION FAILED at block {} for contract {}",
+                block_number, contract_hex
+            );
+            return Err(ConsensusError::CvpError(format!(
+                "Invalid equivalence proof for contract {} at block {}. \
+                This indicates a potential attack or bug in the mutation system.",
+                contract_hex, block_number
+            )));
+        }
+        
+        // Log successful verification
+        tracing::debug!(
+            "CVP: Proof verified for contract {} - {:?} proof system, {} bytes",
+            contract_hex,
+            mutation.proof.proof_system,
+            mutation.proof.proof_data.len()
+        );
         
         Ok(())
     }

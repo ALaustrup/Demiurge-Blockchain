@@ -142,6 +142,13 @@ impl CvpConsensusIntegration {
         std::mem::take(&mut self.pending_proofs)
     }
     
+    /// Verify a single CVP equivalence proof
+    /// 
+    /// Returns true if the proof is valid, false otherwise
+    pub fn verify_proof(&self, proof: &EquivalenceProof) -> Result<bool> {
+        self.engine.verify_proof(proof)
+    }
+    
     /// Verify CVP proofs in a block
     /// 
     /// Called during block validation
