@@ -28,12 +28,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const profile = await qorAuth.getProfile();
           setUser(profile);
         } catch (error: any) {
-          // Token expired or invalid - clear it
+          // Token expired or invalid - clear it only for explicit 401
           if (error.response?.status === 401) {
+            console.warn('Token expired, clearing auth state');
             qorAuth.clearToken();
-          }
-          // Network errors - keep token, user might be offline
-          if (error.code !== 'ERR_NETWORK') {
+            setUser(null);
+          } else if (error.code === 'ERR_NETWORK' || error.message?.includes('Network')) {
+            // Network errors - keep user state, they might be offline
+            console.warn('Network error during auth check, preserving session');
+            // Try to restore user from localStorage if we have cached data
+            const cachedUser = localStorage.getItem('demiurge_user');
+            if (cachedUser) {
+              try {
+                setUser(JSON.parse(cachedUser));
+              } catch {
+                // Invalid cached data, ignore
+              }
+            }
+          } else {
             console.warn('Auth check failed:', error.message);
           }
         }
@@ -43,6 +55,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     initAuth();
   }, []);
+
+  // Cache user data on change
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('demiurge_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('demiurge_user');
+    }
+  }, [user]);
 
   const login = async (identifier: string, password: string) => {
     const response = await qorAuth.login(identifier, password);

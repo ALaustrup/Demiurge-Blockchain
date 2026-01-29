@@ -363,11 +363,11 @@ export default function EventsPage() {
       {/* Create Event Modal */}
       {showCreateModal && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 pt-20"
           onClick={() => setShowCreateModal(false)}
         >
           <div 
-            className="glass-panel liquid-border w-full max-w-lg rounded-xl overflow-hidden max-h-[85vh] flex flex-col"
+            className="glass-panel liquid-border w-full max-w-lg rounded-xl overflow-hidden max-h-[70vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-gray-800 flex-shrink-0">
