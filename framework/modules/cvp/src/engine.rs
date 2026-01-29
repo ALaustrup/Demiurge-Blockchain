@@ -2,11 +2,28 @@
 //!
 //! The main engine that orchestrates Consensus-Verified Polymorphism.
 //! Handles epoch transitions, contract mutations, and proof generation.
+//!
+//! # Proof Systems
+//!
+//! The engine supports multiple proof systems:
+//! - **TranslationValidation**: Default, fast, good for development
+//! - **Plonky2**: Production-grade ZK proofs (requires `zk-plonky2` feature)
+//!
+//! # Usage
+//!
+//! ```rust,ignore
+//! // Default engine with TranslationValidation proofs
+//! let engine = CvpEngine::new();
+//!
+//! // Production engine with Plonky2 ZK proofs (requires nightly + feature)
+//! #[cfg(feature = "zk-plonky2")]
+//! let engine = CvpEngine::with_plonky2()?;
+//! ```
 
 use crate::{
     SemanticIR, ContractId, Bytecode,
     PolymorphicCompiler, MutationConfig,
-    EquivalenceProof, ProofGenerator, ProofVerifier,
+    EquivalenceProof, ProofGenerator, ProofVerifier, ProofSystem,
     TranslationValidationGenerator, TranslationValidationVerifier,
     Result, CvpError,
 };
@@ -14,6 +31,9 @@ use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+
+#[cfg(feature = "zk-plonky2")]
+use crate::plonky2_circuits::{Plonky2ProofGenerator, Plonky2ProofVerifier};
 
 /// CVP Engine configuration
 #[derive(Debug, Clone, Encode, Decode, Serialize, Deserialize)]
@@ -160,11 +180,13 @@ pub struct CvpEngine {
 
 impl CvpEngine {
     /// Create a new CVP engine with default configuration
+    /// Uses TranslationValidation proof system (fast, good for development)
     pub fn new() -> Self {
         Self::with_config(CvpConfig::default())
     }
     
     /// Create a CVP engine with custom configuration
+    /// Uses TranslationValidation proof system by default
     pub fn with_config(config: CvpConfig) -> Self {
         let compiler = PolymorphicCompiler::with_config(config.mutation_config.clone());
         
@@ -172,13 +194,73 @@ impl CvpEngine {
             config,
             contracts: Arc::new(RwLock::new(HashMap::new())),
             compiler,
-            // Use TranslationValidation proof system for production security
             proof_generator: Box::new(TranslationValidationGenerator::new()),
             proof_verifier: Box::new(TranslationValidationVerifier::new()),
             current_epoch: 0,
             current_block: 0,
             previous_epoch_seed: [0u8; 32],
         }
+    }
+    
+    /// Create a CVP engine with Plonky2 ZK proofs (production-grade)
+    ///
+    /// This uses real zero-knowledge proofs for cryptographic security.
+    /// Requires the `zk-plonky2` feature and nightly Rust.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let engine = CvpEngine::with_plonky2()?;
+    /// ```
+    #[cfg(feature = "zk-plonky2")]
+    pub fn with_plonky2() -> Result<Self> {
+        Self::with_plonky2_config(CvpConfig::default())
+    }
+    
+    /// Create a CVP engine with Plonky2 and custom configuration
+    #[cfg(feature = "zk-plonky2")]
+    pub fn with_plonky2_config(config: CvpConfig) -> Result<Self> {
+        let compiler = PolymorphicCompiler::with_config(config.mutation_config.clone());
+        
+        tracing::info!("CVP: Initializing Plonky2 proof generator (this may take a moment)...");
+        let proof_generator = Plonky2ProofGenerator::new()?;
+        let stats = proof_generator.circuit_stats();
+        tracing::info!(
+            "CVP: Plonky2 circuit ready - {} gates, {} public inputs",
+            stats.num_gates,
+            stats.num_public_inputs
+        );
+        
+        Ok(Self {
+            config,
+            contracts: Arc::new(RwLock::new(HashMap::new())),
+            compiler,
+            proof_generator: Box::new(proof_generator),
+            proof_verifier: Box::new(Plonky2ProofVerifier::new()?),
+            current_epoch: 0,
+            current_block: 0,
+            previous_epoch_seed: [0u8; 32],
+        })
+    }
+    
+    /// Create a minimal Plonky2 engine for testing
+    #[cfg(feature = "zk-plonky2")]
+    pub fn with_plonky2_minimal() -> Result<Self> {
+        let config = CvpConfig::default();
+        let compiler = PolymorphicCompiler::with_config(config.mutation_config.clone());
+        
+        let proof_generator = Plonky2ProofGenerator::new_minimal()?;
+        
+        Ok(Self {
+            config,
+            contracts: Arc::new(RwLock::new(HashMap::new())),
+            compiler,
+            proof_generator: Box::new(proof_generator),
+            proof_verifier: Box::new(Plonky2ProofVerifier::new_minimal()?),
+            current_epoch: 0,
+            current_block: 0,
+            previous_epoch_seed: [0u8; 32],
+        })
     }
     
     /// Set a custom proof generator
@@ -189,6 +271,11 @@ impl CvpEngine {
     /// Set a custom proof verifier
     pub fn set_proof_verifier<V: ProofVerifier + 'static>(&mut self, verifier: V) {
         self.proof_verifier = Box::new(verifier);
+    }
+    
+    /// Get the current proof system being used
+    pub fn proof_system(&self) -> ProofSystem {
+        self.proof_generator.proof_system()
     }
     
     /// Register a contract for CVP
@@ -548,5 +635,59 @@ mod tests {
         // Bytecode should be different after mutation
         let _new_bytecode = engine.get_bytecode(&id).unwrap().unwrap();
         // Note: might be same if no mutations applied
+    }
+    
+    #[test]
+    fn test_proof_system_type() {
+        let engine = CvpEngine::new();
+        
+        // Default engine uses TranslationValidation
+        assert_eq!(
+            format!("{:?}", engine.proof_system()),
+            "TranslationValidation"
+        );
+    }
+    
+    #[cfg(feature = "zk-plonky2")]
+    mod plonky2_tests {
+        use super::*;
+        
+        #[test]
+        fn test_plonky2_engine_creation() {
+            // Use minimal circuit for faster testing
+            let engine = CvpEngine::with_plonky2_minimal();
+            assert!(engine.is_ok(), "Plonky2 engine should create successfully");
+            
+            let engine = engine.unwrap();
+            assert_eq!(format!("{:?}", engine.proof_system()), "Plonky2");
+        }
+        
+        #[test]
+        fn test_plonky2_mutation_with_proof() {
+            let mut engine = CvpEngine::with_plonky2_minimal().expect("Engine should create");
+            
+            let id = [42u8; 32];
+            let ir = SemanticIR::new(id, "TestContract".to_string());
+            let bytecode = vec![0x60, 0x80, 0x60, 0x40, 0x52]; // PUSH1 0x80 PUSH1 0x40 MSTORE
+            
+            engine.register_contract(id, ir, bytecode).unwrap();
+            
+            // Trigger epoch transition
+            let hashes = vec![[1u8; 32], [2u8; 32]];
+            let results = engine.transition_epoch(100, &hashes).unwrap();
+            
+            assert_eq!(results.len(), 1);
+            
+            // Verify proof was generated
+            let mutation = &results[0];
+            assert_eq!(mutation.contract_id, id);
+            assert!(!mutation.proof.proof_data.is_empty(), "Proof data should not be empty");
+            assert_eq!(mutation.proof.proof_system, crate::ProofSystem::Plonky2);
+            assert_eq!(mutation.proof.version, 3);
+            
+            // Verify the proof
+            let is_valid = engine.verify_proof(&mutation.proof).unwrap();
+            assert!(is_valid, "Proof should verify successfully");
+        }
     }
 }

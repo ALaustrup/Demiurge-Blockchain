@@ -56,7 +56,10 @@ pub use consensus_hook::{CvpBlockExtension, integrate_era_transition, validate_b
 pub use test_harness::{AttackSimulator, SimulationStats, attacks, scenarios};
 pub use plonky2_circuits::{CvpPublicInputs, CvpWitness, WitnessStep, MAX_BYTECODE_SIZE, MAX_TRANSFORMATION_STEPS};
 #[cfg(feature = "zk-plonky2")]
-pub use plonky2_circuits::{CvpCircuit, Plonky2ProofGenerator, Plonky2Proof};
+pub use plonky2_circuits::{CvpCircuit, Plonky2ProofGenerator, Plonky2ProofVerifier, Plonky2Proof};
+// Also export stub verifier for non-plonky2 builds
+#[cfg(not(feature = "zk-plonky2"))]
+pub use plonky2_circuits::Plonky2ProofVerifier;
 
 /// CVP version for compatibility tracking
 pub const CVP_VERSION: &str = "0.1.0";
