@@ -1,153 +1,116 @@
-# 📚 Documentation Index - Demiurge Blockchain
+# Documentation Index
 
-**Complete guide to all documentation**
-
----
-
-## 🎯 Start Here
-
-1. **[README.md](../README.md)** - Project overview and quick start
-2. **[ULTIMATE_BLOCKCHAIN_DESIGN.md](ULTIMATE_BLOCKCHAIN_DESIGN.md)** - Complete blockchain design
-3. **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture
+**Complete guide to Demiurge Protocol documentation**
 
 ---
 
-## 🏗️ Architecture & Design
+## Essential Documents
 
-### Core Architecture
-- **[ULTIMATE_BLOCKCHAIN_DESIGN.md](ULTIMATE_BLOCKCHAIN_DESIGN.md)** - Master design document
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture details
-- **[COMPONENT_MAP.md](COMPONENT_MAP.md)** - Complete component mapping
-- **[CUSTOM_FRAMEWORK_ARCHITECTURE.md](CUSTOM_FRAMEWORK_ARCHITECTURE.md)** - Framework architecture
-
-### Framework
-- **[framework/README.md](../framework/README.md)** - Framework overview
-- **[framework/QUICKSTART.md](../framework/QUICKSTART.md)** - Quick start guide
-- **[FRAMEWORK_FOUNDATION.md](FRAMEWORK_FOUNDATION.md)** - Foundation status
+### Start Here
+1. [STATUS.md](./STATUS.md) - Current production status
+2. [ROADMAP.md](./ROADMAP.md) - Development roadmap
+3. [MASTERPLAN.md](./MASTERPLAN.md) - Implementation vectors
+4. [DEPLOYMENT.md](./DEPLOYMENT.md) - Production deployment guide
 
 ---
 
-## 📦 Modules & Features
+## By Category
 
-### Module Specifications
-- **[MODULE_SPECS.md](MODULE_SPECS.md)** - Complete module specifications
-- **[ZK_FEATURES.md](ZK_FEATURES.md)** - Zero-knowledge features
-- **[GAMING_INTEGRATION.md](GAMING_INTEGRATION.md)** - Gaming integration guide (if exists)
+### Architecture
+| Document | Description |
+|----------|-------------|
+| [DEMIURGE-LIVING-PROTOCOL.md](./DEMIURGE-LIVING-PROTOCOL.md) | Protocol philosophy |
+| [architecture/ARCHITECTURE.md](./architecture/ARCHITECTURE.md) | Technical architecture |
+| [architecture/CONSENSUS_DESIGN.md](./architecture/CONSENSUS_DESIGN.md) | Consensus mechanism |
+| [architecture/COMPONENT_MAP.md](./architecture/COMPONENT_MAP.md) | Component mapping |
 
-### Framework Modules
-- **[framework/modules/balances/README.md](../framework/modules/balances/README.md)** - Balances module
-- **[framework/modules/drc369/README.md](../framework/modules/drc369/README.md)** - DRC-369 NFTs
-- **[framework/modules/game-assets/README.md](../framework/modules/game-assets/README.md)** - Game Assets
-- **[framework/modules/energy/README.md](../framework/modules/energy/README.md)** - Energy module
-- **[framework/modules/session-keys/README.md](../framework/modules/session-keys/README.md)** - Session Keys
-- **[framework/modules/yield-nfts/README.md](../framework/modules/yield-nfts/README.md)** - Yield NFTs
-- **[framework/modules/zk/README.md](../framework/modules/zk/README.md)** - ZK Privacy
+### Standards & Specifications
+| Document | Description |
+|----------|-------------|
+| [DRC-369-SPECIFICATION.md](./DRC-369-SPECIFICATION.md) | Stateful NFT standard |
+| [ARCHON_CVP_ZK_SPECIFICATION.md](./ARCHON_CVP_ZK_SPECIFICATION.md) | ZK bytecode proofs |
+| [identity/QOR_ID_SPEC.md](./identity/QOR_ID_SPEC.md) | Identity specification |
+| [AGENTIC-LAYER.md](./AGENTIC-LAYER.md) | AI agent architecture |
 
----
+### Developer Guides
+| Document | Description |
+|----------|-------------|
+| [developers/getting-started.md](./developers/getting-started.md) | Setup guide |
+| [developers/QUICK_START.md](./developers/QUICK_START.md) | Quick start |
+| [developers/transaction-building.md](./developers/transaction-building.md) | Building transactions |
+| [RPC_IMPLEMENTATION_NOTES.md](./RPC_IMPLEMENTATION_NOTES.md) | RPC API reference |
 
-## 🔄 Migration & Development
+### Creator Guides
+| Document | Description |
+|----------|-------------|
+| [creators/drc369-complete-guide.md](./creators/drc369-complete-guide.md) | NFT creation guide |
+| [creators/asset-management.md](./creators/asset-management.md) | Managing assets |
+| [GAME_INTEGRATION_GUIDE.md](./GAME_INTEGRATION_GUIDE.md) | Game integration |
 
-### Migration
-- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Migration from old blockchain
-- **[CURSOR_STABILITY_STATUS.md](CURSOR_STABILITY_STATUS.md)** - Stability fixes
-- **[WASM_BUILD_FIX.md](WASM_BUILD_FIX.md)** - WASM build fixes
+### Deployment
+| Document | Description |
+|----------|-------------|
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Production deployment |
+| [deployment/TESTNET_DEPLOYMENT.md](./deployment/TESTNET_DEPLOYMENT.md) | Testnet setup |
+| [deployment/SSL_SETUP.md](./deployment/SSL_SETUP.md) | SSL configuration |
 
-### Development Status
-- **[CUSTOM_FRAMEWORK_STATUS.md](CUSTOM_FRAMEWORK_STATUS.md)** - Framework status
-- **[CURRENT_STATUS.md](CURRENT_STATUS.md)** - Current development status
-- **[DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md)** - Development status
+### Tokenomics
+| Document | Description |
+|----------|-------------|
+| [blockchain/CGT_TOKENOMICS.md](./blockchain/CGT_TOKENOMICS.md) | Token economics |
 
----
-
-## 💰 Tokenomics & Economics
-
-- **[blockchain/CGT_TOKENOMICS.md](blockchain/CGT_TOKENOMICS.md)** - CGT tokenomics
-- **[ECONOMIC_MODEL.md](ECONOMIC_MODEL.md)** - Economic model (if exists)
-
----
-
-## 🗺️ Roadmaps & Planning
-
-- **[MASTER_ROADMAP.md](MASTER_ROADMAP.md)** - Master development roadmap
-- **[REVOLUTIONARY_FEATURES_ROADMAP.md](REVOLUTIONARY_FEATURES_ROADMAP.md)** - Revolutionary features
-- **[NEXT_STEPS.md](NEXT_STEPS.md)** - Next steps
-
----
-
-## 🎮 Gaming & Integration
-
-- **[PHASER_INTEGRATION_GUIDE.md](PHASER_INTEGRATION_GUIDE.md)** - Phaser.js integration
-- **[PHASER_INTEGRATION_SUMMARY.md](PHASER_INTEGRATION_SUMMARY.md)** - Phaser summary
-- **[QOR_ID_WALLET_INTEGRATION.md](QOR_ID_WALLET_INTEGRATION.md)** - QOR ID integration
+### Design
+| Document | Description |
+|----------|-------------|
+| [design/DEMIURGE_DESIGN_SYSTEM.md](./design/DEMIURGE_DESIGN_SYSTEM.md) | UI/UX guidelines |
+| [design/VYB_SOCIAL_NETWORK_DESIGN.md](./design/VYB_SOCIAL_NETWORK_DESIGN.md) | Social features |
 
 ---
 
-## 🔐 Security & Identity
+## SDK Documentation
 
-- **[QOR_AUTH_COMPLETE_IMPLEMENTATION.md](QOR_AUTH_COMPLETE_IMPLEMENTATION.md)** - QOR auth implementation
-- **[QOR_ID_DIAGNOSTIC.md](QOR_ID_DIAGNOSTIC.md)** - QOR ID diagnostics
-- **[SESSION_KEYS_QOR_ID_INTEGRATION.md](SESSION_KEYS_QOR_ID_INTEGRATION.md)** - Session keys integration
-
----
-
-## 🚀 Deployment & Operations
-
-- **[DEPLOY_NOW.md](DEPLOY_NOW.md)** - Deployment guide
-- **[SERVER_HOSTING_SETUP.md](SERVER_HOSTING_SETUP.md)** - Server setup
-- **[SSL_SETUP_COMPLETE.md](SSL_SETUP_COMPLETE.md)** - SSL setup
-- **[SETUP_COMPLETE_SUMMARY.md](SETUP_COMPLETE_SUMMARY.md)** - Setup summary
+| SDK | README Location |
+|-----|-----------------|
+| Core SDK | [sdk/README.md](../sdk/) |
+| Agent Foundry | [packages/agent-foundry/README.md](../packages/agent-foundry/README.md) |
+| Unreal Engine | [sdk/unreal/README.md](../sdk/unreal/README.md) |
 
 ---
 
-## 🧪 Testing & Quality
+## Framework Documentation
 
-- **[TESTING_STATUS.md](TESTING_STATUS.md)** - Testing status
-- **[QUICK_START_TESTING.md](QUICK_START_TESTING.md)** - Quick start testing
-- **[TRANSACTION_FLOW_TESTING.md](TRANSACTION_FLOW_TESTING.md)** - Transaction flow testing
-
----
-
-## 📊 Status & Roadmaps
-
-### Current Status
-- **[FINAL_STATUS.md](FINAL_STATUS.md)** - ✅ Framework 100% complete
-- **[FRAMEWORK_COMPLETE.md](FRAMEWORK_COMPLETE.md)** - Completion summary
-- **[FRAMEWORK_STATUS.md](FRAMEWORK_STATUS.md)** - Framework status
-
-### Roadmaps
-- **[MASTER_ROADMAP.md](MASTER_ROADMAP.md)** - Master development roadmap
-- **[INNOVATION_ROADMAP.md](INNOVATION_ROADMAP.md)** - Latest crypto innovations
-- **[REVOLUTIONARY_FEATURES_ROADMAP.md](REVOLUTIONARY_FEATURES_ROADMAP.md)** - Revolutionary features
-
-### Migration
-- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Migration from Substrate
+| Component | Location |
+|-----------|----------|
+| Framework | [framework/README.md](../framework/README.md) |
+| Modules | [framework/modules/](../framework/modules/) |
+| Consensus | [framework/consensus/](../framework/consensus/) |
+| Network | [framework/network/](../framework/network/) |
 
 ---
 
-## 🎯 Quick Reference
+## Archived Documentation
 
-### For Developers
-1. Read `ULTIMATE_BLOCKCHAIN_DESIGN.md`
-2. Check `MODULE_SPECS.md` for module details
-3. See `ARCHITECTURE.md` for technical details
-4. Follow `MIGRATION_GUIDE.md` for migration
-
-### For Game Developers
-1. Read `GAMING_INTEGRATION.md` (coming soon)
-2. Check `MODULE_SPECS.md` for game-related modules
-3. See `PHASER_INTEGRATION_GUIDE.md` for Phaser.js
-
-### For Users
-1. Read `README.md` for overview
-2. Check `CGT_TOKENOMICS.md` for token details
-3. See `QOR_ID_WALLET_INTEGRATION.md` for identity
+Historical, deprecated, or superseded documentation is in:
+- [archive/](./archive/) - General archive
+- [archive/deprecated-substrate/](./archive/deprecated-substrate/) - Pre-migration docs
+- [archive/framework/](./archive/framework/) - Old framework docs
 
 ---
 
-## 📅 Last Updated
+## Documentation Standards
 
-**2024-12-19** - Complete documentation overhaul for custom framework
+### File Naming
+- Use `UPPERCASE_WITH_UNDERSCORES.md` for specifications
+- Use `lowercase-with-dashes.md` for guides
+- Use `README.md` for directory indexes
+
+### Content Structure
+1. Title with status badge
+2. Last updated date
+3. Overview/summary
+4. Main content with clear sections
+5. Related links
 
 ---
 
-**Need help?** Check the relevant section above or create an issue.
+**Last Updated**: January 29, 2026

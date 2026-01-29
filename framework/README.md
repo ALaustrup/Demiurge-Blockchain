@@ -1,88 +1,129 @@
-# Demiurge Blockchain Framework
+# Demiurge Protocol Framework
 
-**Our Own Fucking Blockchain Framework - No Substrate Dependencies**
+**Custom blockchain framework - Zero external dependencies**
 
-## Philosophy
-
-We're building a blockchain framework from scratch. No Substrate. No external bullshit. Just clean, fast, reliable code that does exactly what we need.
-
-## Structure
+## Architecture
 
 ```
 framework/
-├── core/          # Core runtime engine ✅
-├── storage/       # Storage layer ✅
-├── consensus/     # Consensus mechanism ✅ (Hybrid PoS + BFT)
-├── network/       # P2P networking ✅
-├── modules/       # Module system ✅
-│   ├── balances/  # CGT token management ✅
-│   ├── drc369/    # Stateful NFT standard ✅
-│   ├── game-assets/ # Multi-asset system ✅
-│   ├── energy/    # Regenerating transaction costs ✅
-│   ├── session-keys/ # Temporary game authorization ✅
-│   ├── yield-nfts/ # Passive income NFTs ✅
-│   └── zk/        # Zero-knowledge module ✅
-├── rpc/           # RPC layer ✅
-├── node/          # Full node ✅
-└── testnet/       # Testnet infrastructure ✅
+├── core/           # Core runtime engine
+├── storage/        # RocksDB + Merkle trees
+├── consensus/      # Hybrid PoS + BFT (< 2s finality)
+├── network/        # LibP2P P2P networking
+├── primitives/     # Cryptographic primitives (PQC, signatures)
+├── rpc/            # JSON-RPC 2.0 + WebSocket
+├── node/           # Full node implementation
+└── modules/        # Runtime modules
+    ├── balances/       # CGT token
+    ├── energy/         # Feeless transactions
+    ├── session-keys/   # Temporary auth
+    ├── qor-identity/   # Sovereign identity (DID)
+    ├── drc369/         # Stateful NFTs
+    ├── game-assets/    # Multi-asset system
+    ├── yield-nfts/     # Passive income NFTs
+    ├── cvp/            # Consensus-Verified Polymorphism
+    ├── zk/             # Zero-knowledge proofs
+    └── agentic/        # AI agents as First-Class Citizens
 ```
 
-## Status
+## Status: Production
 
-**✅ 100% COMPLETE** - Core framework ready for testnet
+The framework is deployed and running in production at https://demiurge.cloud.
 
-### ✅ Completed
-- Core runtime engine
-- Storage layer with Merkle trees
-- Consensus (Hybrid PoS + BFT, < 2s finality)
-- P2P networking
-- Module system
-- RPC layer (JSON-RPC + WebSocket)
-- **Full node implementation** ✅
-- **6 modules migrated** ✅ (Balances, DRC-369, Game Assets, Energy, Session Keys, Yield NFTs)
-- **ZK module with proof framework** ✅
-- **Testnet infrastructure** ✅
+| Component | Status |
+|-----------|--------|
+| Core Runtime | Production |
+| Storage | Production |
+| Consensus | Production |
+| Network | Production |
+| RPC | Production |
+| Node | Production |
+| All Modules | Production |
 
-### 🚀 Ready For
-- Testnet deployment
-- Module implementation completion
-- ZK proof library integration
-- Mainnet launch
+## Quick Start
 
-## Getting Started
+### Build
 
 ```bash
 cd framework
 cargo build --release
 ```
 
-## Design Goals
+### Run Node
 
-1. **Simplicity**: Easy to understand and modify
-2. **Performance**: Fast execution and finality (< 2 seconds)
-3. **Flexibility**: Easy to add new features
-4. **Reliability**: Battle-tested and secure
-5. **Independence**: Zero external blockchain dependencies
-6. **Innovation**: Latest crypto features (ZK, account abstraction, etc.)
+```bash
+./target/release/demiurge-node \
+  --data-dir ./data \
+  --rpc-addr 0.0.0.0:9944 \
+  --p2p-addr 0.0.0.0:30333 \
+  --rpc --p2p
+```
 
-## Innovation Highlights
+### Run Tests
 
-- **Fastest Finality**: < 2 seconds
-- **Sub-Second Blocks**: < 1 second block time
-- **Feeless UX**: Energy-based transaction model
-- **Privacy**: ZK-powered anonymity
-- **Gaming-First**: Optimized for games
-- **Hot-Upgradeable**: Zero-downtime upgrades
+```bash
+cargo test --all --features "demiurge-agentic/std"
+```
+
+## Key Features
+
+### Consensus
+- Hybrid PoS + BFT
+- Sub-2-second finality
+- Slashing for misbehavior
+- Era-based rewards
+
+### Identity (QOR ID)
+- Decentralized Identifiers (DIDs)
+- Human-readable handles
+- Multi-key support
+- Quantum-safe signatures (Dilithium3)
+
+### NFTs (DRC-369)
+- Stateful, mutable metadata
+- Physics-ready properties
+- Recursive royalties
+- Atomic composability
+
+### AI Agents (Agentic Layer)
+- Agent DID (sovereign identity)
+- Agentic Wallet (self-custodial)
+- The Forge (verifiable compute)
+- Vector-State Kernel (memory)
+- Sentinel Oracle (governance)
+
+### Security
+- CVP (bytecode mutation with ZK proofs)
+- Plonky2 circuits
+- Post-quantum cryptography
+- Signature abstraction layer
+
+## Configuration
+
+### Node Configuration
+
+```toml
+[network]
+listen_addresses = ["/ip4/0.0.0.0/tcp/30333"]
+
+[rpc]
+enabled = true
+listen_address = "0.0.0.0:9944"
+
+[validator]
+enabled = true
+
+[storage]
+path = "./data"
+```
 
 ## Documentation
 
-- `docs/ULTIMATE_BLOCKCHAIN_DESIGN.md` - Complete design
-- `docs/ARCHITECTURE.md` - Technical architecture
-- `docs/CONSENSUS_DESIGN.md` - Consensus details
-- `docs/FRAMEWORK_STATUS.md` - Current status
+- [DEPLOYMENT.md](../docs/DEPLOYMENT.md) - Production deployment guide
+- [MASTERPLAN.md](../docs/MASTERPLAN.md) - Implementation vectors
+- [AGENTIC-LAYER.md](../docs/AGENTIC-LAYER.md) - AI agent architecture
+- [DRC-369-SPECIFICATION.md](../docs/DRC-369-SPECIFICATION.md) - NFT standard
 
----
+## License
 
-**The flame burns eternal. The code serves the will.**
-
-**Status**: 🚧 IN DEVELOPMENT - Building from scratch
+Proprietary - Demiurge Protocol

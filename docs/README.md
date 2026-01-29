@@ -1,115 +1,120 @@
-# 📚 Demiurge Blockchain Documentation
+# Demiurge Protocol Documentation
 
-**Complete documentation for the Demiurge Blockchain ecosystem**
-
-> *"Eyes gaze upon you, watching as a warden does his prisoners. The ancient texts reveal the secrets of creation."*
+**Complete documentation for the Demiurge blockchain ecosystem**
 
 ---
 
-## 🎯 Quick Navigation
+## Quick Links
 
-### For Developers 👨‍💻
-- **[Developer Documentation](./developers/)** - Complete integration guides
-  - [Getting Started](./developers/getting-started.md) - Setup and basics
-  - [RPC API Reference](./developers/rpc-api-reference.md) - All RPC methods
-  - [Chain Operations](./developers/chain-operations.md) - Query blockchain state
-  - [Transaction Building](./developers/transaction-building.md) - Create transactions
-  - [Module Integration](./developers/module-integration.md) - Integrate modules
-
-### For Creators 🎨
-- **[Creator Documentation](./creators/)** - Complete creator guides
-  - [DRC-369 Complete Guide](./creators/drc369-complete-guide.md) - Stateful NFTs
-  - [Asset Management](./creators/asset-management.md) - Manage your assets
-  - [Mining Operations](./creators/mining-operations.md) - Staking and rewards
-  - [P2P Features](./creators/p2p-features.md) - Trading and P2P
-
-### Architecture 🏗️
-- **[Architecture Documentation](./architecture/)** - Technical architecture
-  - [Ultimate Blockchain Design](./architecture/ULTIMATE_BLOCKCHAIN_DESIGN.md) - Complete design
-  - [Architecture Overview](./architecture/ARCHITECTURE.md) - Technical breakdown
-  - [Component Map](./architecture/COMPONENT_MAP.md) - All components
-  - [Consensus Design](./architecture/CONSENSUS_DESIGN.md) - Consensus mechanism
-  - [Consensus Algorithm](./architecture/CONSENSUS_ALGORITHM_DESIGN.md) - Algorithm details
-
-### Deployment 🚀
-- **[Deployment Documentation](./deployment/)** - Deployment guides
-  - [Deployment Guide](./deployment/DEPLOYMENT.md) - Complete deployment
-  - [Testnet Deployment](./deployment/TESTNET_DEPLOYMENT.md) - Testnet setup
+| Resource | URL |
+|----------|-----|
+| Frontend | https://demiurge.cloud |
+| RPC Endpoint | https://51.210.209.112:9933 |
+| Status | [STATUS.md](./STATUS.md) |
+| Roadmap | [ROADMAP.md](./ROADMAP.md) |
 
 ---
 
-## 📖 Core Documentation
+## Documentation by Role
 
-### Framework & Modules
-- **[Module Specifications](./MODULE_SPECS.md)** - All module specifications
-- **[ZK Features](./ZK_FEATURES.md)** - Zero-knowledge privacy features
-- **[Migration Guide](./MIGRATION_GUIDE.md)** - Migration from Substrate
+### For Developers
+- [Getting Started](./developers/getting-started.md) - Setup and basics
+- [Quick Start](./developers/QUICK_START.md) - Fast onboarding
+- [Transaction Building](./developers/transaction-building.md) - Create transactions
+- [RPC Implementation](./RPC_IMPLEMENTATION_NOTES.md) - API reference
 
-### Blockchain Features
-- **[CGT Tokenomics](./blockchain/CGT_TOKENOMICS.md)** - Token economics
-- **[DRC-369 Architecture](./blockchain/DRC369_ARCHITECTURE.md)** - Stateful NFT standard
-- **[DRC-369 Atomic Swaps](./blockchain/DRC369_ATOMIC_SWAPS.md)** - Atomic swap protocol
-- **[Next-Gen Gaming Architecture](./blockchain/NEXT_GEN_GAMING_ARCHITECTURE.md)** - Gaming architecture
+### For Game Developers
+- [Game Integration Guide](./GAME_INTEGRATION_GUIDE.md) - Integrate games
+- [Unreal Engine SDK](../sdk/unreal/README.md) - UE5 plugin
+- [DRC-369 Guide](./creators/drc369-complete-guide.md) - NFT assets
 
-### Identity & Authentication
-- **[QOR ID Specification](./identity/QOR_ID_SPEC.md)** - QOR ID system
-- **[QOR ID Wallet Integration](./QOR_ID_WALLET_INTEGRATION.md)** - Wallet integration
-- **[Session Keys Integration](./SESSION_KEYS_QOR_ID_INTEGRATION.md)** - Session keys guide
+### For AI/Agent Developers
+- [Agentic Layer](./AGENTIC-LAYER.md) - AI architecture
+- [Agent Foundry SDK](../packages/agent-foundry/README.md) - TypeScript SDK
 
-### Development Guides
-- **[Frontend Integration Plan](./FRONTEND_INTEGRATION_PLAN.md)** - Frontend integration
-- **[Frontend Recommendations](./FRONTEND_RECOMMENDATIONS.md)** - Best practices
-- **[Game Integration Guide](./GAME_INTEGRATION_GUIDE.md)** - Game integration
-- **[RPC Implementation Notes](./RPC_IMPLEMENTATION_NOTES.md)** - RPC API
-
-### Project Status
-- **[Status](./STATUS.md)** - Current project status
-- **[Roadmap](./ROADMAP.md)** - Development roadmap
-
-### Testing & User Guides
-- **[User Testing Guide](./USER_TESTING_GUIDE.md)** - User testing guide
-
-### Design & Systems
-- **[Design System](./design/DEMIURGE_DESIGN_SYSTEM.md)** - Design guidelines
-- **[Monad Config](./systems/MONAD_CONFIG.md)** - Server configuration
+### For Operators
+- [Deployment Guide](./DEPLOYMENT.md) - Production deployment
+- [Testnet Deployment](./deployment/TESTNET_DEPLOYMENT.md) - Test environments
 
 ---
 
-## 🏗️ Framework Structure
+## Core Documentation
+
+### Architecture
+| Document | Description |
+|----------|-------------|
+| [MASTERPLAN.md](./MASTERPLAN.md) | Implementation roadmap |
+| [DEMIURGE-LIVING-PROTOCOL.md](./DEMIURGE-LIVING-PROTOCOL.md) | Protocol vision |
+| [Architecture Overview](./architecture/ARCHITECTURE.md) | Technical breakdown |
+| [Consensus Design](./architecture/CONSENSUS_DESIGN.md) | PoS + BFT |
+
+### Standards
+| Document | Description |
+|----------|-------------|
+| [DRC-369 Specification](./DRC-369-SPECIFICATION.md) | Stateful NFT standard |
+| [QOR ID Specification](./identity/QOR_ID_SPEC.md) | Identity system |
+| [CVP Specification](./ARCHON_CVP_ZK_SPECIFICATION.md) | ZK bytecode mutation |
+
+### Tokenomics
+| Document | Description |
+|----------|-------------|
+| [CGT Tokenomics](./blockchain/CGT_TOKENOMICS.md) | Token economics |
+
+---
+
+## Framework Structure
 
 ```
 framework/
-├── core/          # Runtime engine
-├── storage/       # Merkle trees, RocksDB
-├── consensus/     # Hybrid PoS + BFT
-├── network/       # P2P networking (LibP2P)
-├── modules/       # Hot-swappable modules
-│   ├── balances/  # CGT token
-│   ├── drc369/    # Stateful NFTs
-│   ├── game-assets/ # Multi-asset system
-│   ├── energy/    # Regenerating costs
-│   ├── session-keys/ # Temporary auth
-│   ├── yield-nfts/ # Passive income
-│   └── zk/        # Privacy features
-├── rpc/           # JSON-RPC + WebSocket
-└── node/          # Full node
+├── core/           # Runtime engine
+├── storage/        # RocksDB + Merkle trees
+├── consensus/      # Hybrid PoS + BFT
+├── network/        # LibP2P networking
+├── primitives/     # Cryptographic primitives
+├── rpc/            # JSON-RPC + WebSocket
+├── node/           # Full node
+└── modules/
+    ├── balances/       # CGT token
+    ├── energy/         # Feeless UX
+    ├── session-keys/   # Temp auth
+    ├── qor-identity/   # Sovereign ID
+    ├── drc369/         # Stateful NFTs
+    ├── game-assets/    # Multi-assets
+    ├── yield-nfts/     # Passive income
+    ├── cvp/            # ZK mutations
+    ├── zk/             # Privacy
+    └── agentic/        # AI agents
 ```
 
 ---
 
-## 🚀 Quick Links
+## SDKs
 
-- **Getting Started**: See [Developer Getting Started](./developers/getting-started.md)
-- **RPC Endpoint**: `https://rpc.demiurge.cloud` (HTTPS) / `wss://rpc.demiurge.cloud` (WebSocket)
-- **Frontend**: `https://demiurge.cloud`
-- **Development Page**: `/development` (in frontend)
-
----
-
-## 📋 Documentation Index
-
-See **[DOCUMENTATION_INDEX.md](./DOCUMENTATION_INDEX.md)** for complete index.
+| SDK | Language | Location |
+|-----|----------|----------|
+| Core SDK | TypeScript | `sdk/` |
+| QOR SDK | TypeScript | `packages/qor-sdk/` |
+| DRC-369 SDK | TypeScript | `packages/drc369-sdk/` |
+| Agent Foundry | TypeScript | `packages/agent-foundry/` |
+| Unreal Plugin | C++ | `sdk/unreal/` |
 
 ---
 
-**The flame burns eternal. The code serves the will.**
+## Module Documentation
+
+| Module | README |
+|--------|--------|
+| Agentic | [framework/modules/agentic/](../framework/modules/agentic/) |
+| CVP | [framework/modules/cvp/](../framework/modules/cvp/) |
+| DRC-369 | [framework/modules/drc369/](../framework/modules/drc369/) |
+| QOR Identity | [framework/modules/qor-identity/](../framework/modules/qor-identity/) |
+
+---
+
+## Archived Documentation
+
+Historical and deprecated documentation is in [archive/](./archive/).
+
+---
+
+**Production**: https://demiurge.cloud
