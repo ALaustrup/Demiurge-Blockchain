@@ -9,12 +9,23 @@
 //!
 //! - **Ed25519**: Current default, fast and compact
 //! - **ECDSA**: Ethereum compatibility
-//! - **Dilithium**: NIST PQC standard (planned)
+//! - **Dilithium**: NIST PQC standard (Level 3 & 5)
 //! - **Falcon**: Compact PQC signatures (planned)
 //! - **Hybrid**: Combined classical + quantum (transition)
+//!
+//! # Feature Flags
+//!
+//! - `ed25519`: Enable Ed25519 (default)
+//! - `pqc`: Enable post-quantum cryptography (Dilithium)
+//! - `full`: Enable all schemes
 
 use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "pqc")]
+use pqcrypto_dilithium::dilithium3;
+#[cfg(feature = "pqc")]
+use pqcrypto_traits::sign::{PublicKey as PqcPublicKey, DetachedSignature, SecretKey as PqcSecretKey};
 
 /// Signature scheme identifier
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Encode, Decode, Serialize, Deserialize)]
@@ -188,6 +199,125 @@ impl AbstractPublicKey {
     }
 }
 
+/// Keypair for signing operations
+pub struct AbstractKeypair {
+    /// Public key
+    pub public_key: AbstractPublicKey,
+    /// Secret key bytes (scheme-specific format)
+    secret_key: Vec<u8>,
+}
+
+impl AbstractKeypair {
+    /// Generate a new Ed25519 keypair
+    pub fn generate_ed25519() -> Self {
+        use ed25519_dalek::SigningKey;
+        use rand::rngs::OsRng;
+        
+        let signing_key = SigningKey::generate(&mut OsRng);
+        let verifying_key = signing_key.verifying_key();
+        
+        Self {
+            public_key: AbstractPublicKey::ed25519(verifying_key.to_bytes()),
+            secret_key: signing_key.to_bytes().to_vec(),
+        }
+    }
+    
+    /// Generate a new Dilithium3 keypair
+    #[cfg(feature = "pqc")]
+    pub fn generate_dilithium3() -> Self {
+        let (pk, sk) = dilithium3::keypair();
+        
+        Self {
+            public_key: AbstractPublicKey::dilithium3(pk.as_bytes().to_vec()),
+            secret_key: sk.as_bytes().to_vec(),
+        }
+    }
+    
+    /// Generate a hybrid Ed25519 + Dilithium3 keypair
+    #[cfg(feature = "pqc")]
+    pub fn generate_hybrid_ed_dilithium() -> Self {
+        use ed25519_dalek::SigningKey;
+        use rand::rngs::OsRng;
+        
+        // Generate Ed25519
+        let ed_signing = SigningKey::generate(&mut OsRng);
+        let ed_verifying = ed_signing.verifying_key();
+        
+        // Generate Dilithium3
+        let (dil_pk, dil_sk) = dilithium3::keypair();
+        
+        // Combine keys
+        let mut combined_pk = ed_verifying.to_bytes().to_vec();
+        combined_pk.extend(dil_pk.as_bytes());
+        
+        let mut combined_sk = ed_signing.to_bytes().to_vec();
+        combined_sk.extend(dil_sk.as_bytes());
+        
+        Self {
+            public_key: AbstractPublicKey {
+                scheme: SignatureScheme::HybridEdDilithium3,
+                key: combined_pk,
+                custom_verifier: None,
+            },
+            secret_key: combined_sk,
+        }
+    }
+    
+    /// Sign a message
+    pub fn sign(&self, message: &[u8]) -> AbstractSignature {
+        match self.public_key.scheme {
+            SignatureScheme::Ed25519 => self.sign_ed25519(message),
+            #[cfg(feature = "pqc")]
+            SignatureScheme::Dilithium3 => self.sign_dilithium3(message),
+            #[cfg(feature = "pqc")]
+            SignatureScheme::HybridEdDilithium3 => self.sign_hybrid(message),
+            _ => panic!("Unsupported scheme for signing"),
+        }
+    }
+    
+    fn sign_ed25519(&self, message: &[u8]) -> AbstractSignature {
+        use ed25519_dalek::{SigningKey, Signer};
+        
+        let sk_bytes: [u8; 32] = self.secret_key[..32].try_into().unwrap();
+        let signing_key = SigningKey::from_bytes(&sk_bytes);
+        let signature = signing_key.sign(message);
+        
+        AbstractSignature::ed25519(signature.to_bytes())
+    }
+    
+    #[cfg(feature = "pqc")]
+    fn sign_dilithium3(&self, message: &[u8]) -> AbstractSignature {
+        use pqcrypto_dilithium::dilithium3::{detached_sign, SecretKey};
+        
+        let sk = SecretKey::from_bytes(&self.secret_key).unwrap();
+        let sig = detached_sign(message, &sk);
+        
+        AbstractSignature::dilithium3(sig.as_bytes().to_vec())
+    }
+    
+    #[cfg(feature = "pqc")]
+    fn sign_hybrid(&self, message: &[u8]) -> AbstractSignature {
+        use ed25519_dalek::{SigningKey, Signer};
+        use pqcrypto_dilithium::dilithium3::{detached_sign, SecretKey, secret_key_bytes};
+        
+        // Sign with Ed25519
+        let ed_sk_bytes: [u8; 32] = self.secret_key[..32].try_into().unwrap();
+        let ed_signing = SigningKey::from_bytes(&ed_sk_bytes);
+        let ed_sig = ed_signing.sign(message);
+        
+        // Sign with Dilithium3
+        let dil_sk = SecretKey::from_bytes(&self.secret_key[32..32 + secret_key_bytes()]).unwrap();
+        let dil_sig = detached_sign(message, &dil_sk);
+        
+        AbstractSignature::hybrid_ed_dilithium(ed_sig.to_bytes(), dil_sig.as_bytes().to_vec())
+    }
+    
+    /// Get the public key
+    pub fn public_key(&self) -> &AbstractPublicKey {
+        &self.public_key
+    }
+}
+
 /// Abstract signature supporting multiple schemes
 #[derive(Clone, Debug, Encode, Decode, Serialize, Deserialize)]
 pub struct AbstractSignature {
@@ -204,6 +334,15 @@ impl AbstractSignature {
         Self {
             scheme: SignatureScheme::Ed25519,
             signature: sig.to_vec(),
+        }
+    }
+    
+    /// Create Dilithium3 signature
+    #[cfg(feature = "pqc")]
+    pub fn dilithium3(sig: Vec<u8>) -> Self {
+        Self {
+            scheme: SignatureScheme::Dilithium3,
+            signature: sig,
         }
     }
     
@@ -228,11 +367,14 @@ impl AbstractSignature {
             SignatureScheme::Ed25519 => {
                 self.verify_ed25519(public_key, message)
             }
+            #[cfg(feature = "pqc")]
+            SignatureScheme::Dilithium3 => {
+                self.verify_dilithium3(public_key, message)
+            }
             SignatureScheme::HybridEdDilithium3 => {
-                // Both signatures must verify
                 self.verify_hybrid_ed_dilithium(public_key, message)
             }
-            // TODO: Implement other schemes
+            // Other schemes not yet implemented
             _ => false,
         }
     }
@@ -260,6 +402,36 @@ impl AbstractSignature {
         verifying_key.verify(message, &signature).is_ok()
     }
     
+    #[cfg(feature = "pqc")]
+    fn verify_dilithium3(&self, public_key: &AbstractPublicKey, message: &[u8]) -> bool {
+        use pqcrypto_dilithium::dilithium3::{verify_detached_signature, PublicKey, DetachedSignature};
+        
+        // Check key size
+        if public_key.key.len() != dilithium3::public_key_bytes() {
+            return false;
+        }
+        
+        // Check signature size  
+        if self.signature.len() != dilithium3::signature_bytes() {
+            return false;
+        }
+        
+        // Parse public key
+        let pk = match PublicKey::from_bytes(&public_key.key) {
+            Ok(pk) => pk,
+            Err(_) => return false,
+        };
+        
+        // Parse signature
+        let sig = match DetachedSignature::from_bytes(&self.signature) {
+            Ok(sig) => sig,
+            Err(_) => return false,
+        };
+        
+        // Verify
+        verify_detached_signature(&sig, message, &pk).is_ok()
+    }
+    
     fn verify_hybrid_ed_dilithium(&self, public_key: &AbstractPublicKey, message: &[u8]) -> bool {
         // Split keys and signatures
         if public_key.key.len() < 32 || self.signature.len() < 64 {
@@ -281,8 +453,34 @@ impl AbstractSignature {
             return false;
         }
         
-        // TODO: Verify Dilithium part when implemented
-        // For now, Ed25519 verification is sufficient during transition
+        // Verify Dilithium part when pqc feature is enabled
+        #[cfg(feature = "pqc")]
+        {
+            let dilithium_key_start = 32;
+            let dilithium_sig_start = 64;
+            
+            if public_key.key.len() < dilithium_key_start + dilithium3::public_key_bytes() {
+                return false;
+            }
+            if self.signature.len() < dilithium_sig_start + dilithium3::signature_bytes() {
+                return false;
+            }
+            
+            let dilithium_key = AbstractPublicKey {
+                scheme: SignatureScheme::Dilithium3,
+                key: public_key.key[dilithium_key_start..].to_vec(),
+                custom_verifier: None,
+            };
+            let dilithium_sig = AbstractSignature {
+                scheme: SignatureScheme::Dilithium3,
+                signature: self.signature[dilithium_sig_start..].to_vec(),
+            };
+            
+            if !dilithium_sig.verify_dilithium3(&dilithium_key, message) {
+                return false;
+            }
+        }
+        
         true
     }
 }
@@ -360,22 +558,16 @@ impl SecurityLevel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::{SigningKey, Signer};
-    use rand::rngs::OsRng;
     
     #[test]
     fn test_ed25519_signature() {
-        let signing_key = SigningKey::generate(&mut OsRng);
-        let verifying_key = signing_key.verifying_key();
+        let keypair = AbstractKeypair::generate_ed25519();
         
         let message = b"Hello, Demiurge!";
-        let signature = signing_key.sign(message);
+        let signature = keypair.sign(message);
         
-        let abstract_pk = AbstractPublicKey::ed25519(verifying_key.to_bytes());
-        let abstract_sig = AbstractSignature::ed25519(signature.to_bytes());
-        
-        assert!(abstract_sig.verify(&abstract_pk, message));
-        assert!(!abstract_sig.verify(&abstract_pk, b"Wrong message"));
+        assert!(signature.verify(keypair.public_key(), message));
+        assert!(!signature.verify(keypair.public_key(), b"Wrong message"));
     }
     
     #[test]
@@ -398,5 +590,50 @@ mod tests {
         assert!(!SignatureScheme::Ed25519.is_quantum_safe());
         assert!(SignatureScheme::Dilithium3.is_quantum_safe());
         assert!(SignatureScheme::HybridEdDilithium3.is_quantum_safe());
+    }
+    
+    #[test]
+    fn test_signature_sizes() {
+        assert_eq!(SignatureScheme::Ed25519.signature_size(), 64);
+        assert_eq!(SignatureScheme::Dilithium3.signature_size(), 3293);
+        assert_eq!(SignatureScheme::HybridEdDilithium3.signature_size(), 64 + 3293);
+    }
+    
+    #[test]
+    fn test_public_key_sizes() {
+        assert_eq!(SignatureScheme::Ed25519.public_key_size(), 32);
+        assert_eq!(SignatureScheme::Dilithium3.public_key_size(), 1952);
+        assert_eq!(SignatureScheme::HybridEdDilithium3.public_key_size(), 32 + 1952);
+    }
+    
+    #[cfg(feature = "pqc")]
+    #[test]
+    fn test_dilithium3_signature() {
+        let keypair = AbstractKeypair::generate_dilithium3();
+        
+        let message = b"Quantum-safe Demiurge!";
+        let signature = keypair.sign(message);
+        
+        assert!(signature.verify(keypair.public_key(), message));
+        assert!(!signature.verify(keypair.public_key(), b"Wrong message"));
+        
+        // Verify it's actually quantum-safe
+        assert!(keypair.public_key().is_quantum_safe());
+    }
+    
+    #[cfg(feature = "pqc")]
+    #[test]
+    fn test_hybrid_signature() {
+        let keypair = AbstractKeypair::generate_hybrid_ed_dilithium();
+        
+        let message = b"Hybrid quantum-safe Demiurge!";
+        let signature = keypair.sign(message);
+        
+        assert!(signature.verify(keypair.public_key(), message));
+        assert!(!signature.verify(keypair.public_key(), b"Wrong message"));
+        
+        // Verify it's quantum-safe and hybrid
+        assert!(keypair.public_key().is_quantum_safe());
+        assert!(keypair.public_key().scheme.is_hybrid());
     }
 }
