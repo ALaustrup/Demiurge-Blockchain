@@ -400,6 +400,118 @@ impl<S: Storage> RpcMethods<S> {
         }
     }
 
+    // ========== CVP Methods (Consensus-Verified Polymorphism) ==========
+
+    /// Get CVP status and statistics
+    /// 
+    /// Returns information about the Archon CVP system including:
+    /// - Whether CVP is enabled
+    /// - Current epoch number
+    /// - Number of registered contracts
+    /// - Total mutations performed
+    pub async fn cvp_get_status(&self) -> Result<CvpStatus, RpcError> {
+        if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            let stats = consensus_guard.cvp_stats();
+            
+            Ok(CvpStatus {
+                enabled: stats.enabled,
+                current_epoch: stats.current_epoch,
+                registered_contracts: stats.registered_contracts,
+                total_mutations: stats.total_mutations,
+                threats_detected: stats.threats_detected,
+                pending_proofs: stats.pending_proofs,
+            })
+        } else {
+            Err(RpcError::NotImplemented)
+        }
+    }
+    
+    /// Get CVP-protected bytecode for a contract
+    /// 
+    /// Returns the current mutated bytecode for a CVP-registered contract.
+    /// This bytecode changes each epoch while maintaining semantic equivalence.
+    pub async fn cvp_get_bytecode(&self, contract_id_hex: String) -> Result<Option<CvpBytecodeInfo>, RpcError> {
+        let contract_id: [u8; 32] = hex::decode(&contract_id_hex)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            
+            if let Some(bytecode) = consensus_guard.get_cvp_bytecode(&contract_id) {
+                // Calculate bytecode hash
+                use blake2::{Blake2b512, Digest};
+                let mut hasher = Blake2b512::new();
+                hasher.update(&bytecode);
+                let hash = hasher.finalize();
+                let mut bytecode_hash = [0u8; 32];
+                bytecode_hash.copy_from_slice(&hash[..32]);
+                
+                Ok(Some(CvpBytecodeInfo {
+                    contract_id: contract_id_hex,
+                    bytecode: hex::encode(&bytecode),
+                    bytecode_hash: hex::encode(bytecode_hash),
+                    size: bytecode.len(),
+                }))
+            } else {
+                Ok(None)
+            }
+        } else {
+            Err(RpcError::NotImplemented)
+        }
+    }
+    
+    /// Get contract info from CVP
+    /// 
+    /// Returns metadata about a CVP-registered contract including
+    /// mutation count, last mutation block, and proof status.
+    pub async fn cvp_get_contract_info(&self, contract_id_hex: String) -> Result<Option<CvpContractInfo>, RpcError> {
+        let contract_id: [u8; 32] = hex::decode(&contract_id_hex)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            
+            // Get CVP stats to check if contract is registered
+            if consensus_guard.get_cvp_bytecode(&contract_id).is_some() {
+                // Contract is registered
+                // TODO: Get detailed contract info from CVP engine
+                Ok(Some(CvpContractInfo {
+                    contract_id: contract_id_hex,
+                    name: "Unknown".to_string(), // Would come from CVP engine
+                    bytecode_size: 0,
+                    mutation_count: 0,
+                    last_mutation_block: 0,
+                    has_proof: false,
+                    proof_system: "TranslationValidation".to_string(),
+                }))
+            } else {
+                Ok(None)
+            }
+        } else {
+            Err(RpcError::NotImplemented)
+        }
+    }
+    
+    /// Check if a contract is CVP-protected
+    pub async fn cvp_is_protected(&self, contract_id_hex: String) -> Result<bool, RpcError> {
+        let contract_id: [u8; 32] = hex::decode(&contract_id_hex)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            Ok(consensus_guard.get_cvp_bytecode(&contract_id).is_some())
+        } else {
+            Err(RpcError::NotImplemented)
+        }
+    }
+
     // ========== Energy Methods ==========
 
     /// Get energy for account
@@ -607,4 +719,55 @@ pub struct ChainInfo {
     pub chain_version: String,
     pub block_number: u64,
     pub block_hash: [u8; 32],
+}
+
+// ========== CVP Response Types ==========
+
+/// CVP system status
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CvpStatus {
+    /// Whether CVP is enabled
+    pub enabled: bool,
+    /// Current mutation epoch
+    pub current_epoch: u64,
+    /// Number of CVP-protected contracts
+    pub registered_contracts: usize,
+    /// Total mutations performed across all contracts
+    pub total_mutations: u64,
+    /// Total threats detected by the attack detector
+    pub threats_detected: u64,
+    /// Number of proofs pending inclusion in a block
+    pub pending_proofs: usize,
+}
+
+/// CVP bytecode information
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CvpBytecodeInfo {
+    /// Contract identifier (hex)
+    pub contract_id: String,
+    /// Current bytecode (hex)
+    pub bytecode: String,
+    /// Blake2b hash of the bytecode (hex)
+    pub bytecode_hash: String,
+    /// Size in bytes
+    pub size: usize,
+}
+
+/// CVP contract information
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CvpContractInfo {
+    /// Contract identifier (hex)
+    pub contract_id: String,
+    /// Contract name
+    pub name: String,
+    /// Current bytecode size
+    pub bytecode_size: usize,
+    /// Number of mutations performed
+    pub mutation_count: u64,
+    /// Block number of last mutation
+    pub last_mutation_block: u64,
+    /// Whether a valid proof exists for the current bytecode
+    pub has_proof: bool,
+    /// Proof system used (e.g., "Plonky2", "TranslationValidation")
+    pub proof_system: String,
 }
