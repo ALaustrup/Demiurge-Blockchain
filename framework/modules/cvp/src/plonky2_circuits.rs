@@ -291,6 +291,122 @@ pub mod hash_gadgets {
 }
 
 // ============================================================================
+// WITNESS UTILS - Poseidon Hashing for Witness Generation
+// ============================================================================
+
+/// Utilities for computing Poseidon hashes outside circuits (for witness generation)
+/// These functions MUST match exactly what the circuit gadgets compute.
+#[cfg(feature = "zk-plonky2")]
+pub mod witness_utils {
+    use super::*;
+    use plonky2::hash::hash_types::HashOut;
+    use plonky2::hash::poseidon::PoseidonHash;
+    use plonky2::plonk::config::Hasher;
+    
+    /// Poseidon hash of a single field element (matches hash_single in circuit)
+    pub fn poseidon_hash_single(input: F) -> HashOut<F> {
+        PoseidonHash::hash_no_pad(&[input])
+    }
+    
+    /// Poseidon hash of multiple field elements (matches hash_many in circuit)
+    pub fn poseidon_hash_many(inputs: &[F]) -> HashOut<F> {
+        PoseidonHash::hash_no_pad(inputs)
+    }
+    
+    /// Poseidon hash of two hashes (matches hash_two_hashes in circuit)
+    pub fn poseidon_hash_two_hashes(left: HashOut<F>, right: HashOut<F>) -> HashOut<F> {
+        let mut inputs = Vec::with_capacity(8);
+        inputs.extend_from_slice(&left.elements);
+        inputs.extend_from_slice(&right.elements);
+        PoseidonHash::hash_no_pad(&inputs)
+    }
+    
+    /// Hash bytecode chunks using Poseidon (matches hash_bytecode in circuit)
+    /// This builds a Merkle tree of the bytecode chunks.
+    pub fn poseidon_hash_bytecode(bytecode_chunks: &[F]) -> HashOut<F> {
+        if bytecode_chunks.is_empty() {
+            return poseidon_hash_single(F::ZERO);
+        }
+        
+        if bytecode_chunks.len() == 1 {
+            return poseidon_hash_single(bytecode_chunks[0]);
+        }
+        
+        // Build a Merkle tree of bytecode chunks
+        let mut current_level: Vec<HashOut<F>> = bytecode_chunks.iter()
+            .map(|&chunk| poseidon_hash_single(chunk))
+            .collect();
+        
+        // Pad to power of 2 if needed
+        let zero_hash = poseidon_hash_single(F::ZERO);
+        while current_level.len() & (current_level.len() - 1) != 0 {
+            current_level.push(zero_hash);
+        }
+        
+        // Reduce to single hash
+        while current_level.len() > 1 {
+            let mut next_level = Vec::new();
+            for chunk in current_level.chunks(2) {
+                let combined = poseidon_hash_two_hashes(chunk[0], chunk[1]);
+                next_level.push(combined);
+            }
+            current_level = next_level;
+        }
+        
+        current_level[0]
+    }
+    
+    /// Convert bytecode to field element chunks (8 bytes per chunk)
+    pub fn bytecode_to_field_chunks(bytecode: &[u8]) -> Vec<F> {
+        bytecode.chunks(8)
+            .map(|chunk| {
+                let mut bytes = [0u8; 8];
+                bytes[..chunk.len()].copy_from_slice(chunk);
+                F::from_canonical_u64(u64::from_le_bytes(bytes))
+            })
+            .collect()
+    }
+    
+    /// Convert HashOut to [u64; 4] limbs
+    pub fn hash_out_to_limbs(hash: HashOut<F>) -> [u64; HASH_LIMBS] {
+        [
+            hash.elements[0].to_canonical_u64(),
+            hash.elements[1].to_canonical_u64(),
+            hash.elements[2].to_canonical_u64(),
+            hash.elements[3].to_canonical_u64(),
+        ]
+    }
+    
+    /// Convert [u64; 4] limbs to HashOut
+    pub fn limbs_to_hash_out(limbs: &[u64; HASH_LIMBS]) -> HashOut<F> {
+        HashOut {
+            elements: [
+                F::from_canonical_u64(limbs[0]),
+                F::from_canonical_u64(limbs[1]),
+                F::from_canonical_u64(limbs[2]),
+                F::from_canonical_u64(limbs[3]),
+            ],
+        }
+    }
+    
+    /// Compute the complete bytecode hash for witness (Poseidon-based)
+    pub fn compute_bytecode_hash(bytecode: &[u8], num_chunks: usize) -> [u64; HASH_LIMBS] {
+        let mut chunks = bytecode_to_field_chunks(bytecode);
+        
+        // Pad to required number of chunks
+        while chunks.len() < num_chunks {
+            chunks.push(F::ZERO);
+        }
+        
+        // Truncate if necessary
+        chunks.truncate(num_chunks);
+        
+        let hash = poseidon_hash_bytecode(&chunks);
+        hash_out_to_limbs(hash)
+    }
+}
+
+// ============================================================================
 // MERKLE GADGETS - Rule Set Verification
 // ============================================================================
 
@@ -968,7 +1084,7 @@ pub struct CvpWitness {
 }
 
 impl CvpWitness {
-    /// Create a new witness with default values
+    /// Create a new witness with SHA256 hashes (for compatibility)
     pub fn new(
         ir_commitment: [u8; 32],
         original_bytecode: Vec<u8>,
@@ -976,7 +1092,7 @@ impl CvpWitness {
         epoch_seed: [u8; 32],
         rules_root: [u8; 32],
     ) -> Self {
-        // Compute original bytecode hash
+        // Compute original bytecode hash using SHA256
         let mut hasher = Sha256::new();
         hasher.update(&original_bytecode);
         let original_hash: [u8; 32] = hasher.finalize().into();
@@ -999,7 +1115,7 @@ impl CvpWitness {
         self.steps.push(step);
     }
     
-    /// Create an identity transformation (no actual mutation)
+    /// Create an identity transformation using SHA256 (for compatibility)
     pub fn identity_transformation(bytecode: Vec<u8>) -> Self {
         let zero_hash = [0u8; 32];
         let mut hasher = Sha256::new();
@@ -1010,13 +1126,54 @@ impl CvpWitness {
             public_inputs: CvpPublicInputs {
                 ir_commitment: CvpPublicInputs::hash_to_limbs(&zero_hash),
                 original_hash: CvpPublicInputs::hash_to_limbs(&bytecode_hash),
-                mutated_hash: CvpPublicInputs::hash_to_limbs(&bytecode_hash), // Same as original
+                mutated_hash: CvpPublicInputs::hash_to_limbs(&bytecode_hash),
                 epoch_seed: CvpPublicInputs::hash_to_limbs(&zero_hash),
                 rules_root: CvpPublicInputs::hash_to_limbs(&zero_hash),
             },
             bytecode,
             steps: Vec::new(),
         }
+    }
+}
+
+/// Plonky2-specific witness creation using Poseidon hashing
+/// These functions create witnesses that are compatible with the circuit constraints.
+#[cfg(feature = "zk-plonky2")]
+impl CvpWitness {
+    /// Create an identity witness using Poseidon hashing (circuit-compatible)
+    /// 
+    /// This creates a witness where original == mutated (no transformation).
+    /// The hash is computed using Poseidon to match the circuit's hash_bytecode gadget.
+    pub fn identity_poseidon(bytecode: Vec<u8>, num_chunks: usize) -> Self {
+        use witness_utils::*;
+        
+        // Compute bytecode hash using Poseidon (matching circuit)
+        let bytecode_hash = compute_bytecode_hash(&bytecode, num_chunks);
+        
+        // Zero hash for unused fields
+        let zero_hash = [0u64; HASH_LIMBS];
+        
+        Self {
+            public_inputs: CvpPublicInputs {
+                ir_commitment: zero_hash,
+                original_hash: bytecode_hash,
+                mutated_hash: bytecode_hash, // Same as original for identity
+                epoch_seed: zero_hash,
+                rules_root: zero_hash,
+            },
+            bytecode,
+            steps: Vec::new(),
+        }
+    }
+    
+    /// Create a witness for the minimal circuit (64 chunks, 4 steps)
+    pub fn for_minimal_circuit(bytecode: Vec<u8>) -> Self {
+        Self::identity_poseidon(bytecode, 64)
+    }
+    
+    /// Create a witness for the full circuit (NUM_BYTECODE_CHUNKS chunks)
+    pub fn for_full_circuit(bytecode: Vec<u8>) -> Self {
+        Self::identity_poseidon(bytecode, NUM_BYTECODE_CHUNKS)
     }
 }
 
@@ -1406,25 +1563,44 @@ mod tests {
         }
         
         #[test]
-        #[ignore] // Requires proper witness-circuit alignment (tracked in plonky2-6)
         fn test_minimal_proof_generation() {
             // Build minimal circuit
             let circuit = CvpCircuit::build_minimal().expect("Circuit should build");
             
-            // Create identity witness
+            // Create identity witness using Poseidon (circuit-compatible)
             let bytecode = vec![0x60, 0x00]; // PUSH1 0x00
-            let witness = CvpWitness::identity_transformation(bytecode);
+            let witness = CvpWitness::for_minimal_circuit(bytecode);
             
             // This requires the witness to satisfy:
-            // 1. hash(bytecode_chunks) == original_hash (public input)
+            // 1. hash(bytecode_chunks) == original_hash (public input) - using Poseidon
             // 2. All transformation steps properly chained
             // 3. Final state == mutated_hash
-            // 
-            // Currently the identity_transformation uses SHA256 for the public
-            // input hashes, but the circuit uses Poseidon. These need to be aligned.
             let result = circuit.prove(witness);
             
-            assert!(result.is_ok(), "Proof generation should succeed");
+            // Print detailed error if it fails
+            if let Err(ref e) = result {
+                println!("Proof generation failed: {:?}", e);
+            }
+            
+            assert!(result.is_ok(), "Proof generation should succeed with Poseidon-aligned witness");
+        }
+        
+        #[test]
+        fn test_witness_poseidon_hash_consistency() {
+            use super::witness_utils::*;
+            
+            // Test that witness utils produce consistent hashes
+            let bytecode = vec![0x60, 0x80, 0x60, 0x40, 0x52]; // PUSH1 0x80 PUSH1 0x40 MSTORE
+            let hash1 = compute_bytecode_hash(&bytecode, 64);
+            let hash2 = compute_bytecode_hash(&bytecode, 64);
+            
+            assert_eq!(hash1, hash2, "Same bytecode should produce same hash");
+            
+            // Different bytecode should produce different hash
+            let bytecode2 = vec![0x60, 0x00];
+            let hash3 = compute_bytecode_hash(&bytecode2, 64);
+            
+            assert_ne!(hash1, hash3, "Different bytecode should produce different hash");
         }
         
         #[test]
