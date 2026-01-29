@@ -3,7 +3,7 @@ name = "demiurge-cvp"
 version = "0.1.0"
 edition = "2021"
 authors = ["Demiurge Blockchain Team"]
-description = "Consensus-Verified Polymorphism - Dynamic bytecode mutation with ZK equivalence proofs"
+description = "Consensus-Verified Polymorphism (Archon CVP) - Dynamic bytecode mutation with ZK equivalence proofs"
 license = "MIT"
 repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
 
@@ -21,20 +21,31 @@ hex = "0.4"
 sha2 = "0.10"
 rand = "0.8"
 
-# ZK dependencies (to be added as implementation progresses)
-# plonky2 = { version = "0.2", optional = true }
+# ZK Proof Systems (The Mathematical Immune System)
+# Plonky2: No trusted setup, fast recursion, Goldilocks field
+plonky2 = { version = "0.2", optional = true }
+plonky2_field = { version = "0.2", optional = true }
+
+# Halo2: Alternative ZK system (backup)
 # halo2_proofs = { version = "0.3", optional = true }
 
 [dev-dependencies]
 criterion = "0.5"
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros"] }
 
 [features]
 default = []
-# Enable when ZK libraries are integrated
-# zk-plonky2 = ["plonky2"]
+
+# Enable Plonky2 ZK proofs for production-grade Archon CVP
+zk-plonky2 = ["plonky2", "plonky2_field"]
+
+# Enable Halo2 ZK proofs (alternative)
 # zk-halo2 = ["halo2_proofs"]
 
-# Benchmarks will be added when performance tuning begins
+# Enable all ZK systems
+zk-full = ["zk-plonky2"]
+
+# Benchmarks (uncomment when benchmark file is created)
 # [[bench]]
 # name = "mutation_benchmark"
 # harness = false

@@ -34,6 +34,7 @@ pub mod integration;
 pub mod drc369;
 pub mod consensus_hook;
 pub mod test_harness;
+pub mod plonky2_circuits;
 
 pub use semantic_ir::*;
 pub use compiler::{PolymorphicCompiler, Bytecode};
@@ -53,6 +54,12 @@ pub use integration::{
 pub use drc369::{build_drc369_semantic_ir, create_cvp_drc369, Drc369CvpConfig};
 pub use consensus_hook::{CvpBlockExtension, integrate_era_transition, validate_block_cvp};
 pub use test_harness::{AttackSimulator, SimulationStats, attacks, scenarios};
+pub use plonky2_circuits::{CvpPublicInputs, CvpWitness, WitnessStep, MAX_BYTECODE_SIZE, MAX_TRANSFORMATION_STEPS};
+#[cfg(feature = "zk-plonky2")]
+pub use plonky2_circuits::{CvpCircuit, Plonky2ProofGenerator, Plonky2ProofVerifier, Plonky2Proof};
+// Also export stub verifier for non-plonky2 builds
+#[cfg(not(feature = "zk-plonky2"))]
+pub use plonky2_circuits::Plonky2ProofVerifier;
 
 /// CVP version for compatibility tracking
 pub const CVP_VERSION: &str = "0.1.0";

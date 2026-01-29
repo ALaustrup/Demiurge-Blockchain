@@ -1,24 +1,32 @@
 //! Node service - Main node logic
+//!
+//! The heart of the Demiurge node - orchestrates all components:
+//! - Consensus engine (block production)
+//! - P2P networking (gossipsub, peer discovery)
+//! - RPC server (external API)
 
 use crate::{NodeConfig, GenesisConfig};
 use demiurge_core::{Runtime, Block, Transaction};
 use demiurge_storage::StorageBackend;
 use demiurge_consensus::{ConsensusEngine, Validator, BlockProof};
+use demiurge_network::{NetworkService, SwarmManager, NetworkEvent};
 use demiurge_rpc::{RpcServer, RpcMethods};
 use anyhow::Result;
-use tracing::{info, warn};
+use libp2p::Multiaddr;
+use tracing::{info, warn, debug};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
 use ed25519_dalek::{SigningKey, VerifyingKey};
 use hex;
 
-/// Node service
+/// Node service - The beating heart of the Demiurge Protocol
 pub struct NodeService {
     config: NodeConfig,
     runtime: Arc<Mutex<Runtime<StorageBackend>>>,
     consensus: Option<Arc<Mutex<ConsensusEngine<StorageBackend>>>>,
     rpc_server: Option<RpcServer<StorageBackend>>,
+    swarm_manager: Option<Arc<SwarmManager>>,
     is_validator: bool,
     validator_account: Option<[u8; 32]>,
     validator_key: Option<SigningKey>,
@@ -44,6 +52,7 @@ impl NodeService {
             runtime,
             consensus: None,
             rpc_server: None,
+            swarm_manager: None,
             is_validator: false,
             validator_account: None,
             validator_key: None,
@@ -217,10 +226,120 @@ impl NodeService {
             self.start_rpc_server().await?;
         }
         
-        // TODO: Start network
+        // Start P2P network if enabled
+        if self.config.enable_p2p {
+            self.start_p2p_network().await?;
+        }
         
-        info!("✅ Node service started");
+        info!("✅ Node service started - The Heart is beating");
         Ok(())
+    }
+    
+    /// Start P2P networking (The Nervous System)
+    async fn start_p2p_network(&mut self) -> Result<()> {
+        info!("🌐 Starting P2P network on {}...", self.config.p2p_addr);
+        
+        // Convert socket addr to multiaddr
+        let listen_multiaddr: Multiaddr = format!(
+            "/ip4/{}/tcp/{}",
+            self.config.p2p_addr.ip(),
+            self.config.p2p_addr.port()
+        ).parse().map_err(|e| anyhow::anyhow!("Invalid P2P address: {}", e))?;
+        
+        // Parse bootstrap peers
+        let bootstrap_multiaddrs: Vec<Multiaddr> = self.config.bootstrap_peers
+            .iter()
+            .filter_map(|addr| addr.parse().ok())
+            .collect();
+        
+        info!("  Listen address: {}", listen_multiaddr);
+        info!("  Bootstrap peers: {}", bootstrap_multiaddrs.len());
+        
+        // Create SwarmManager with optional node key from validator key
+        let node_key = self.validator_key.as_ref().map(|k| {
+            let mut seed = [0u8; 32];
+            seed.copy_from_slice(&k.to_bytes());
+            seed
+        });
+        
+        let swarm = SwarmManager::new(
+            node_key,
+            listen_multiaddr,
+            bootstrap_multiaddrs,
+        ).await.map_err(|e| anyhow::anyhow!("Failed to create swarm: {:?}", e))?;
+        
+        let peer_id = swarm.local_peer_id();
+        info!("  Local Peer ID: {}", peer_id);
+        
+        let swarm = Arc::new(swarm);
+        self.swarm_manager = Some(swarm.clone());
+        
+        // Spawn network event handler
+        let consensus = self.consensus.clone();
+        tokio::spawn(async move {
+            Self::network_event_loop(swarm, consensus).await;
+        });
+        
+        info!("✅ P2P network started - The Nervous System is alive");
+        Ok(())
+    }
+    
+    /// Handle incoming network events
+    async fn network_event_loop(
+        swarm: Arc<SwarmManager>,
+        consensus: Option<Arc<Mutex<ConsensusEngine<StorageBackend>>>>,
+    ) {
+        info!("Network event loop started");
+        
+        while swarm.is_running().await {
+            if let Some(event) = swarm.next_event().await {
+                match event {
+                    NetworkEvent::PeerConnected(peer_id) => {
+                        info!("🔗 Peer connected: {}", peer_id);
+                    }
+                    
+                    NetworkEvent::PeerDisconnected(peer_id) => {
+                        warn!("🔌 Peer disconnected: {}", peer_id);
+                    }
+                    
+                    NetworkEvent::BlockReceived { block, from } => {
+                        info!("📦 Received block #{} from {}", block.header.block_number, from);
+                        
+                        // Validate and import block via consensus
+                        if let Some(ref consensus) = consensus {
+                            if let Ok(mut consensus_guard) = consensus.try_lock() {
+                                // TODO: Validate block signatures
+                                if let Err(e) = consensus_guard.store_block(&block) {
+                                    warn!("Failed to store received block: {:?}", e);
+                                } else {
+                                    debug!("Block #{} imported successfully", block.header.block_number);
+                                }
+                            }
+                        }
+                    }
+                    
+                    NetworkEvent::TransactionReceived { transaction, from } => {
+                        debug!("📝 Received transaction from {}", from);
+                        // TODO: Add to transaction pool
+                    }
+                    
+                    NetworkEvent::CvpMutationAnnounced { contract_id, epoch, mutation_hash, from } => {
+                        info!(
+                            "🛡️ CVP mutation announced: contract {} epoch {} from {}",
+                            hex::encode(&contract_id[..8]), epoch, from
+                        );
+                        // TODO: Validate and apply CVP mutation
+                    }
+                    
+                    NetworkEvent::ConsensusMessage { data, from } => {
+                        debug!("📢 Consensus message from {} ({} bytes)", from, data.len());
+                        // TODO: Process consensus message (votes, etc.)
+                    }
+                }
+            }
+        }
+        
+        info!("Network event loop terminated");
     }
 
     /// Start RPC server

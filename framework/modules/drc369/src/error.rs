@@ -25,4 +25,13 @@ pub enum Drc369Error {
 
     #[error("State update failed: {0}")]
     StateUpdateFailed(String),
+    
+    #[error("Physics validation failed: {0}")]
+    PhysicsValidationFailed(String),
+    
+    #[error("Invalid metadata: {0}")]
+    InvalidMetadata(String),
+    
+    #[error("Invalid royalty configuration: {0}")]
+    InvalidRoyalty(String),
 }

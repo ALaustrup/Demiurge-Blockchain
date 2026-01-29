@@ -43,5 +43,6 @@ serde_json = { workspace = true }
 hex = "0.4"
 ed25519-dalek = { workspace = true }
 rand = "0.8"
+libp2p = { workspace = true }
 
 [dev-dependencies]

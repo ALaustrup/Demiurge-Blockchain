@@ -1,14 +1,38 @@
 //! Storage backend implementation
+//!
+//! Provides efficient key-value storage with prefix iteration support
+//! for hierarchical state queries (critical for DRC-369 state trees).
 
 use thiserror::Error;
 use std::collections::HashMap;
 
-/// Storage trait
+/// Storage trait with prefix iteration support
 pub trait Storage {
+    /// Get a value by key
     fn get(&self, key: &[u8]) -> Option<Vec<u8>>;
+    
+    /// Put a key-value pair
     fn put(&mut self, key: &[u8], value: &[u8]);
+    
+    /// Delete a key
     fn delete(&mut self, key: &[u8]);
+    
+    /// Commit changes and return root hash
     fn commit(&mut self) -> Result<[u8; 32], StorageError>;
+    
+    /// Iterate over all keys with a given prefix
+    /// Returns (key, value) pairs in lexicographic order
+    fn prefix_iter(&self, prefix: &[u8]) -> Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)> + '_>;
+    
+    /// Count keys with a given prefix (more efficient than iterating)
+    fn prefix_count(&self, prefix: &[u8]) -> usize {
+        self.prefix_iter(prefix).count()
+    }
+    
+    /// Check if any key exists with the given prefix
+    fn prefix_exists(&self, prefix: &[u8]) -> bool {
+        self.prefix_iter(prefix).next().is_some()
+    }
 }
 
 /// In-memory storage for testing
@@ -42,14 +66,36 @@ impl Storage for MemoryStorage {
         // For memory storage, just return a hash of all data
         use blake2::{Blake2b512, Digest};
         let mut hasher = Blake2b512::new();
-        for (key, value) in &self.data {
-            hasher.update(key);
-            hasher.update(value);
+        
+        // Sort keys for deterministic hashing
+        let mut keys: Vec<_> = self.data.keys().collect();
+        keys.sort();
+        
+        for key in keys {
+            if let Some(value) = self.data.get(key) {
+                hasher.update(key);
+                hasher.update(value);
+            }
         }
         let hash = hasher.finalize();
         let mut result = [0u8; 32];
         result.copy_from_slice(&hash[..32]);
         Ok(result)
+    }
+    
+    fn prefix_iter(&self, prefix: &[u8]) -> Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)> + '_> {
+        let prefix = prefix.to_vec();
+        
+        // Collect matching entries and sort by key
+        let mut entries: Vec<_> = self.data
+            .iter()
+            .filter(move |(k, _)| k.starts_with(&prefix))
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        
+        entries.sort_by(|a, b| a.0.cmp(&b.0));
+        
+        Box::new(entries.into_iter())
     }
 }
 
@@ -80,8 +126,42 @@ impl Storage for StorageBackend {
     }
 
     fn commit(&mut self) -> Result<[u8; 32], StorageError> {
-        // TODO: Calculate Merkle root
-        Ok([0u8; 32])
+        // Flush to disk
+        self.db.flush().map_err(|e| StorageError::DatabaseError(e.to_string()))?;
+        
+        // TODO: Calculate Merkle root from state trie
+        // For now, return a hash of the current timestamp as placeholder
+        use blake2::{Blake2b512, Digest};
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"COMMIT_");
+        hasher.update(&std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+            .to_le_bytes());
+        let hash = hasher.finalize();
+        let mut result = [0u8; 32];
+        result.copy_from_slice(&hash[..32]);
+        Ok(result)
+    }
+    
+    fn prefix_iter(&self, prefix: &[u8]) -> Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)> + '_> {
+        use rocksdb::IteratorMode;
+        
+        let prefix = prefix.to_vec();
+        let iter = self.db.iterator(IteratorMode::From(&prefix, rocksdb::Direction::Forward));
+        
+        Box::new(
+            iter.take_while(move |result| {
+                match result {
+                    Ok((k, _)) => k.starts_with(&prefix),
+                    Err(_) => false,
+                }
+            })
+            .filter_map(|result| {
+                result.ok().map(|(k, v)| (k.to_vec(), v.to_vec()))
+            })
+        )
     }
 }
 

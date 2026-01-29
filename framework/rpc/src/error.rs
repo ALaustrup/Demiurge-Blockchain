@@ -33,6 +33,12 @@ pub enum RpcError {
 
     #[error("Not found: {0}")]
     NotFound(String),
+    
+    #[error("Invalid transaction: {0}")]
+    InvalidTransaction(String),
+    
+    #[error("Transaction pool full")]
+    PoolFull,
 }
 
 impl From<RpcError> for ErrorObjectOwned {
@@ -42,6 +48,8 @@ impl From<RpcError> for ErrorObjectOwned {
             RpcError::InvalidParams => (-32602, "Invalid parameters".to_string()),
             RpcError::NotImplemented => (-32601, "Method not found".to_string()),
             RpcError::NotFound(msg) => (-32602, msg),
+            RpcError::InvalidTransaction(msg) => (-32010, format!("Invalid transaction: {}", msg)),
+            RpcError::PoolFull => (-32011, "Transaction pool is full".to_string()),
             RpcError::ServerError(msg) | RpcError::InternalError(msg) | RpcError::StorageError(msg) | RpcError::SubscriptionError(msg) => {
                 (-32603, msg)
             }
