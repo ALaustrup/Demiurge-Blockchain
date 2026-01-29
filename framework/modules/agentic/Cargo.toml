@@ -22,6 +22,11 @@ scale-info = { version = "2.10", features = ["derive"] }
 blake3 = "1.5"
 rand = "0.8"
 hex = "0.4"
+sha2 = "0.10"
+
+# ZK Proofs (optional)
+plonky2 = { version = "0.2", optional = true }
+plonky2_field = { version = "0.2", optional = true }
 
 # Async
 tokio = { version = "1.35", features = ["full"], optional = true }
@@ -33,7 +38,8 @@ ndarray = { version = "0.15", optional = true }
 default = []
 std = ["tokio"]
 vector-state = ["ndarray"]
-full = ["std", "vector-state"]
+zk-vcp = ["plonky2", "plonky2_field"]
+full = ["std", "vector-state", "zk-vcp"]
 
 [dev-dependencies]
 tokio = { version = "1.35", features = ["full", "test-util"] }

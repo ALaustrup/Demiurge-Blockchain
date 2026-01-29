@@ -34,6 +34,7 @@ pub mod agent_did;
 pub mod wallet;
 pub mod forge;
 pub mod memory;
+pub mod vcp_circuits;
 pub mod error;
 
 pub use agent_did::{
@@ -49,6 +50,10 @@ pub use wallet::{
 pub use forge::{
     VerifiableComputeProof, InferenceRequest, InferenceResult,
     ModelAttestation, SentinelAttestation, ForgeRegistry,
+};
+
+pub use vcp_circuits::{
+    VcpGenerator, VcpPublicInputs, VcpWitness, AttestationWitness,
 };
 
 pub use memory::{
