@@ -18,9 +18,11 @@
 //! - **Composable**: NFTs can be nested within other NFTs
 //! - **Delegated Permissions**: Grant specific rights without transferring ownership
 //! - **CVP Protected**: Polymorphic bytecode that morphs to resist attacks
+//! - **Physics-Ready**: Standardized physics properties for game engines
 
 pub mod nft;
 pub mod error;
+pub mod physics;
 
 pub use nft::{
     Drc369Module, 
@@ -33,3 +35,8 @@ pub use nft::{
     register_drc369_with_cvp,
 };
 pub use error::{Drc369Error, Result};
+pub use physics::{
+    PhysicsProperties, RigidBodyProperties, CollisionShape,
+    MaterialPhysics, MaterialPreset, ThermalProperties,
+    DestructionProperties, FluidInteraction, DamageType,
+};

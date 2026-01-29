@@ -11,6 +11,7 @@ description = "DRC-369 NFT Standard - Stateful NFTs with CVP Protection"
 codec = { workspace = true }
 scale-info = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 blake2 = { workspace = true }
 hex = { workspace = true }
