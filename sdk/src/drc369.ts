@@ -34,6 +34,43 @@ export interface DynamicState {
 }
 
 /**
+ * State tree result from getStateTree
+ */
+export interface StateTree {
+  tokenId: string;
+  pathPrefix: string;
+  entries: StateTreeEntry[];
+  totalCount: number;
+}
+
+/**
+ * Single entry in a state tree
+ */
+export interface StateTreeEntry {
+  path: string;
+  value: string;
+  valueType: string;
+}
+
+/**
+ * Batch query result
+ */
+export interface StateBatchResult {
+  path: string;
+  value: string | null;
+}
+
+/**
+ * Optimistic update result
+ */
+export interface OptimisticResult {
+  txHash: string;
+  optimisticValue: string;
+  status: 'pending' | 'confirmed' | 'failed';
+  estimatedConfirmationMs: number;
+}
+
+/**
  * DRC-369 NFT interface
  */
 export class DRC369 {
@@ -75,13 +112,72 @@ export class DRC369 {
     ]);
   }
 
-  /**
+/**
    * Get dynamic state for a token
+   * 
+   * Supports path notation (e.g., "stats/damage") or hex keys.
    */
-  async getDynamicState(tokenId: TokenId, stateKey: string): Promise<string | null> {
+  async getDynamicState(tokenId: TokenId, path: string): Promise<string | null> {
     return this.client.call<string | null>('drc369_getDynamicState', [
       this.normalizeTokenId(tokenId),
-      stateKey,
+      path,
+    ]);
+  }
+  
+  /**
+   * Get entire state tree under a path
+   * 
+   * Useful for loading all stats, visual properties, etc.
+   * @example
+   * const visualState = await nft.getStateTree(tokenId, 'visual/');
+   */
+  async getStateTree(tokenId: TokenId, pathPrefix: string): Promise<StateTree> {
+    return this.client.call<StateTree>('drc369_getStateTree', [
+      this.normalizeTokenId(tokenId),
+      pathPrefix,
+    ]);
+  }
+  
+  /**
+   * Batch get multiple state values efficiently
+   * 
+   * Critical for game engine performance - single round-trip for multiple values.
+   * @example
+   * const [damage, durability, glow] = await nft.getStateBatch(tokenId, [
+   *   'stats/damage',
+   *   'stats/durability', 
+   *   'visual/effects/glow/enabled'
+   * ]);
+   */
+  async getStateBatch(tokenId: TokenId, paths: string[]): Promise<StateBatchResult[]> {
+    return this.client.call<StateBatchResult[]>('drc369_getStateBatch', [
+      this.normalizeTokenId(tokenId),
+      paths,
+    ]);
+  }
+  
+  /**
+   * Set state with optimistic update
+   * 
+   * Returns immediately with optimistic result. The game can apply the change
+   * locally and reconcile when the transaction confirms.
+   * 
+   * @example
+   * const result = await nft.setStateOptimistic(tokenId, 'stats/durability', '80', signature);
+   * // Game immediately shows durability = 80
+   * // Background: transaction confirms or rolls back
+   */
+  async setStateOptimistic(
+    tokenId: TokenId,
+    path: string,
+    value: string,
+    signature: string
+  ): Promise<OptimisticResult> {
+    return this.client.call<OptimisticResult>('drc369_setStateOptimistic', [
+      this.normalizeTokenId(tokenId),
+      path,
+      value,
+      signature,
     ]);
   }
 

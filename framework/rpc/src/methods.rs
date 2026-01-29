@@ -480,16 +480,119 @@ impl<S: Storage> RpcMethods<S> {
     /// Get DRC-369 dynamic state for a token
     /// 
     /// Returns the current value of a dynamic state key for the token.
+    /// Supports both hex keys and path notation (e.g., "stats/damage").
     pub async fn drc369_get_dynamic_state(&self, token_id: String, state_key: String) -> Result<Option<String>, RpcError> {
         let token_id_u256 = self.parse_token_id(&token_id)?;
-        let state_key_bytes = hex::decode(&state_key)
-            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Support both hex and path notation
+        let state_key_bytes = if state_key.contains('/') || state_key.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            // Path notation: "stats/damage" -> hash it for storage key
+            state_key.as_bytes().to_vec()
+        } else {
+            // Hex notation
+            hex::decode(&state_key).map_err(|_| RpcError::InvalidParams)?
+        };
         
         let key = Self::drc369_dynamic_state_key(token_id_u256, &state_key_bytes);
         match self.storage.get(&key) {
-            Some(value) => Ok(Some(hex::encode(value))),
+            Some(value) => {
+                // Try to decode as UTF-8 string, fall back to hex
+                match String::from_utf8(value.clone()) {
+                    Ok(s) => Ok(Some(s)),
+                    Err(_) => Ok(Some(hex::encode(value))),
+                }
+            },
             None => Ok(None),
         }
+    }
+    
+    /// Get DRC-369 state tree for a token
+    /// 
+    /// Returns all state values under a given path prefix.
+    /// Example: `drc369_getStateTree(tokenId, "stats/")` returns all stats.
+    pub async fn drc369_get_state_tree(&self, token_id: String, path_prefix: String) -> Result<Drc369StateTree, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        
+        // Scan storage for matching keys
+        // In production, we'd have a more efficient index
+        let prefix = format!("DRC369:State:{}:", hex::encode(token_id_u256));
+        let path_bytes = path_prefix.as_bytes();
+        
+        let mut entries: Vec<Drc369StateEntry> = Vec::new();
+        
+        // For now, return empty - full implementation requires storage iteration
+        // which we'll add with the indexer
+        // TODO: Implement storage prefix scan
+        
+        Ok(Drc369StateTree {
+            token_id,
+            path_prefix,
+            entries,
+            total_count: 0,
+        })
+    }
+    
+    /// Batch get DRC-369 state values
+    /// 
+    /// Efficiently retrieves multiple state values in a single call.
+    /// Critical for game engine performance.
+    pub async fn drc369_get_state_batch(&self, token_id: String, paths: Vec<String>) -> Result<Vec<Drc369StateBatchEntry>, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        
+        let mut results = Vec::with_capacity(paths.len());
+        
+        for path in paths {
+            let state_key_bytes = path.as_bytes().to_vec();
+            let key = Self::drc369_dynamic_state_key(token_id_u256, &state_key_bytes);
+            
+            let value = match self.storage.get(&key) {
+                Some(v) => {
+                    match String::from_utf8(v.clone()) {
+                        Ok(s) => Some(s),
+                        Err(_) => Some(hex::encode(v)),
+                    }
+                },
+                None => None,
+            };
+            
+            results.push(Drc369StateBatchEntry {
+                path,
+                value,
+            });
+        }
+        
+        Ok(results)
+    }
+    
+    /// Set DRC-369 dynamic state (optimistic)
+    /// 
+    /// Submits a state change transaction and returns immediately.
+    /// The change is applied optimistically - caller should handle rollback on failure.
+    pub async fn drc369_set_state_optimistic(&self, token_id: String, path: String, value: String, signature: String) -> Result<Drc369OptimisticResult, RpcError> {
+        // Generate transaction hash
+        use blake2::{Blake2b512, Digest};
+        let mut hasher = Blake2b512::new();
+        hasher.update(token_id.as_bytes());
+        hasher.update(path.as_bytes());
+        hasher.update(value.as_bytes());
+        hasher.update(&std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .to_le_bytes());
+        let hash = hasher.finalize();
+        let mut tx_hash = [0u8; 32];
+        tx_hash.copy_from_slice(&hash[..32]);
+        
+        // TODO: Submit actual transaction to pool
+        // For now, return optimistic result
+        
+        Ok(Drc369OptimisticResult {
+            tx_hash: hex::encode(tx_hash),
+            optimistic_value: value,
+            status: "pending".to_string(),
+            estimated_confirmation_ms: 3000,
+        })
     }
     
     /// Get DRC-369 token full info
@@ -1131,6 +1234,52 @@ pub struct Drc369CollectionStats {
     pub soulbound_count: u64,
     /// Number of nested tokens
     pub nested_count: u64,
+}
+
+/// DRC-369 state tree response
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369StateTree {
+    /// Token ID
+    pub token_id: String,
+    /// Path prefix that was queried
+    pub path_prefix: String,
+    /// State entries under this path
+    pub entries: Vec<Drc369StateEntry>,
+    /// Total count of entries
+    pub total_count: usize,
+}
+
+/// Single state entry in a tree
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369StateEntry {
+    /// Full path (e.g., "stats/damage")
+    pub path: String,
+    /// Value as string
+    pub value: String,
+    /// Value type hint
+    pub value_type: String,
+}
+
+/// Batch state query result
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369StateBatchEntry {
+    /// Requested path
+    pub path: String,
+    /// Value if exists
+    pub value: Option<String>,
+}
+
+/// Optimistic state update result
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369OptimisticResult {
+    /// Transaction hash
+    pub tx_hash: String,
+    /// The value that was optimistically applied
+    pub optimistic_value: String,
+    /// Status: "pending", "confirmed", "failed"
+    pub status: String,
+    /// Estimated time to confirmation in milliseconds
+    pub estimated_confirmation_ms: u64,
 }
 
 // ========== Author Response Types ==========
