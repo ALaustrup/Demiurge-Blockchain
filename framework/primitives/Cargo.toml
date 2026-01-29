@@ -1,0 +1,16 @@
+[package]
+name = "demiurge-primitives"
+version = "0.1.0"
+edition = "2021"
+description = "Core primitives for the Demiurge Protocol"
+license = "MIT"
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.7", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+blake2 = "0.10"
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+rand = "0.8"
+
+[dev-dependencies]
+rand = "0.8"
