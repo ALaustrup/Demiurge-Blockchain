@@ -272,6 +272,19 @@ Create and start an agent.
 | `metadata` | Agent metadata |
 | `state` | Current state (idle, thinking, executing, etc.) |
 
+## Related Packages
+
+- [@demiurge/sdk](https://www.npmjs.com/package/@demiurge/sdk) - Core Protocol SDK
+- [@demiurge/qor-sdk](https://www.npmjs.com/package/@demiurge/qor-sdk) - Identity SDK
+- [@demiurge/drc369-sdk](https://www.npmjs.com/package/@demiurge/drc369-sdk) - NFT SDK
+
 ## License
 
-MIT
+MIT - Demiurge Protocol
+
+## Links
+
+- [Agentic Layer Documentation](https://demiurge.cloud/docs/agents)
+- [Documentation](https://demiurge.cloud/docs)
+- [GitHub](https://github.com/ALaustrup/Demiurge-Blockchain)
+- [Website](https://demiurge.cloud)

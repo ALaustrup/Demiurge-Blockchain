@@ -5,13 +5,16 @@
   "description": "Demiurge Web-First Metaverse Ecosystem",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "sdk"
   ],
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "build:sdk": "npm run build --workspace=sdk && npm run build --workspace=@demiurge/qor-sdk && npm run build --workspace=@demiurge/drc369-sdk && npm run build --workspace=@demiurge/agent-foundry",
     "lint": "turbo run lint",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "publish:sdk": "npm run build:sdk && npm publish --workspace=sdk --access public && npm publish --workspace=packages/qor-sdk --access public && npm publish --workspace=packages/drc369-sdk --access public && npm publish --workspace=packages/agent-foundry --access public"
   },
   "devDependencies": {
     "turbo": "^2.0.0"
