@@ -48,6 +48,10 @@ struct Args {
     /// Validator key file (JSON) - enables validator mode
     #[arg(long)]
     validator_key: Option<String>,
+
+    /// Bootstrap peer addresses (comma-separated multiaddrs)
+    #[arg(long)]
+    bootstrap_peers: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -100,6 +104,23 @@ async fn main() -> anyhow::Result<()> {
         info!("Running in OBSERVER mode (no validator key)");
     }
     
+    // Parse bootstrap peers from comma-separated string
+    let bootstrap_peers = if let Some(ref peers_str) = args.bootstrap_peers {
+        peers_str.split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect()
+    } else {
+        vec![]
+    };
+    
+    if !bootstrap_peers.is_empty() {
+        info!("Bootstrap peers configured: {}", bootstrap_peers.len());
+        for peer in &bootstrap_peers {
+            info!("  - {}", peer);
+        }
+    }
+    
     let config = NodeConfig {
         data_dir: data_dir.clone().into(),
         rpc_addr: args.rpc_addr.parse()
@@ -109,7 +130,7 @@ async fn main() -> anyhow::Result<()> {
         block_time_ms: args.block_time,
         enable_rpc: args.rpc,
         enable_p2p: args.p2p,
-        bootstrap_peers: vec![],
+        bootstrap_peers,
         genesis_file: genesis_file.clone(),
         validator_key_file: validator_key_file.clone(),
     };
