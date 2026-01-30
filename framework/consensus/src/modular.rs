@@ -77,7 +77,7 @@ pub struct MechanismMetadata {
     /// Author/maintainer
     pub author: String,
     /// Minimum validators required
-    pub min_validators: usize,
+    pub min_validators: u32,
     /// Maximum TPS capability
     pub max_tps: u32,
     /// Finality time in milliseconds
@@ -105,7 +105,7 @@ pub enum FinalityResult {
     /// Block is finalized
     Finalized,
     /// Not enough signatures/votes
-    NotEnoughVotes { required: usize, received: usize },
+    NotEnoughVotes { required: u32, received: u32 },
     /// Finalization failed with error
     Failed(String),
 }
@@ -570,7 +570,10 @@ impl ConsensusMechanism for PosBftMechanism {
         if received >= required {
             Ok(FinalityResult::Finalized)
         } else {
-            Ok(FinalityResult::NotEnoughVotes { required, received })
+            Ok(FinalityResult::NotEnoughVotes {
+                required: required as u32,
+                received: received as u32,
+            })
         }
     }
     
@@ -728,7 +731,10 @@ impl ConsensusMechanism for PureBftMechanism {
             self.leader_index = (self.leader_index + 1) % total;
             Ok(FinalityResult::Finalized)
         } else {
-            Ok(FinalityResult::NotEnoughVotes { required, received })
+            Ok(FinalityResult::NotEnoughVotes {
+                required: required as u32,
+                received: received as u32,
+            })
         }
     }
     

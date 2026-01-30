@@ -576,7 +576,7 @@ impl ShardCoordinator {
             metrics: ShardMetrics { shard_id: new_a, ..Default::default() },
         };
         
-        let mut shard_b = ShardInfo {
+        let shard_b = ShardInfo {
             id: new_b,
             state: ShardState::Active,
             created_at: block_number,
