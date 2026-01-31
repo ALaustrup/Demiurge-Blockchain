@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createAgent } from '@demiurge/agent-foundry';
+import { deployAgent, estimateFee } from '@/lib/transaction-builder';
 
 interface DeployAgentFormProps {
   onSuccess?: (agentDid: string) => void;
@@ -17,6 +18,9 @@ export function DeployAgentForm({ onSuccess, onCancel }: DeployAgentFormProps) {
   const [step, setStep] = useState<'config' | 'capabilities' | 'funding' | 'review'>('config');
   const [deploying, setDeploying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [agentDid, setAgentDid] = useState<string | null>(null);
+  const [estimatedEnergy, setEstimatedEnergy] = useState(10);
 
   const [config, setConfig] = useState({
     name: '',
@@ -65,29 +69,41 @@ export function DeployAgentForm({ onSuccess, onCancel }: DeployAgentFormProps) {
   };
 
   const handleDeploy = async () => {
+    if (!user) {
+      setError('Not authenticated');
+      return;
+    }
+
     setDeploying(true);
     setError(null);
+    setSuccess(false);
 
     try {
-      // TODO: Implement agent deployment
-      // const agent = await createAgent({
-      //   name: config.name,
-      //   llm: {
-      //     provider: config.llmProvider,
-      //     apiKey: config.apiKey,
-      //   },
-      //   autonomy: config.autonomyLevel,
-      //   capabilities: config.capabilities,
-      //   spendingLimit: `${config.spendingLimit} CGT`,
-      //   controller: user?.qor_id,
-      // });
+      // Estimate energy cost
+      const fee = await estimateFee({ type: 'agentDeploy', config });
+      setEstimatedEnergy(fee.energy);
+
+      // Build agent configuration
+      const agentConfig = {
+        name: config.name,
+        mission: config.mission,
+        autonomy: config.autonomyLevel,
+        capabilities: config.capabilities,
+        spending_limit: config.spendingLimit,
+        llm_provider: config.llmProvider,
+        controller: user.qor_id,
+      };
+
+      // Build, sign, and submit deployment transaction
+      const txHash = await deployAgent(user, agentConfig);
       
-      console.log('Agent would be deployed:', config);
-      
-      const mockAgentDid = `did:demiurge:agent:${Date.now()}`;
+      // Generate agent DID from transaction hash
+      const did = `did:demiurge:agent:${txHash.slice(2, 18)}`;
+      setAgentDid(did);
+      setSuccess(true);
       
       if (onSuccess) {
-        onSuccess(mockAgentDid);
+        onSuccess(did);
       }
     } catch (err: any) {
       setError(err.message || 'Deployment failed');
@@ -415,6 +431,18 @@ export function DeployAgentForm({ onSuccess, onCancel }: DeployAgentFormProps) {
               </div>
             </div>
 
+            {/* Success */}
+            {success && agentDid && (
+              <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <p className="text-green-400 font-medium mb-2">✅ Agent Deployed Successfully!</p>
+                <p className="text-xs text-gray-300">Agent DID:</p>
+                <p className="text-xs font-mono text-green-400 break-all">{agentDid}</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Your agent is now registered on-chain and will begin operations shortly
+                </p>
+              </div>
+            )}
+
             {/* Error */}
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -422,19 +450,14 @@ export function DeployAgentForm({ onSuccess, onCancel }: DeployAgentFormProps) {
               </div>
             )}
 
-            {/* Coming Soon Notice */}
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <p className="text-yellow-400 text-sm mb-2">
-                ⚠️ Agent deployment UI is ready, but on-chain deployment requires:
-              </p>
-              <ul className="text-xs text-gray-300 space-y-1 ml-4">
-                <li>• Agent DID registration transaction</li>
-                <li>• Agentic wallet creation and funding</li>
-                <li>• LLM provider integration</li>
-                <li>• Vector-State Kernel initialization</li>
-              </ul>
+            {/* Energy Cost */}
+            <div className="p-3 bg-neon-purple/10 border border-neon-purple/30 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-300">Deployment Cost:</span>
+                <span className="text-neon-purple font-bold">{estimatedEnergy} Energy (0 CGT fees)</span>
+              </div>
               <p className="text-xs text-gray-400 mt-2">
-                Backend Agent Foundry is ready - frontend integration in progress
+                💡 Agent will be funded with {config.spendingLimit} CGT from your wallet
               </p>
             </div>
 

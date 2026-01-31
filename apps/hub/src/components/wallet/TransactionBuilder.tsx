@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DemiurgeClient } from '@demiurge/sdk';
+import { sendCGT, estimateFee } from '@/lib/transaction-builder';
+import { TransactionStatus } from './TransactionStatus';
 
 interface TransactionBuilderProps {
   fromAddress: string;
@@ -17,19 +19,22 @@ export function TransactionBuilder({ fromAddress, onSuccess, onCancel }: Transac
   const [memo, setMemo] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [estimatedEnergy, setEstimatedEnergy] = useState(1);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    setSuccess(false);
 
     try {
-      const client = new DemiurgeClient({
-        rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud',
-      });
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
 
-      // TODO: Implement transaction building and signing
-      // For now, just validate inputs
+      // Validate inputs
       if (!toAddress || !amount) {
         throw new Error('Recipient address and amount required');
       }
@@ -39,20 +44,23 @@ export function TransactionBuilder({ fromAddress, onSuccess, onCancel }: Transac
         throw new Error('Invalid amount');
       }
 
-      // TODO: Sign and submit transaction
-      // const tx = await client.submitTransaction({
-      //   from: fromAddress,
-      //   to: toAddress,
-      //   amount: (amountNum * 100).toString(), // Convert to Sparks
-      //   memo,
-      // });
+      // Estimate fee
+      const fee = await estimateFee({ type: 'transfer', to: toAddress, amount: (amountNum * 100).toString() });
+      setEstimatedEnergy(fee.energy);
 
-      const mockTxHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+      // Build, sign, and submit transaction
+      const hash = await sendCGT(user, toAddress, amount);
       
-      console.log('Transaction would be submitted:', { fromAddress, toAddress, amount, memo });
+      setTxHash(hash);
+      setSuccess(true);
+      
+      // Clear form
+      setToAddress('');
+      setAmount('');
+      setMemo('');
       
       if (onSuccess) {
-        onSuccess(mockTxHash);
+        onSuccess(hash);
       }
     } catch (err: any) {
       setError(err.message || 'Transaction failed');
@@ -123,6 +131,17 @@ export function TransactionBuilder({ fromAddress, onSuccess, onCancel }: Transac
           />
         </div>
 
+        {/* Transaction Status */}
+        {success && txHash && (
+          <TransactionStatus 
+            txHash={txHash} 
+            onConfirmed={() => {
+              // Optionally refresh balance or show success message
+              console.log('Transaction confirmed:', txHash);
+            }}
+          />
+        )}
+
         {/* Error Message */}
         {error && (
           <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -130,11 +149,12 @@ export function TransactionBuilder({ fromAddress, onSuccess, onCancel }: Transac
           </div>
         )}
 
-        {/* Coming Soon Notice */}
-        <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-          <p className="text-yellow-400 text-sm">
-            ⚠️ Transaction submission coming soon. The blockchain is ready, but the signing UI is still in development.
-          </p>
+        {/* Energy Cost */}
+        <div className="p-3 bg-neon-cyan/10 border border-neon-cyan/30 rounded-lg">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-300">Transaction Cost:</span>
+            <span className="text-neon-cyan font-bold">{estimatedEnergy} Energy (0 CGT fees)</span>
+          </div>
         </div>
 
         {/* Actions */}

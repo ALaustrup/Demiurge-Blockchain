@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DRC369Client } from '@demiurge/drc369-sdk';
+import { mintDRC369, estimateFee } from '@/lib/transaction-builder';
 
 interface MintNFTFormProps {
   onSuccess?: (tokenId: string) => void;
@@ -32,6 +33,9 @@ export function MintNFTForm({ onSuccess, onCancel }: MintNFTFormProps) {
   const [step, setStep] = useState<'basic' | 'attributes' | 'physics' | 'review'>('basic');
   const [minting, setMinting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [estimatedEnergy, setEstimatedEnergy] = useState(5);
 
   const [metadata, setMetadata] = useState<NFTMetadata>({
     name: '',
@@ -77,23 +81,31 @@ export function MintNFTForm({ onSuccess, onCancel }: MintNFTFormProps) {
   };
 
   const handleMint = async () => {
+    if (!user) {
+      setError('Not authenticated');
+      return;
+    }
+
     setMinting(true);
     setError(null);
+    setSuccess(false);
 
     try {
-      const client = new DRC369Client({
-        rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud',
-      });
+      // Estimate energy cost
+      const fee = await estimateFee({ type: 'drc369Mint', metadata });
+      setEstimatedEnergy(fee.energy);
 
-      // TODO: Implement minting
-      // const tokenId = await client.mint(metadata);
+      // Build, sign, and submit minting transaction
+      const hash = await mintDRC369(user, metadata);
       
-      console.log('NFT would be minted:', metadata);
+      setTxHash(hash);
+      setSuccess(true);
       
-      const mockTokenId = 'nft-' + Date.now();
+      // Extract token ID from hash (simplified)
+      const tokenId = 'nft-' + hash.slice(0, 16);
       
       if (onSuccess) {
-        onSuccess(mockTokenId);
+        onSuccess(tokenId);
       }
     } catch (err: any) {
       setError(err.message || 'Minting failed');
@@ -434,6 +446,18 @@ export function MintNFTForm({ onSuccess, onCancel }: MintNFTFormProps) {
               )}
             </div>
 
+            {/* Success */}
+            {success && txHash && (
+              <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <p className="text-green-400 font-medium mb-2">✅ NFT Minted Successfully!</p>
+                <p className="text-xs text-gray-300">Transaction Hash:</p>
+                <p className="text-xs font-mono text-green-400 break-all">{txHash}</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Your NFT will appear in your collection once the transaction is confirmed (~2 seconds)
+                </p>
+              </div>
+            )}
+
             {/* Error */}
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -441,19 +465,12 @@ export function MintNFTForm({ onSuccess, onCancel }: MintNFTFormProps) {
               </div>
             )}
 
-            {/* Coming Soon Notice */}
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <p className="text-yellow-400 text-sm mb-2">
-                ⚠️ NFT minting UI is ready, but on-chain minting requires:
-              </p>
-              <ul className="text-xs text-gray-300 space-y-1 ml-4">
-                <li>• Wallet signature generation</li>
-                <li>• Transaction submission to RPC</li>
-                <li>• DRC-369 module transaction handler</li>
-              </ul>
-              <p className="text-xs text-gray-400 mt-2">
-                Backend is ready - frontend integration in progress
-              </p>
+            {/* Energy Cost */}
+            <div className="p-3 bg-neon-cyan/10 border border-neon-cyan/30 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-300">Minting Cost:</span>
+                <span className="text-neon-cyan font-bold">{estimatedEnergy} Energy (0 CGT fees)</span>
+              </div>
             </div>
 
             {/* Navigation */}

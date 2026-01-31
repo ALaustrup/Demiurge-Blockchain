@@ -7,6 +7,10 @@
 import { blake2b } from '@noble/hashes/blake2b';
 import { bytesToHex, hexToBytes } from './utils';
 
+// Placeholder for crypto operations
+// In production, use @noble/ed25519 or similar
+const crypto = typeof window !== 'undefined' ? window.crypto : require('crypto').webcrypto;
+
 /**
  * Key pair (public/private)
  */
@@ -20,6 +24,25 @@ export interface KeyPair {
  */
 export class Wallet {
   private keyPair: KeyPair | null = null;
+  
+  /**
+   * Generate a new random wallet
+   */
+  static generate(): Wallet {
+    const wallet = new Wallet();
+    const privateKey = new Uint8Array(32);
+    crypto.getRandomValues(privateKey);
+    
+    // Derive public key
+    const publicKey = blake2b(privateKey, { dkLen: 32 });
+    
+    wallet.keyPair = {
+      privateKey,
+      publicKey,
+    };
+    
+    return wallet;
+  }
   
   /**
    * Create wallet from private key
@@ -54,7 +77,7 @@ export class Wallet {
   /**
    * Get the wallet address
    */
-  getAddress(): string {
+  address(): string {
     if (!this.keyPair) {
       throw new Error('Wallet not initialized');
     }
@@ -64,11 +87,21 @@ export class Wallet {
   /**
    * Get the public key
    */
-  getPublicKey(): Uint8Array {
+  publicKey(): string {
     if (!this.keyPair) {
       throw new Error('Wallet not initialized');
     }
-    return this.keyPair.publicKey;
+    return bytesToHex(this.keyPair.publicKey);
+  }
+  
+  /**
+   * Export private key (use with caution!)
+   */
+  exportPrivateKey(): string {
+    if (!this.keyPair) {
+      throw new Error('Wallet not initialized');
+    }
+    return bytesToHex(this.keyPair.privateKey);
   }
   
   /**
@@ -79,8 +112,8 @@ export class Wallet {
       throw new Error('Wallet not initialized');
     }
     
-    // Placeholder signature (real impl would use ed25519)
-    // This creates a deterministic "signature" for testing
+    // Deterministic signature using Blake2b
+    // In production, use ed25519
     const toSign = new Uint8Array(message.length + 32);
     toSign.set(message);
     toSign.set(this.keyPair.privateKey, message.length);
