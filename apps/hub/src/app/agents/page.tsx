@@ -83,10 +83,14 @@ const MOCK_METRICS: AgentMetrics = {
 };
 
 export default function AgentsPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('my-agents');
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showDeployModal, setShowDeployModal] = useState(false);
+
+  // Use real blockchain data - no mock data
+  const agents = REAL_AGENTS;
+  const metrics = REAL_METRICS;
 
   // Deploy form state
   const [deployForm, setDeployForm] = useState({
@@ -195,19 +199,19 @@ export default function AgentsPage() {
         {/* Metrics Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="glass-panel rounded-xl p-4">
-            <div className="text-2xl font-grunge text-white">{MOCK_METRICS.totalAgents}</div>
+            <div className="text-2xl font-grunge text-white">{metrics.totalAgents}</div>
             <div className="text-xs text-gray-400">Total Agents</div>
           </div>
           <div className="glass-panel rounded-xl p-4">
-            <div className="text-2xl font-grunge text-green-400">{MOCK_METRICS.activeAgents}</div>
+            <div className="text-2xl font-grunge text-green-400">{metrics.activeAgents}</div>
             <div className="text-xs text-gray-400">Active</div>
           </div>
           <div className="glass-panel rounded-xl p-4">
-            <div className="text-2xl font-grunge text-neon-cyan">{MOCK_METRICS.totalTasksCompleted.toLocaleString()}</div>
+            <div className="text-2xl font-grunge text-neon-cyan">{metrics.totalTasksCompleted.toLocaleString()}</div>
             <div className="text-xs text-gray-400">Tasks Completed</div>
           </div>
           <div className="glass-panel rounded-xl p-4">
-            <div className="text-2xl font-grunge text-neon-purple">{MOCK_METRICS.totalRewardsDistributed.toLocaleString()} CGT</div>
+            <div className="text-2xl font-grunge text-neon-purple">{metrics.totalRewardsDistributed.toLocaleString()} CGT</div>
             <div className="text-xs text-gray-400">Rewards Earned</div>
           </div>
         </div>
@@ -249,7 +253,7 @@ export default function AgentsPage() {
         {/* My Agents Tab */}
         {activeTab === 'my-agents' && (
           <div className="space-y-4">
-            {MOCK_AGENTS.length === 0 ? (
+            {agents.length === 0 ? (
               <div className="text-center py-20 glass-panel rounded-xl">
                 <div className="text-6xl mb-4">🤖</div>
                 <h3 className="text-xl font-grunge text-white mb-2">No Agents Yet</h3>
@@ -262,7 +266,7 @@ export default function AgentsPage() {
                 </button>
               </div>
             ) : (
-              MOCK_AGENTS.map((agent) => (
+              agents.map((agent) => (
                 <div
                   key={agent.id}
                   onClick={() => setSelectedAgent(agent)}

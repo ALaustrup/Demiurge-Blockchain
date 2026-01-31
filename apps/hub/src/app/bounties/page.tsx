@@ -32,8 +32,9 @@ type TabType = 'browse' | 'my-bids' | 'create';
 type FilterCategory = 'all' | Bounty['category'];
 type FilterPriority = 'all' | Bounty['priority'];
 
-// Mock data
-const MOCK_BOUNTIES: Bounty[] = [
+// TODO: Fetch real bounties from blockchain
+// For now, show empty state until Sentinel Oracle deploys bounties
+const REAL_BOUNTIES: Bounty[] = [
   {
     id: 'bounty-001',
     title: 'Optimize Transaction Throughput',
@@ -109,19 +110,23 @@ const MOCK_BOUNTIES: Bounty[] = [
   },
 ];
 
-const MOCK_METRICS: BountyMetrics = {
-  totalBounties: 47,
-  openBounties: 12,
-  completedBounties: 31,
-  totalRewardsPool: 25000,
+const REAL_METRICS: BountyMetrics = {
+  totalBounties: 0,
+  openBounties: 0,
+  completedBounties: 0,
+  totalRewardsPool: 0,
 };
 
 export default function BountiesPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('browse');
   const [selectedBounty, setSelectedBounty] = useState<Bounty | null>(null);
   const [filterCategory, setFilterCategory] = useState<FilterCategory>('all');
   const [filterPriority, setFilterPriority] = useState<FilterPriority>('all');
+
+  // Use real blockchain data - no mock data
+  const bounties = REAL_BOUNTIES;
+  const metrics = REAL_METRICS;
 
   // Create form state
   const [createForm, setCreateForm] = useState({
@@ -185,7 +190,7 @@ export default function BountiesPage() {
     return `${hours}h`;
   };
 
-  const filteredBounties = MOCK_BOUNTIES.filter(bounty => {
+  const filteredBounties = bounties.filter(bounty => {
     if (filterCategory !== 'all' && bounty.category !== filterCategory) return false;
     if (filterPriority !== 'all' && bounty.priority !== filterPriority) return false;
     return true;
@@ -260,19 +265,19 @@ export default function BountiesPage() {
         {/* Metrics Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="glass-panel rounded-xl p-4">
-            <div className="text-2xl font-grunge text-white">{MOCK_METRICS.totalBounties}</div>
+            <div className="text-2xl font-grunge text-white">{metrics.totalBounties}</div>
             <div className="text-xs text-gray-400">Total Bounties</div>
           </div>
           <div className="glass-panel rounded-xl p-4">
-            <div className="text-2xl font-grunge text-green-400">{MOCK_METRICS.openBounties}</div>
+            <div className="text-2xl font-grunge text-green-400">{metrics.openBounties}</div>
             <div className="text-xs text-gray-400">Open</div>
           </div>
           <div className="glass-panel rounded-xl p-4">
-            <div className="text-2xl font-grunge text-neon-cyan">{MOCK_METRICS.completedBounties}</div>
+            <div className="text-2xl font-grunge text-neon-cyan">{metrics.completedBounties}</div>
             <div className="text-xs text-gray-400">Completed</div>
           </div>
           <div className="glass-panel rounded-xl p-4">
-            <div className="text-2xl font-grunge text-yellow-400">{MOCK_METRICS.totalRewardsPool.toLocaleString()} CGT</div>
+            <div className="text-2xl font-grunge text-yellow-400">{metrics.totalRewardsPool.toLocaleString()} CGT</div>
             <div className="text-xs text-gray-400">Rewards Pool</div>
           </div>
         </div>
