@@ -39,40 +39,36 @@ export function GameActivityWidget() {
   }, [isAuthenticated]);
 
   const loadGameActivity = async () => {
-    // TODO: Fetch from actual game stats API
-    // For now, use localStorage or mock data
+    // TODO: Fetch from actual game stats API when games are integrated
     setLoading(true);
     try {
-      // Mock data - replace with actual API call
-      const mockRecent: RecentGame[] = [
-        {
-          id: 'galaga-creator',
-          title: 'Pixel Starship Genesis',
-          thumbnail: '/games/galaga-creator/assets/player_ship.webp',
-          lastPlayed: new Date(Date.now() - 3600000), // 1 hour ago
-          totalSparksEarned: 2500,
-          highScore: 15420,
-        },
-        {
-          id: 'killBot-clicker',
-          title: 'Cyber Forge Miner',
-          thumbnail: '/games/killBot-clicker/assets/mining_core.webp',
-          lastPlayed: new Date(Date.now() - 86400000), // 1 day ago
-          totalSparksEarned: 1200,
-        },
-      ];
-
-      const mockStats: GameStats = {
-        totalGamesPlayed: 47,
-        totalSparksEarned: 12500,
-        totalPlayTime: 320,
-        favoriteGame: 'Pixel Starship Genesis',
-      };
-
-      setRecentGames(mockRecent);
-      setStats(mockStats);
+      // Try to load from localStorage (client-side game data)
+      const savedGames = localStorage.getItem('demiurge_game_activity');
+      if (savedGames) {
+        const data = JSON.parse(savedGames);
+        setRecentGames(data.recent || []);
+        setStats(data.stats || {
+          totalGamesPlayed: 0,
+          totalSparksEarned: 0,
+          totalPlayTime: 0,
+        });
+      } else {
+        // No game activity yet - show empty state
+        setRecentGames([]);
+        setStats({
+          totalGamesPlayed: 0,
+          totalSparksEarned: 0,
+          totalPlayTime: 0,
+        });
+      }
     } catch (error) {
       console.error('Failed to load game activity:', error);
+      setRecentGames([]);
+      setStats({
+        totalGamesPlayed: 0,
+        totalSparksEarned: 0,
+        totalPlayTime: 0,
+      });
     } finally {
       setLoading(false);
     }
@@ -147,9 +143,11 @@ export function GameActivityWidget() {
             </div>
 
             {/* Recently Played */}
-            <div className="text-xs text-gray-400 mb-2">Recently Played</div>
-            <div className="space-y-2">
-              {recentGames.map((game) => (
+            {recentGames.length > 0 ? (
+              <>
+                <div className="text-xs text-gray-400 mb-2">Recently Played</div>
+                <div className="space-y-2">
+                  {recentGames.map((game) => (
                 <Link
                   key={game.id}
                   href={`/play/${game.id}`}
@@ -192,8 +190,16 @@ export function GameActivityWidget() {
                     <div className="text-xs text-gray-500">Sparks</div>
                   </div>
                 </Link>
-              ))}
-            </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <div className="text-4xl mb-2">🎮</div>
+                <p className="text-gray-400 text-sm mb-2">No games played yet</p>
+                <p className="text-xs text-gray-500">Play games to earn Sparks!</p>
+              </div>
+            )}
 
             {/* Quick Play */}
             <Link

@@ -57,49 +57,42 @@ export function OnChainFeedWidget() {
       console.warn('Using mock chain data');
     }
 
-    // Fallback to mock events if blockchain not available
-    const mockEvents: ChainEvent[] = [
-      {
-        id: `block-${Date.now()}`,
+    // Show real chain activity - just current block for now
+    const realEvents: ChainEvent[] = [];
+    
+    // Add current block as most recent event
+    if (blockHeight) {
+      realEvents.push({
+        id: `block-${blockHeight}`,
         type: 'block',
-        title: `Block #${blockHeight || 1247892}`,
-        description: 'New block produced',
+        title: `Block #${blockHeight}`,
+        description: 'Latest block produced',
         timestamp: new Date(),
-      },
-      {
-        id: 'announce-001',
-        type: 'announcement',
-        title: 'VYB Social Live!',
-        description: 'Connect with creators on the new social platform',
-        timestamp: new Date(Date.now() - 3600000),
-        link: '/social',
-        highlight: true,
-      },
-      {
-        id: 'gov-001',
-        type: 'governance',
-        title: 'Proposal #42',
-        description: 'Community vote on staking rewards increase',
-        timestamp: new Date(Date.now() - 7200000),
-        link: '/governance',
-      },
-      {
-        id: 'reward-001',
+      });
+    }
+    
+    // Add era info if available
+    if (era) {
+      realEvents.push({
+        id: `era-${era}`,
         type: 'reward',
-        title: 'Era Rewards',
-        description: `Era ${era || 28} rewards distributed: 42,000 CGT`,
-        timestamp: new Date(Date.now() - 14400000),
-      },
-      {
-        id: 'nft-001',
-        type: 'nft_mint',
-        title: 'Rare Mint!',
-        description: 'Legendary ship "Void Stalker" minted',
-        timestamp: new Date(Date.now() - 21600000),
-      },
-    ];
+        title: `Era ${era}`,
+        description: 'Current staking era',
+        timestamp: new Date(Date.now() - 60000),
+      });
+    }
+    
+    // Add platform announcement
+    realEvents.push({
+      id: 'announce-platform',
+      type: 'announcement',
+      title: 'Demiurge Protocol Live!',
+      description: 'Next-gen blockchain for gaming and AI',
+      timestamp: new Date(Date.now() - 3600000),
+      highlight: true,
+    });
 
-    setEvents(mockEvents);
+    setEvents(realEvents);
     setLoading(false);
   };
   
