@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { blockchainClient } from '@/lib/blockchain';
-import { getTransactions as getTransactionsWithMock, MockTransaction } from '@/lib/mock-blockchain';
 
 interface Transaction {
   hash: string;
@@ -41,38 +40,23 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
       setLoading(true);
       setError(null);
       try {
-        // Try real blockchain first, fallback to mock
-        let history: Transaction[];
-        try {
-          const realTxs = await blockchainClient.getTransactions(address);
-          history = realTxs.map(tx => ({
-            hash: tx.hash,
-            from: tx.from,
-            to: tx.to,
-            amount: tx.amount,
-            blockNumber: tx.blockNumber,
-            timestamp: Date.now() - (1000 - tx.blockNumber) * 6000, // Estimate
-            type: 'transfer' as const
-          }));
-        } catch (err) {
-          // Fallback to mock
-          const mockTxs = await getTransactionsWithMock(address, 100);
-          history = mockTxs.map(tx => ({
-            hash: tx.hash,
-            from: tx.from,
-            to: tx.to,
-            amount: tx.amount,
-            blockNumber: tx.blockNumber,
-            timestamp: tx.timestamp,
-            type: tx.type,
-            reason: tx.reason
-          }));
-        }
+        // Query real transaction history from blockchain
+        const realTxs = await blockchainClient.getTransactions(address);
+        const history: Transaction[] = realTxs.map(tx => ({
+          hash: tx.hash,
+          from: tx.from,
+          to: tx.to,
+          amount: tx.amount,
+          blockNumber: tx.blockNumber,
+          timestamp: Date.now() - (227000 - tx.blockNumber) * 2000, // Estimate based on 2s blocks
+          type: 'transfer' as const
+        }));
         
         setTransactions(history);
-      } catch (err) {
-        setError('Failed to fetch transaction history.');
-        console.error(err);
+      } catch (err: any) {
+        // Show empty state if no transactions, not mock data
+        console.warn('No transaction history available:', err);
+        setTransactions([]);
       } finally {
         setLoading(false);
       }
