@@ -196,12 +196,16 @@ function ProfilePanel() {
   const [xp, setXp] = useState(0);
   const [maxXp, setMaxXp] = useState(1000);
   
-  // Mock XP data - would come from chain
+  // Get real level/XP from QOR Auth or default to 1
   useEffect(() => {
-    setLevel(12);
-    setXp(7350);
-    setMaxXp(10000);
-  }, []);
+    if (user) {
+      // TODO: Get level/XP from user profile when implemented
+      // For now, start at level 1
+      setLevel(1);
+      setXp(0);
+      setMaxXp(1000);
+    }
+  }, [user]);
   
   const xpPercent = (xp / maxXp) * 100;
   
@@ -386,7 +390,7 @@ export function DashboardGrid() {
     {
       icon: '🎮',
       title: 'Games',
-      value: '12',
+      value: '0',
       subtitle: 'AVAILABLE TITLES',
       href: '/games',
       status: 'online' as const,
@@ -394,15 +398,15 @@ export function DashboardGrid() {
     {
       icon: '🎵',
       title: 'QOR Music',
-      value: 'Live',
-      subtitle: 'STREAMING NOW',
+      value: 'Beta',
+      subtitle: 'IN DEVELOPMENT',
       href: '/music',
-      status: 'online' as const,
+      status: 'syncing' as const,
     },
     {
       icon: '🌐',
       title: 'VYB Social',
-      value: '8',
+      value: '0',
       subtitle: 'NEW NOTIFICATIONS',
       href: '/social',
       status: 'online' as const,
@@ -410,24 +414,24 @@ export function DashboardGrid() {
     {
       icon: '🖼️',
       title: 'NFT Portal',
-      value: '23',
+      value: '0',
       subtitle: 'ITEMS OWNED',
-      href: '/nft-portal',
+      href: '/forge',
       status: 'online' as const,
     },
     {
       icon: '⚡',
       title: 'Staking',
-      value: '5.2%',
-      subtitle: 'CURRENT APY',
-      href: '/staking',
+      value: '0%',
+      subtitle: 'YOUR STAKE APY',
+      href: '/validators',
       status: 'online' as const,
     },
     {
       icon: '💎',
       title: 'Support',
-      value: 'Active',
-      subtitle: 'SUPPORTER BADGE',
+      value: 'None',
+      subtitle: 'NO BADGE YET',
       href: '/donate',
       status: 'online' as const,
     },
