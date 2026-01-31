@@ -6,6 +6,7 @@ import { getKeypairForQorId } from './qor-wallet';
 import { User } from '@demiurge/qor-sdk';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { u8aToHex, hexToU8a } from '@polkadot/util';
+import { blake2AsU8a } from '@polkadot/util-crypto';
 
 export interface TransactionParams {
   from: string;
@@ -171,12 +172,10 @@ export function signTransaction(
 }
 
 /**
- * Blake2b hash function
+ * Blake2b hash function using Polkadot util-crypto
  */
 function blake2bHash(data: Uint8Array): Uint8Array {
-  // Use @noble/hashes
-  const { blake2b } = require('@noble/hashes/blake2b');
-  return blake2b(data, { dkLen: 32 });
+  return blake2AsU8a(data, 256);
 }
 
 /**
