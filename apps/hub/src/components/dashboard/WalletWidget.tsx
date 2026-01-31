@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBlockchain } from '@/contexts/BlockchainContext';
 import { blockchainClient } from '@/lib/blockchain';
 import { getOrCreateAddressForQorId } from '@/lib/qor-wallet';
-import { getBalance as getBalanceWithMock } from '@/lib/mock-blockchain';
+import { useBalance, useEnergy } from '@/hooks/useRealBlockchainData';
 import { SendCGTModal } from '@/components/wallet/SendCGTModal';
 import { ReceiveCGTModal } from '@/components/wallet/ReceiveCGTModal';
 import { EnergyDisplay } from '@/components/energy/EnergyDisplay';
@@ -43,13 +43,13 @@ export function WalletWidget() {
 
       if (userAddress) {
         try {
-          const balanceStr = isConnected 
-            ? await getBalance(userAddress)
-            : await getBalanceWithMock(userAddress);
+          // Use real blockchain balance
+          const balanceStr = await getBalance(userAddress);
           setBalance(balanceStr);
         } catch (error) {
-          const balanceStr = await getBalanceWithMock(userAddress);
-          setBalance(balanceStr);
+          console.error('Failed to fetch balance:', error);
+          // Default to 0 if fetch fails
+          setBalance('0');
         }
       }
     } catch (error) {

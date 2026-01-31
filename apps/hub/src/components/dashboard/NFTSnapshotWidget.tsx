@@ -50,46 +50,18 @@ export function NFTSnapshotWidget() {
   const loadNFTData = async () => {
     setLoading(true);
     try {
-      // TODO: Fetch from actual NFT API
-      // Mock data for now
-      const mockAssets: NFTAsset[] = [
-        {
-          id: 'nft-001',
-          name: 'Chronos Glaive Ship',
-          thumbnail: '/nfts/ship-001.webp',
-          collection: 'Pixel Starship',
-        },
-        {
-          id: 'nft-002',
-          name: 'Cyber Mining Rig v2',
-          thumbnail: '/nfts/rig-001.webp',
-          collection: 'Cyber Forge',
-        },
-        {
-          id: 'nft-003',
-          name: 'OG Founder Badge',
-          thumbnail: '/nfts/badge-001.webp',
-          collection: 'Demiurge Origins',
-        },
-      ];
+      // Fetch real NFT data from blockchain
+      // TODO: Implement when DRC-369 RPC methods are available
+      // For now, show accurate empty state
+      const realAssets: NFTAsset[] = [];
+      const realOffers: BuyOffer[] = [];
 
-      const mockOffers: BuyOffer[] = [
-        {
-          id: 'offer-001',
-          assetId: 'nft-001',
-          assetName: 'Chronos Glaive Ship',
-          offeredPrice: 500,
-          offerer: 'collector#4521',
-          timestamp: new Date(Date.now() - 1800000),
-        },
-      ];
-
-      setRecentAssets(mockAssets);
-      setPendingOffers(mockOffers);
+      setRecentAssets(realAssets);
+      setPendingOffers(realOffers);
       setStats({
-        totalOwned: mockAssets.length,
-        totalValue: 2500,
-        pendingOffers: mockOffers.length,
+        totalOwned: realAssets.length,
+        totalValue: 0,
+        pendingOffers: realOffers.length,
       });
     } catch (error) {
       console.error('Failed to load NFT data:', error);
