@@ -345,7 +345,7 @@ export class DemiurgeAuth {
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+        const error = await response.json().catch(() => ({ message: 'Unknown error' })) as { message?: string };
         throw new Error(error.message || `HTTP ${response.status}`);
       }
       
