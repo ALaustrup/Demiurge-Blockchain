@@ -13,6 +13,7 @@ COPY apps/hub/package.json ./apps/hub/
 COPY packages/qor-sdk/package.json ./packages/qor-sdk/
 COPY packages/ui-shared/package.json ./packages/ui-shared/
 COPY packages/wallet-wasm/package.json ./packages/wallet-wasm/
+COPY sdk/package.json ./sdk/
 
 # Install all dependencies including devDependencies (needed for build)
 RUN npm install --workspaces --include-workspace-root || npm install
@@ -26,6 +27,7 @@ COPY --from=deps /app/node_modules ./node_modules
 
 # Copy workspace packages source
 COPY packages/ ./packages/
+COPY sdk/ ./sdk/
 
 # Copy hub app source
 COPY apps/hub/ ./apps/hub/
@@ -58,6 +60,7 @@ COPY --from=builder /app/apps/hub/package.json ./package.json
 
 # Copy workspace packages (needed for runtime)
 COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/sdk ./sdk
 
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app
