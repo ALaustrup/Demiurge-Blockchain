@@ -4,13 +4,19 @@ import { useState, useEffect } from 'react';
 import { DemiurgeClient } from '@demiurge/sdk';
 
 interface TransactionStatusProps {
-  txHash: string;
+  txHash?: string;
+  transactionHash?: string;
   onConfirmed?: () => void;
+  onFinalized?: () => void;
+  onError?: (err: Error) => void;
 }
 
 type TxStatus = 'pending' | 'included' | 'finalized' | 'failed';
 
-export function TransactionStatus({ txHash, onConfirmed }: TransactionStatusProps) {
+export function TransactionStatus({ txHash, transactionHash, onConfirmed, onFinalized, onError }: TransactionStatusProps) {
+  // Support both prop names for compatibility
+  const hash = txHash || transactionHash || '';
+  const onSuccess = onConfirmed || onFinalized;
   const [status, setStatus] = useState<TxStatus>('pending');
   const [blockNumber, setBlockNumber] = useState<number | null>(null);
   const [confirmations, setConfirmations] = useState(0);
@@ -33,14 +39,17 @@ export function TransactionStatus({ txHash, onConfirmed }: TransactionStatusProp
             if (mounted) {
               setStatus('finalized');
               setConfirmations(1);
-              if (onConfirmed) {
-                onConfirmed();
+              if (onSuccess) {
+                onSuccess();
               }
             }
           }, 3000);
         }
       } catch (error) {
         console.error('Failed to check transaction status:', error);
+        if (onError && error instanceof Error) {
+          onError(error);
+        }
       }
     };
 
@@ -51,7 +60,7 @@ export function TransactionStatus({ txHash, onConfirmed }: TransactionStatusProp
       mounted = false;
       clearInterval(pollInterval);
     };
-  }, [txHash]);
+  }, [hash, onSuccess, onError]);
 
   const getStatusColor = () => {
     switch (status) {
