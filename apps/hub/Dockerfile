@@ -35,6 +35,10 @@ COPY apps/hub/ ./apps/hub/
 # Set environment for build
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Build the SDK first (required by Hub)
+WORKDIR /app/sdk
+RUN npm run build
+
 # Build the application
 WORKDIR /app/apps/hub
 RUN npm run build
