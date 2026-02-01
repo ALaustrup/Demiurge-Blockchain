@@ -506,21 +506,30 @@ impl ShardCoordinator {
         let mut events = Vec::new();
         
         // Process pending operations scheduled for this block
-        while let Some(op) = self.pending_operations.front() {
-            let scheduled_block = match op {
-                ShardOperation::Split { scheduled_block, .. } => *scheduled_block,
-                ShardOperation::Merge { scheduled_block, .. } => *scheduled_block,
-                ShardOperation::Rebalance { scheduled_block, .. } => *scheduled_block,
+        loop {
+            // Check if there's an operation to process
+            let should_process = match self.pending_operations.front() {
+                Some(op) => {
+                    let scheduled_block = match op {
+                        ShardOperation::Split { scheduled_block, .. } => *scheduled_block,
+                        ShardOperation::Merge { scheduled_block, .. } => *scheduled_block,
+                        ShardOperation::Rebalance { scheduled_block, .. } => *scheduled_block,
+                    };
+                    scheduled_block <= block_number
+                }
+                None => false,
             };
             
-            if scheduled_block > block_number {
+            if !should_process {
                 break;
             }
             
-            let op = self.pending_operations.pop_front().unwrap();
-            let event = self.execute_operation(op, block_number)?;
-            events.push(event);
-            self.last_scaling_block = block_number;
+            // Safe to pop now - we know there's an element
+            if let Some(op) = self.pending_operations.pop_front() {
+                let event = self.execute_operation(op, block_number)?;
+                events.push(event);
+                self.last_scaling_block = block_number;
+            }
         }
         
         // Process expired cross-shard messages

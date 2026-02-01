@@ -12,6 +12,7 @@ use crate::RpcError;
 use demiurge_core::{Block, Transaction, Runtime};
 use demiurge_storage::Storage;
 use demiurge_consensus::ConsensusEngine;
+use demiurge_network::TransactionPool;
 use demiurge_module_energy::EnergyModule;
 use codec::{Decode, Encode};
 use std::sync::Arc;
@@ -25,15 +26,27 @@ pub struct RpcMethods<S: Storage> {
     storage: Arc<S>,
     runtime: Option<Arc<Mutex<Runtime<S>>>>,
     consensus: Option<Arc<Mutex<ConsensusEngine<S>>>>,
+    tx_pool: Arc<Mutex<TransactionPool>>,
 }
 
 impl<S: Storage> RpcMethods<S> {
-    /// Create new RPC methods
+    /// Create new RPC methods with a transaction pool
     pub fn new(storage: Arc<S>) -> Self {
         Self {
             storage,
             runtime: None,
             consensus: None,
+            tx_pool: Arc::new(Mutex::new(TransactionPool::new(10_000))), // 10k tx max
+        }
+    }
+    
+    /// Create new RPC methods with custom transaction pool
+    pub fn with_tx_pool(storage: Arc<S>, tx_pool: Arc<Mutex<TransactionPool>>) -> Self {
+        Self {
+            storage,
+            runtime: None,
+            consensus: None,
+            tx_pool,
         }
     }
 
@@ -45,6 +58,11 @@ impl<S: Storage> RpcMethods<S> {
     /// Set consensus reference
     pub fn set_consensus(&mut self, consensus: Arc<Mutex<ConsensusEngine<S>>>) {
         self.consensus = Some(consensus);
+    }
+    
+    /// Get the transaction pool reference
+    pub fn tx_pool(&self) -> Arc<Mutex<TransactionPool>> {
+        self.tx_pool.clone()
     }
 
     // ========== Chain Methods ==========
@@ -170,12 +188,38 @@ impl<S: Storage> RpcMethods<S> {
         Ok(transactions)
     }
 
-    /// Submit transaction
+    /// Submit transaction to the transaction pool
+    /// 
+    /// Validates the transaction signature and data before adding to pool.
+    /// Returns the transaction hash on success.
     pub async fn chain_submit_transaction(&self, tx: Transaction) -> Result<String, RpcError> {
-        // TODO: Submit to transaction pool
-        // For now, return transaction hash
+        // Validate transaction before adding to pool
+        tx.validate()
+            .map_err(|e| RpcError::InvalidTransaction(format!("{}", e)))?;
+        
+        // Calculate transaction hash
         let tx_hash = Self::transaction_hash(&tx);
+        
+        // Add to transaction pool
+        let mut pool = self.tx_pool.lock().await;
+        pool.add(tx)
+            .map_err(|e| RpcError::InternalError(format!("Failed to add to pool: {:?}", e)))?;
+        
+        tracing::info!("Transaction submitted: {}", hex::encode(tx_hash));
+        
         Ok(hex::encode(tx_hash))
+    }
+    
+    /// Get pending transaction count in pool
+    pub async fn chain_pending_transaction_count(&self) -> Result<usize, RpcError> {
+        let pool = self.tx_pool.lock().await;
+        Ok(pool.size())
+    }
+    
+    /// Get pending transactions from pool (limited)
+    pub async fn chain_get_pending_transactions(&self, limit: usize) -> Result<Vec<Transaction>, RpcError> {
+        let pool = self.tx_pool.lock().await;
+        Ok(pool.get_transactions(limit))
     }
 
     // ========== Balance Methods ==========

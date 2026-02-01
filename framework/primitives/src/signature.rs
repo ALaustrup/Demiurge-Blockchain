@@ -21,9 +21,23 @@
 
 use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 #[cfg(feature = "pqc")]
 use pqcrypto_dilithium::dilithium3;
+
+/// Errors that can occur during signature operations
+#[derive(Error, Debug, Clone)]
+pub enum SignatureError {
+    #[error("Unsupported signature scheme: {0:?}")]
+    UnsupportedScheme(SignatureScheme),
+    
+    #[error("Invalid key format")]
+    InvalidKeyFormat,
+    
+    #[error("Signing failed: {0}")]
+    SigningFailed(String),
+}
 #[cfg(feature = "pqc")]
 use pqcrypto_traits::sign::{PublicKey as PqcPublicKey, DetachedSignature, SecretKey as PqcSecretKey};
 
@@ -264,14 +278,16 @@ impl AbstractKeypair {
     }
     
     /// Sign a message
-    pub fn sign(&self, message: &[u8]) -> AbstractSignature {
+    /// 
+    /// Returns an error if the signature scheme is not supported for signing.
+    pub fn sign(&self, message: &[u8]) -> Result<AbstractSignature, SignatureError> {
         match self.public_key.scheme {
-            SignatureScheme::Ed25519 => self.sign_ed25519(message),
+            SignatureScheme::Ed25519 => Ok(self.sign_ed25519(message)),
             #[cfg(feature = "pqc")]
-            SignatureScheme::Dilithium3 => self.sign_dilithium3(message),
+            SignatureScheme::Dilithium3 => Ok(self.sign_dilithium3(message)),
             #[cfg(feature = "pqc")]
-            SignatureScheme::HybridEdDilithium3 => self.sign_hybrid(message),
-            _ => panic!("Unsupported scheme for signing"),
+            SignatureScheme::HybridEdDilithium3 => Ok(self.sign_hybrid(message)),
+            scheme => Err(SignatureError::UnsupportedScheme(scheme)),
         }
     }
     
@@ -564,7 +580,7 @@ mod tests {
         let keypair = AbstractKeypair::generate_ed25519();
         
         let message = b"Hello, Demiurge!";
-        let signature = keypair.sign(message);
+        let signature = keypair.sign(message).expect("Ed25519 signing should succeed");
         
         assert!(signature.verify(keypair.public_key(), message));
         assert!(!signature.verify(keypair.public_key(), b"Wrong message"));
@@ -612,7 +628,7 @@ mod tests {
         let keypair = AbstractKeypair::generate_dilithium3();
         
         let message = b"Quantum-safe Demiurge!";
-        let signature = keypair.sign(message);
+        let signature = keypair.sign(message).expect("Dilithium3 signing should succeed");
         
         assert!(signature.verify(keypair.public_key(), message));
         assert!(!signature.verify(keypair.public_key(), b"Wrong message"));
@@ -627,7 +643,7 @@ mod tests {
         let keypair = AbstractKeypair::generate_hybrid_ed_dilithium();
         
         let message = b"Hybrid quantum-safe Demiurge!";
-        let signature = keypair.sign(message);
+        let signature = keypair.sign(message).expect("Hybrid signing should succeed");
         
         assert!(signature.verify(keypair.public_key(), message));
         assert!(!signature.verify(keypair.public_key(), b"Wrong message"));

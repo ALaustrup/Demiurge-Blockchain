@@ -27,13 +27,90 @@ pub struct BlockHeader {
 }
 
 impl Block {
-    /// Validate the block
-    pub fn validate(&self) -> crate::Result<()> {
-        // TODO: Verify parent hash
-        // TODO: Verify state root
-        // TODO: Verify extrinsics root
-        // TODO: Check timestamp
+    /// Validate the block structure and contents
+    /// 
+    /// If a parent block is provided, validates:
+    /// - Parent hash matches parent block's hash
+    /// - Block number is sequential (parent + 1)
+    /// 
+    /// Always validates:
+    /// - Extrinsics root matches calculated root from transactions
+    /// - Timestamp is not too far in the future (30 second tolerance)
+    /// - All transactions are valid
+    pub fn validate(&self, parent: Option<&Block>) -> crate::Result<()> {
+        use crate::Error;
+        
+        // Verify parent hash and block number if parent provided
+        if let Some(parent_block) = parent {
+            if self.header.parent_hash != parent_block.hash() {
+                return Err(Error::InvalidBlock("Parent hash mismatch".into()));
+            }
+            if self.header.block_number != parent_block.header.block_number + 1 {
+                return Err(Error::InvalidBlock(format!(
+                    "Block number not sequential: expected {}, got {}",
+                    parent_block.header.block_number + 1,
+                    self.header.block_number
+                )));
+            }
+        } else if self.header.block_number != 0 {
+            // Genesis block check - block 0 should have zero parent hash
+            let zero_hash = [0u8; 32];
+            if self.header.parent_hash != zero_hash && self.header.block_number > 0 {
+                // Non-genesis block without parent context - we can't fully validate
+                // This is acceptable for syncing blocks from network
+            }
+        }
+        
+        // Verify extrinsics root
+        let calculated_root = self.calculate_extrinsics_root();
+        if self.header.extrinsics_root != calculated_root {
+            return Err(Error::InvalidBlock("Extrinsics root mismatch".into()));
+        }
+        
+        // Check timestamp is reasonable (not too far in future)
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+        
+        // Allow 30 second tolerance for clock skew
+        if self.header.timestamp > now + 30_000 {
+            return Err(Error::InvalidBlock("Block timestamp too far in future".into()));
+        }
+        
+        // Validate all transactions
+        for (idx, tx) in self.transactions.iter().enumerate() {
+            tx.validate().map_err(|e| {
+                Error::InvalidBlock(format!("Transaction {} invalid: {}", idx, e))
+            })?;
+        }
+        
         Ok(())
+    }
+    
+    /// Validate block without parent context (for received blocks)
+    pub fn validate_standalone(&self) -> crate::Result<()> {
+        self.validate(None)
+    }
+    
+    /// Calculate the extrinsics (transactions) root hash
+    pub fn calculate_extrinsics_root(&self) -> [u8; 32] {
+        use blake2::{Blake2b512, Digest};
+        
+        if self.transactions.is_empty() {
+            // Empty transactions = zero hash
+            return [0u8; 32];
+        }
+        
+        // Hash all encoded transactions together
+        let mut hasher = Blake2b512::new();
+        for tx in &self.transactions {
+            hasher.update(&tx.encode());
+        }
+        let hash = hasher.finalize();
+        let mut result = [0u8; 32];
+        result.copy_from_slice(&hash[..32]);
+        result
     }
 
     /// Calculate block hash

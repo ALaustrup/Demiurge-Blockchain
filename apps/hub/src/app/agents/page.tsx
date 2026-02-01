@@ -29,57 +29,12 @@ interface AgentMetrics {
 
 type TabType = 'my-agents' | 'deploy' | 'marketplace';
 
-// Mock data
-const MOCK_AGENTS: Agent[] = [
-  {
-    id: 'agent-001',
-    name: 'MarketAnalyzer',
-    did: 'did:demiurge:agent:abc123',
-    description: 'Analyzes market trends and provides trading insights',
-    autonomyLevel: 'bounded',
-    capabilities: ['analysis', 'reporting', 'alerts'],
-    status: 'active',
-    walletBalance: 250,
-    totalTasks: 1247,
-    successRate: 98.5,
-    createdAt: new Date(Date.now() - 86400000 * 30),
-    lastActive: new Date(Date.now() - 3600000),
-  },
-  {
-    id: 'agent-002',
-    name: 'SecuritySentinel',
-    did: 'did:demiurge:agent:def456',
-    description: 'Monitors network security and reports anomalies',
-    autonomyLevel: 'autonomous',
-    capabilities: ['monitoring', 'security', 'governance'],
-    status: 'active',
-    walletBalance: 500,
-    totalTasks: 3891,
-    successRate: 99.2,
-    createdAt: new Date(Date.now() - 86400000 * 60),
-    lastActive: new Date(Date.now() - 300000),
-  },
-  {
-    id: 'agent-003',
-    name: 'DataProcessor',
-    did: 'did:demiurge:agent:ghi789',
-    description: 'Processes and transforms data pipelines',
-    autonomyLevel: 'supervised',
-    capabilities: ['analysis', 'optimization'],
-    status: 'idle',
-    walletBalance: 75,
-    totalTasks: 456,
-    successRate: 95.8,
-    createdAt: new Date(Date.now() - 86400000 * 14),
-    lastActive: new Date(Date.now() - 86400000),
-  },
-];
-
-const MOCK_METRICS: AgentMetrics = {
-  totalAgents: 3,
-  activeAgents: 2,
-  totalTasksCompleted: 5594,
-  totalRewardsDistributed: 12500,
+// Empty initial state - real data will come from blockchain when agents are deployed
+const EMPTY_METRICS: AgentMetrics = {
+  totalAgents: 0,
+  activeAgents: 0,
+  totalTasksCompleted: 0,
+  totalRewardsDistributed: 0,
 };
 
 export default function AgentsPage() {
@@ -88,9 +43,10 @@ export default function AgentsPage() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showDeployModal, setShowDeployModal] = useState(false);
 
-  // Use real blockchain data - no mock data
-  const agents = REAL_AGENTS;
-  const metrics = REAL_METRICS;
+  // Real blockchain data - starts empty until agents are deployed
+  // TODO: Query agents from blockchain via RPC when available
+  const agents: Agent[] = [];
+  const metrics = EMPTY_METRICS;
 
   // Deploy form state
   const [deployForm, setDeployForm] = useState({

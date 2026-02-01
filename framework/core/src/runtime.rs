@@ -143,8 +143,8 @@ impl<S: Storage> Runtime<S> {
     /// Execute a block
     /// Returns the calculated state root
     pub fn execute_block(&mut self, block: Block) -> Result<[u8; 32]> {
-        // Validate block
-        block.validate()?;
+        // Validate block (standalone - parent validation done at import)
+        block.validate(None)?;
 
         // Update block number storage for modules that need it
         {

@@ -103,14 +103,12 @@ class BlockchainService {
     if (cached) return cached;
 
     try {
-      const response = await demiurgeRpc.call('staking_activeEra', {});
+      const response = await demiurgeRpc.call('staking_activeEra', []);
       const era = response.index;
 
-      const validatorCountRes = await demiurgeRpc.call('query_activeValidatorCount', {});
-      const totalStakeRes = await demiurgeRpc.call('query_totalIssuance', {});
-      const blockRewardRes = await demiurgeRpc.call('staking_erasRewardPoints', {
-        era,
-      });
+      const validatorCountRes = await demiurgeRpc.call('query_activeValidatorCount', []);
+      const totalStakeRes = await demiurgeRpc.call('query_totalIssuance', []);
+      const blockRewardRes = await demiurgeRpc.call('staking_erasRewardPoints', [era]);
 
       const stats: ValidatorStats = {
         activeValidators: parseInt(validatorCountRes) || 342,
@@ -140,13 +138,9 @@ class BlockchainService {
 
     try {
       // Query user account details
-      const accountRes = await demiurgeRpc.call('query_account', {
-        account: qorId,
-      });
+      const accountRes = await demiurgeRpc.call('query_account', [qorId]);
 
-      const ledgerRes = await demiurgeRpc.call('staking_ledger', {
-        controller: qorId,
-      });
+      const ledgerRes = await demiurgeRpc.call('staking_ledger', [qorId]);
 
       const balance: AccountBalance = {
         total: this.formatCGT(accountRes.data.free + accountRes.data.reserved),
@@ -179,11 +173,7 @@ class BlockchainService {
     if (cached) return cached;
 
     try {
-      const response = await demiurgeRpc.call('query_transactionHistory', {
-        account: qorId,
-        limit,
-        offset,
-      });
+      const response = await demiurgeRpc.call('query_transactionHistory', [qorId, limit, offset]);
 
       const transactions: Transaction[] = response.map((tx: any) => ({
         id: tx.hash,
@@ -216,10 +206,7 @@ class BlockchainService {
     if (cached) return cached;
 
     try {
-      const response = await demiurgeRpc.call('nft_byOwner', {
-        owner: qorId,
-        collection,
-      });
+      const response = await demiurgeRpc.call('nft_byOwner', [qorId, collection]);
 
       const nfts: NFTMetadata[] = response.map((nft: any) => ({
         id: nft.id,
@@ -251,10 +238,7 @@ class BlockchainService {
     if (cached) return cached;
 
     try {
-      const response = await demiurgeRpc.call('games_state', {
-        player: qorId,
-        game: gameId,
-      });
+      const response = await demiurgeRpc.call('games_state', [qorId, gameId]);
 
       const gameState: GameState = {
         gameId,
@@ -285,10 +269,7 @@ class BlockchainService {
     if (cached) return cached;
 
     try {
-      const response = await demiurgeRpc.call('staking_rewards', {
-        account: qorId,
-        limit,
-      });
+      const response = await demiurgeRpc.call('staking_rewards', [qorId, limit]);
 
       const rewards: StakingReward[] = response.map((reward: any) => ({
         era: reward.era,
@@ -316,9 +297,9 @@ class BlockchainService {
     if (cached) return cached;
 
     try {
-      const headerRes = await demiurgeRpc.call('chain_getHeader', {});
-      const blockTimeRes = await demiurgeRpc.call('system_chainType', {});
-      const statsRes = await demiurgeRpc.call('query_networkStats', {});
+      const headerRes = await demiurgeRpc.call('chain_getHeader', []);
+      const blockTimeRes = await demiurgeRpc.call('system_chainType', []);
+      const statsRes = await demiurgeRpc.call('query_networkStats', []);
 
       const metrics: NetworkMetrics = {
         blockTime: 6, // 6 seconds for Demiurge
@@ -342,9 +323,7 @@ class BlockchainService {
    */
   async submitTransaction(signedTx: string): Promise<{ hash: string; blockNumber?: number }> {
     try {
-      const response = await demiurgeRpc.call('author_submitExtrinsic', {
-        extrinsic: signedTx,
-      });
+      const response = await demiurgeRpc.call('author_submitExtrinsic', [signedTx]);
 
       return {
         hash: response.hash,

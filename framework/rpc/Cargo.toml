@@ -26,6 +26,7 @@ hex = "0.4"
 demiurge-core = { path = "../core" }
 demiurge-storage = { path = "../storage" }
 demiurge-consensus = { path = "../consensus" }
+demiurge-network = { path = "../network" }
 demiurge-module-energy = { path = "../modules/energy" }
 demiurge-module-session-keys = { path = "../modules/session-keys" }
 blake2 = { workspace = true }

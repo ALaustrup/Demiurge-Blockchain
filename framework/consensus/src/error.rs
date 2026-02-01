@@ -51,4 +51,7 @@ pub enum ConsensusError {
     
     #[error("CVP error: {0}")]
     CvpError(String),
+    
+    #[error("Signing error: {0}")]
+    SigningError(String),
 }

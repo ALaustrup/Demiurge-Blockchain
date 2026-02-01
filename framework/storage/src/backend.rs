@@ -20,6 +20,9 @@ pub trait Storage {
     /// Commit changes and return root hash
     fn commit(&mut self) -> Result<[u8; 32], StorageError>;
     
+    /// Calculate current state root without committing
+    fn state_root(&self) -> Result<[u8; 32], StorageError>;
+    
     /// Iterate over all keys with a given prefix
     /// Returns (key, value) pairs in lexicographic order
     fn prefix_iter(&self, prefix: &[u8]) -> Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)> + '_>;
@@ -63,24 +66,57 @@ impl Storage for MemoryStorage {
     }
 
     fn commit(&mut self) -> Result<[u8; 32], StorageError> {
-        // For memory storage, just return a hash of all data
         use blake2::{Blake2b512, Digest};
-        let mut hasher = Blake2b512::new();
+        use crate::merkle::MerkleTree;
         
-        // Sort keys for deterministic hashing
-        let mut keys: Vec<_> = self.data.keys().collect();
+        // Sort keys for deterministic ordering
+        let mut keys: Vec<_> = self.data.keys().cloned().collect();
         keys.sort();
         
-        for key in keys {
-            if let Some(value) = self.data.get(key) {
-                hasher.update(key);
-                hasher.update(value);
-            }
-        }
-        let hash = hasher.finalize();
-        let mut result = [0u8; 32];
-        result.copy_from_slice(&hash[..32]);
-        Ok(result)
+        // Create leaves from key-value hashes
+        let leaves: Vec<[u8; 32]> = keys.iter()
+            .filter_map(|key| {
+                self.data.get(key).map(|value| {
+                    let mut hasher = Blake2b512::new();
+                    hasher.update(key);
+                    hasher.update(value);
+                    let hash = hasher.finalize();
+                    let mut leaf = [0u8; 32];
+                    leaf.copy_from_slice(&hash[..32]);
+                    leaf
+                })
+            })
+            .collect();
+        
+        // Calculate Merkle root
+        Ok(MerkleTree::root(&leaves))
+    }
+    
+    fn state_root(&self) -> Result<[u8; 32], StorageError> {
+        use blake2::{Blake2b512, Digest};
+        use crate::merkle::MerkleTree;
+        
+        // Sort keys for deterministic ordering
+        let mut keys: Vec<_> = self.data.keys().cloned().collect();
+        keys.sort();
+        
+        // Create leaves from key-value hashes
+        let leaves: Vec<[u8; 32]> = keys.iter()
+            .filter_map(|key| {
+                self.data.get(key).map(|value| {
+                    let mut hasher = Blake2b512::new();
+                    hasher.update(key);
+                    hasher.update(value);
+                    let hash = hasher.finalize();
+                    let mut leaf = [0u8; 32];
+                    leaf.copy_from_slice(&hash[..32]);
+                    leaf
+                })
+            })
+            .collect();
+        
+        // Calculate Merkle root
+        Ok(MerkleTree::root(&leaves))
     }
     
     fn prefix_iter(&self, prefix: &[u8]) -> Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)> + '_> {
@@ -126,23 +162,56 @@ impl Storage for StorageBackend {
     }
 
     fn commit(&mut self) -> Result<[u8; 32], StorageError> {
+        use blake2::{Blake2b512, Digest};
+        use rocksdb::IteratorMode;
+        use crate::merkle::MerkleTree;
+        
         // Flush to disk
         self.db.flush().map_err(|e| StorageError::DatabaseError(e.to_string()))?;
         
-        // TODO: Calculate Merkle root from state trie
-        // For now, return a hash of the current timestamp as placeholder
+        // Collect all key-value pairs and create leaf hashes
+        let mut leaves = Vec::new();
+        let iter = self.db.iterator(IteratorMode::Start);
+        
+        for item in iter {
+            if let Ok((key, value)) = item {
+                let mut hasher = Blake2b512::new();
+                hasher.update(&key);
+                hasher.update(&value);
+                let hash = hasher.finalize();
+                let mut leaf = [0u8; 32];
+                leaf.copy_from_slice(&hash[..32]);
+                leaves.push(leaf);
+            }
+        }
+        
+        // Calculate Merkle root from leaves
+        Ok(MerkleTree::root(&leaves))
+    }
+    
+    fn state_root(&self) -> Result<[u8; 32], StorageError> {
         use blake2::{Blake2b512, Digest};
-        let mut hasher = Blake2b512::new();
-        hasher.update(b"COMMIT_");
-        hasher.update(&std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos()
-            .to_le_bytes());
-        let hash = hasher.finalize();
-        let mut result = [0u8; 32];
-        result.copy_from_slice(&hash[..32]);
-        Ok(result)
+        use rocksdb::IteratorMode;
+        use crate::merkle::MerkleTree;
+        
+        // Collect all key-value pairs and create leaf hashes
+        let mut leaves = Vec::new();
+        let iter = self.db.iterator(IteratorMode::Start);
+        
+        for item in iter {
+            if let Ok((key, value)) = item {
+                let mut hasher = Blake2b512::new();
+                hasher.update(&key);
+                hasher.update(&value);
+                let hash = hasher.finalize();
+                let mut leaf = [0u8; 32];
+                leaf.copy_from_slice(&hash[..32]);
+                leaves.push(leaf);
+            }
+        }
+        
+        // Calculate Merkle root from leaves
+        Ok(MerkleTree::root(&leaves))
     }
     
     fn prefix_iter(&self, prefix: &[u8]) -> Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)> + '_> {

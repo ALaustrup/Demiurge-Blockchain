@@ -353,17 +353,15 @@ impl<S: Storage> ConsensusEngine<S> {
         // Verify signature
         self.verify_signature(block, proof)?;
 
-        // Verify block structure
-        block.validate()?;
+        // Verify block structure (standalone validation without parent context)
+        // Parent validation is done separately during block import
+        block.validate(None)?;
         
         // If validation fails, slash proposer for invalid block
         // Note: This is a simplified check - in production, we'd validate more thoroughly
         // before slashing
-
-        // Verify transactions
-        for tx in &block.transactions {
-            tx.validate()?;
-        }
+        
+        // Note: Individual transaction validation is now done inside block.validate()
 
         // Verify timestamp (not too far in future/past)
         self.verify_timestamp(block.header.timestamp)?;
@@ -690,6 +688,8 @@ impl<S: Storage> ConsensusEngine<S> {
 
     /// Sign a block with validator's signing key
     fn sign_block(&self, block: &Block, validator: [u8; 32]) -> Result<[u8; 64]> {
+        use ed25519_dalek::Signer;
+        
         let signing_key = self.validator_keys
             .get(&validator)
             .ok_or(ConsensusError::ValidatorNotFound)?;
@@ -977,27 +977,14 @@ impl<S: Storage> ConsensusEngine<S> {
     }
 
     /// Calculate state root from storage
+    /// 
+    /// Delegates to the storage backend's state_root() method which
+    /// calculates a Merkle root from all key-value pairs in the state.
     pub fn calculate_state_root(&self) -> Result<[u8; 32]> {
-        
-        // Get all storage keys and values
-        // Note: This is a simplified implementation
-        // In production, we'd use a more efficient method to calculate state root
-        // For now, we'll use a placeholder that represents the state
-        
-        // TODO: Implement proper state root calculation
-        // This would involve:
-        // 1. Iterating through all storage keys
-        // 2. Creating Merkle tree from key-value pairs
-        // 3. Returning root hash
-        
-        // Placeholder: return hash of "state" for now
-        use blake2::{Blake2b512, Digest};
-        let mut hasher = Blake2b512::new();
-        hasher.update(b"state_root_placeholder");
-        let hash = hasher.finalize();
-        let mut result = [0u8; 32];
-        result.copy_from_slice(&hash[..32]);
-        Ok(result)
+        self.storage.state_root()
+            .map_err(|e| ConsensusError::BlockValidationFailed(
+                format!("Failed to calculate state root: {}", e)
+            ))
     }
 
     /// Verify state root matches calculated root

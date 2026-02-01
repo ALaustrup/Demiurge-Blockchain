@@ -63,6 +63,9 @@ pub enum AgenticError {
     /// Serialization error
     SerializationError(String),
     
+    /// Signing operation failed
+    SigningFailed(String),
+    
     /// Internal error
     InternalError(String),
 }
@@ -89,6 +92,7 @@ impl core::fmt::Display for AgenticError {
             Self::MemoryLimitReached => write!(f, "Memory limit reached"),
             Self::InvalidEmbeddingDimension => write!(f, "Invalid embedding dimension"),
             Self::SerializationError(msg) => write!(f, "Serialization error: {}", msg),
+            Self::SigningFailed(msg) => write!(f, "Signing failed: {}", msg),
             Self::InternalError(msg) => write!(f, "Internal error: {}", msg),
         }
     }

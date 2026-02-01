@@ -32,85 +32,8 @@ type TabType = 'browse' | 'my-bids' | 'create';
 type FilterCategory = 'all' | Bounty['category'];
 type FilterPriority = 'all' | Bounty['priority'];
 
-// TODO: Fetch real bounties from blockchain
-// For now, show empty state until Sentinel Oracle deploys bounties
-const REAL_BOUNTIES: Bounty[] = [
-  {
-    id: 'bounty-001',
-    title: 'Optimize Transaction Throughput',
-    description: 'Analyze current TPS bottlenecks and propose optimizations to increase transaction throughput by at least 20%.',
-    category: 'optimization',
-    priority: 'high',
-    status: 'open',
-    reward: 500,
-    deadline: new Date(Date.now() + 86400000 * 7),
-    creator: 'SentinelOracle',
-    bidsCount: 3,
-    requiredCapabilities: ['analysis', 'optimization'],
-    createdAt: new Date(Date.now() - 86400000 * 2),
-  },
-  {
-    id: 'bounty-002',
-    title: 'Security Audit: Session Keys Module',
-    description: 'Conduct a comprehensive security audit of the session keys module, identify potential vulnerabilities and propose fixes.',
-    category: 'security',
-    priority: 'critical',
-    status: 'assigned',
-    reward: 1000,
-    deadline: new Date(Date.now() + 86400000 * 14),
-    creator: 'GovernanceDAO',
-    assignee: 'SecuritySentinel',
-    bidsCount: 5,
-    requiredCapabilities: ['security', 'analysis'],
-    createdAt: new Date(Date.now() - 86400000 * 5),
-  },
-  {
-    id: 'bounty-003',
-    title: 'Network Health Report Generator',
-    description: 'Create an automated system for generating weekly network health reports with key metrics and trends.',
-    category: 'analysis',
-    priority: 'medium',
-    status: 'open',
-    reward: 250,
-    deadline: new Date(Date.now() + 86400000 * 10),
-    creator: 'SentinelOracle',
-    bidsCount: 1,
-    requiredCapabilities: ['analysis', 'reporting'],
-    createdAt: new Date(Date.now() - 86400000),
-  },
-  {
-    id: 'bounty-004',
-    title: 'Validator Node Maintenance Protocol',
-    description: 'Develop and implement automated maintenance protocols for validator nodes including health checks and auto-recovery.',
-    category: 'maintenance',
-    priority: 'medium',
-    status: 'in_progress',
-    reward: 400,
-    deadline: new Date(Date.now() + 86400000 * 5),
-    creator: 'ValidatorDAO',
-    assignee: 'MaintenanceBot',
-    bidsCount: 4,
-    requiredCapabilities: ['maintenance', 'monitoring'],
-    createdAt: new Date(Date.now() - 86400000 * 7),
-  },
-  {
-    id: 'bounty-005',
-    title: 'Governance Proposal Analysis',
-    description: 'Analyze the impact of recent governance proposals on network parameters and provide recommendations.',
-    category: 'governance',
-    priority: 'low',
-    status: 'completed',
-    reward: 150,
-    deadline: new Date(Date.now() - 86400000),
-    creator: 'SentinelOracle',
-    assignee: 'AnalysisAgent',
-    bidsCount: 2,
-    requiredCapabilities: ['governance', 'analysis'],
-    createdAt: new Date(Date.now() - 86400000 * 14),
-  },
-];
-
-const REAL_METRICS: BountyMetrics = {
+// Empty initial state - real bounties will come from blockchain via Sentinel Oracle
+const EMPTY_METRICS: BountyMetrics = {
   totalBounties: 0,
   openBounties: 0,
   completedBounties: 0,
@@ -124,9 +47,10 @@ export default function BountiesPage() {
   const [filterCategory, setFilterCategory] = useState<FilterCategory>('all');
   const [filterPriority, setFilterPriority] = useState<FilterPriority>('all');
 
-  // Use real blockchain data - no mock data
-  const bounties = REAL_BOUNTIES;
-  const metrics = REAL_METRICS;
+  // Real blockchain data - starts empty until Sentinel Oracle deploys bounties
+  // TODO: Query bounties from blockchain via RPC when available
+  const bounties: Bounty[] = [];
+  const metrics = EMPTY_METRICS;
 
   // Create form state
   const [createForm, setCreateForm] = useState({

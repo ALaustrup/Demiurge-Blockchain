@@ -345,7 +345,8 @@ impl AgenticWallet {
         let encoded = tx_data.encode();
         
         // Sign
-        let signature = self.keypair.sign(&encoded);
+        let signature = self.keypair.sign(&encoded)
+            .map_err(|e| AgenticError::SigningFailed(e.to_string()))?;
         
         // Increment nonce
         self.nonce += 1;
@@ -413,7 +414,8 @@ impl AgenticWallet {
         };
         
         let encoded = tx_data.encode();
-        let signature = self.keypair.sign(&encoded);
+        let signature = self.keypair.sign(&encoded)
+            .map_err(|e| AgenticError::SigningFailed(e.to_string()))?;
         
         self.nonce += 1;
         

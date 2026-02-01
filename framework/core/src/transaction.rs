@@ -36,10 +36,82 @@ pub enum TransactionData {
 
 impl Transaction {
     /// Validate the transaction
+    /// 
+    /// Verifies:
+    /// - Ed25519 signature is valid for the signing payload
+    /// - Transaction data is well-formed
     pub fn validate(&self) -> crate::Result<()> {
-        // TODO: Verify signature
-        // TODO: Check nonce
-        // TODO: Validate data
+        use ed25519_dalek::{VerifyingKey, Verifier, Signature};
+        use crate::Error;
+        
+        // Get the signing payload (everything except signature)
+        let signing_data = self.signing_payload();
+        
+        // Parse public key from 'from' field (account ID is the public key)
+        let public_key = VerifyingKey::from_bytes(&self.from)
+            .map_err(|_| Error::InvalidSignature)?;
+        
+        // Parse signature
+        let signature = Signature::from_bytes(&self.signature);
+        
+        // Verify signature
+        public_key.verify(&signing_data, &signature)
+            .map_err(|_| Error::InvalidSignature)?;
+        
+        // Validate transaction data
+        self.validate_data()?;
+        
         Ok(())
+    }
+    
+    /// Create the payload that was signed
+    /// 
+    /// The signing payload includes: nonce, from, and data (but not signature)
+    pub fn signing_payload(&self) -> Vec<u8> {
+        let mut payload = Vec::new();
+        payload.extend_from_slice(&self.nonce.encode());
+        payload.extend_from_slice(&self.from);
+        payload.extend_from_slice(&self.data.encode());
+        payload
+    }
+    
+    /// Validate the transaction data payload
+    fn validate_data(&self) -> crate::Result<()> {
+        use crate::Error;
+        
+        match &self.data {
+            TransactionData::ModuleCall { module, call } => {
+                // Module name should not be empty
+                if module.is_empty() {
+                    return Err(Error::InvalidTransaction("Module name is empty".into()));
+                }
+                // Call data can be empty for some calls
+                if call.len() > 1024 * 1024 {
+                    return Err(Error::InvalidTransaction("Call data too large".into()));
+                }
+            }
+            TransactionData::Transfer { to, amount } => {
+                // Cannot transfer to self
+                if to == &self.from {
+                    return Err(Error::InvalidTransaction("Cannot transfer to self".into()));
+                }
+                // Amount should be non-zero for transfers
+                if *amount == 0 {
+                    return Err(Error::InvalidTransaction("Transfer amount is zero".into()));
+                }
+            }
+        }
+        
+        Ok(())
+    }
+    
+    /// Calculate transaction hash
+    pub fn hash(&self) -> [u8; 32] {
+        use blake2::{Blake2b512, Digest};
+        let encoded = self.encode();
+        let hash = Blake2b512::digest(&encoded);
+        let mut result = [0u8; 32];
+        result.copy_from_slice(&hash[..32]);
+        result
     }
 }

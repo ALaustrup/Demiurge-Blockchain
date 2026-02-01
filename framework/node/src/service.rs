@@ -9,7 +9,7 @@ use crate::{NodeConfig, GenesisConfig};
 use demiurge_core::{Runtime, Block, Transaction};
 use demiurge_storage::StorageBackend;
 use demiurge_consensus::{ConsensusEngine, Validator, BlockProof};
-use demiurge_network::{NetworkService, SwarmManager, NetworkEvent};
+use demiurge_network::{NetworkService, SwarmManager, NetworkEvent, TransactionPool};
 use demiurge_rpc::{RpcServer, RpcMethods};
 use anyhow::Result;
 use libp2p::Multiaddr;
@@ -25,6 +25,7 @@ pub struct NodeService {
     config: NodeConfig,
     runtime: Arc<Mutex<Runtime<StorageBackend>>>,
     consensus: Option<Arc<Mutex<ConsensusEngine<StorageBackend>>>>,
+    tx_pool: Arc<Mutex<TransactionPool>>,
     rpc_server: Option<RpcServer<StorageBackend>>,
     swarm_manager: Option<Arc<SwarmManager>>,
     is_validator: bool,
@@ -47,10 +48,14 @@ impl NodeService {
         // Initialize runtime (wrapped in Arc<Mutex> for sharing)
         let runtime = Arc::new(Mutex::new(Runtime::new(storage)));
         
+        // Initialize transaction pool (10k transactions max)
+        let tx_pool = Arc::new(Mutex::new(TransactionPool::new(10_000)));
+        
         Ok(Self {
             config,
             runtime,
             consensus: None,
+            tx_pool,
             rpc_server: None,
             swarm_manager: None,
             is_validator: false,
@@ -276,8 +281,9 @@ impl NodeService {
         
         // Spawn network event handler
         let consensus = self.consensus.clone();
+        let tx_pool = self.tx_pool.clone();
         tokio::spawn(async move {
-            Self::network_event_loop(swarm, consensus).await;
+            Self::network_event_loop(swarm, consensus, tx_pool).await;
         });
         
         info!("✅ P2P network started - The Nervous System is alive");
@@ -288,6 +294,7 @@ impl NodeService {
     async fn network_event_loop(
         swarm: Arc<SwarmManager>,
         consensus: Option<Arc<Mutex<ConsensusEngine<StorageBackend>>>>,
+        tx_pool: Arc<Mutex<TransactionPool>>,
     ) {
         info!("Network event loop started");
         
@@ -308,11 +315,35 @@ impl NodeService {
                         // Validate and import block via consensus
                         if let Some(ref consensus) = consensus {
                             if let Ok(mut consensus_guard) = consensus.try_lock() {
-                                // TODO: Validate block signatures
+                                // Validate block structure first
+                                if let Err(e) = block.validate(None) {
+                                    warn!("Invalid block received from {}: {:?}", from, e);
+                                    continue;
+                                }
+                                
                                 if let Err(e) = consensus_guard.store_block(&block) {
                                     warn!("Failed to store received block: {:?}", e);
                                 } else {
                                     debug!("Block #{} imported successfully", block.header.block_number);
+                                    
+                                    // Remove block's transactions from the pool
+                                    let tx_hashes: Vec<[u8; 32]> = block.transactions.iter()
+                                        .map(|tx| {
+                                            use blake2::{Blake2b512, Digest};
+                                            use codec::Encode;
+                                            let encoded = tx.encode();
+                                            let hash = Blake2b512::digest(&encoded);
+                                            let mut result = [0u8; 32];
+                                            result.copy_from_slice(&hash[..32]);
+                                            result
+                                        })
+                                        .collect();
+                                    
+                                    if !tx_hashes.is_empty() {
+                                        let mut pool = tx_pool.lock().await;
+                                        pool.remove(&tx_hashes);
+                                        debug!("Removed {} transactions from pool", tx_hashes.len());
+                                    }
                                 }
                             }
                         }
@@ -320,7 +351,19 @@ impl NodeService {
                     
                     NetworkEvent::TransactionReceived { transaction, from } => {
                         debug!("📝 Received transaction from {}", from);
-                        // TODO: Add to transaction pool
+                        
+                        // Validate transaction before adding to pool
+                        if let Err(e) = transaction.validate() {
+                            warn!("Invalid transaction received from {}: {:?}", from, e);
+                            continue;
+                        }
+                        
+                        // Add to transaction pool
+                        let mut pool = tx_pool.lock().await;
+                        match pool.add(transaction) {
+                            Ok(_) => debug!("Transaction added to pool (size: {})", pool.size()),
+                            Err(e) => warn!("Failed to add transaction to pool: {:?}", e),
+                        }
                     }
                     
                     NetworkEvent::CvpMutationAnnounced { contract_id, epoch, mutation_hash, from } => {
@@ -353,8 +396,8 @@ impl NodeService {
             runtime_guard.storage.clone()
         };
         
-        // Create RPC methods handler
-        let mut rpc_methods = RpcMethods::new(storage_arc);
+        // Create RPC methods handler with shared transaction pool
+        let mut rpc_methods = RpcMethods::with_tx_pool(storage_arc, self.tx_pool.clone());
         
         // Set runtime and consensus references
         rpc_methods.set_runtime(self.runtime.clone());
