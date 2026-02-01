@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { DRC369Client } from '@demiurge/drc369-sdk';
+import { Drc369Client } from '@demiurge/drc369-sdk';
 import { mintDRC369, estimateFee } from '@/lib/transaction-builder';
 
 interface MintNFTFormProps {
