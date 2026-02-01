@@ -4,8 +4,8 @@
 
 > *"The Metaverse is not a place you visit; it is a protocol you connect to."*
 
-[![Production](https://img.shields.io/badge/Status-Live%20in%20Production-success)](https://demiurge.cloud)
-[![Block Height](https://img.shields.io/badge/Block-250K%2B-blue)](https://demiurge.cloud/validators)
+[![Production](https://img.shields.io/badge/Mainnet-v1%20Live-success)](https://demiurge.cloud)
+[![Genesis](https://img.shields.io/badge/Genesis-Fresh%20Reset-blue)](https://demiurge.cloud/validators)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ---
@@ -25,11 +25,53 @@ While others build walled gardens (Fortnite, Roblox, Sandbox), **Demiurge builds
 
 **Live at:** https://demiurge.cloud  
 **RPC Endpoint:** https://rpc.demiurge.cloud  
-**Current Block:** 250,000+ (2-second finality)
+**Status:** Mainnet v1 with fresh genesis (block #1 reset)
 
 ---
 
 ## ✨ Revolutionary Features
+
+### 🔐 **Hybrid Authentication**
+*Dual-mode authentication for maximum flexibility*
+
+- **Keypair Authentication** - Generate and authenticate with Ed25519 keypairs directly
+- **QOR ID Login** - Human-readable identity (username#0001 format)
+- **Seamless Switching** - Use either method based on your needs
+- **Agent-Ready** - Keypair auth perfect for autonomous agents
+
+**Status:** ✅ **Live** - Both authentication methods fully operational
+
+### 🤖 **Agent System**
+*AI agents as first-class blockchain citizens with dual registration patterns*
+
+- **Instant Keys** - Generate agent keypairs on-demand for immediate deployment
+- **Pre-Registered Agents** - Register agents ahead of time for planned deployments
+- **Agent DID** - Agents have decentralized identifiers (`did:demiurge:agent:...`)
+- **Sovereign Wallets** - Agents hold their own keys and sign transactions
+- **Bounded Autonomy** - Configurable spending limits and capabilities
+
+**Status:** ✅ **Live** - Agent Foundry SDK with dual registration patterns
+
+### 💻 **CLI Operating System**
+*Interactive shell with dual-mode operation*
+
+- **Interactive Shell Mode** - Full REPL environment with animated splash screen
+- **Command Mode** - Traditional CLI for scripts and automation
+- **30+ Commands** - Chain, wallet, NFT, agent, and identity operations
+- **Tab Completion** - Intelligent command and parameter completion
+- **Session Persistence** - Maintain state across shell sessions
+
+**Status:** ✅ **Live** - Interactive shell with animated splash
+
+### 👑 **Godmode Administration**
+*Administrative control for network governance*
+
+- **Treasury Address** - `0x00000000000000000000000000000000DEMIURGE`
+- **Initial Treasury** - 1 billion CGT for ecosystem development
+- **Administrative Functions** - Network configuration and emergency controls
+- **Governance Ready** - Foundation for decentralized governance
+
+**Status:** ✅ **Live** - Godmode account seeded with fresh genesis
 
 ### 🛡️ **Consensus-Verified Polymorphism (CVP)**
 *The world's first blockchain with runtime bytecode mutation*
@@ -50,17 +92,6 @@ While others build walled gardens (Fortnite, Roblox, Sandbox), **Demiurge builds
 - **Composable** - Nest NFTs (sword in backpack in ship)
 
 **Status:** ✅ **Live** - Minting UI ready, backend 100% complete
-
-### 🤖 **Agentic Layer**
-*AI agents as sovereign blockchain citizens*
-
-- **Agent DID** - Agents have decentralized identifiers
-- **Sovereign Wallets** - Agents hold their own keys and sign transactions
-- **Verifiable Compute Proofs (VCP)** - Prove AI inference integrity with ZK
-- **Sentinel Oracle** - AI-governed bounty system for network maintenance
-- **Autonomous Bounties** - Agents bid on and complete tasks
-
-**Status:** ✅ **Live** - Deployment UI ready, Agent Foundry SDK published
 
 ### ⚡ **Modular Fluidity (Vector I)**
 *Hot-swap consensus mechanisms without hard forks*
@@ -172,24 +203,39 @@ Demiurge-Blockchain/
 
 **Live Platform:** https://demiurge.cloud
 
-1. Create a QOR ID account (username#0001 format)
-2. Login and explore the dashboard
-3. Mint DRC-369 NFTs with dynamic state
-4. Deploy AI agents with the Agent Foundry
-5. Stake CGT to validators
+1. **Register** - Create a QOR ID account (username#0001 format) or generate a keypair
+2. **Login** - Use either keypair authentication or QOR ID credentials
+3. **Explore** - View the dashboard and chain status
+4. **Create** - Mint DRC-369 NFTs with dynamic state
+5. **Automate** - Deploy AI agents with the Agent Foundry
 
 ### For Developers
 
 **Install CLI:**
 ```bash
 npm install -g @demiurge/cli
-demiurge --help
+
+# Interactive shell mode (recommended)
+demiurge
+
+# Or use command mode
+demiurge chain status
 ```
 
-**SDK Integration:**
+**SDK Integration with Keypair Auth:**
 ```typescript
-import { DemiurgeClient } from '@demiurge/sdk';
+import { DemiurgeClient, DemiurgeAuth, Wallet } from '@demiurge/sdk';
 
+// Generate or load a keypair
+const wallet = Wallet.generate();
+
+// Authenticate with keypair
+const auth = new DemiurgeAuth({
+  authUrl: 'https://demiurge.cloud/api/v1'
+});
+const session = await auth.loginWithKeypair(wallet);
+
+// Connect to the blockchain
 const client = new DemiurgeClient({
   rpcUrl: 'https://rpc.demiurge.cloud'
 });
@@ -198,10 +244,11 @@ const block = await client.getBlockNumber();
 console.log('Current block:', block);
 ```
 
-**Deploy an AI Agent:**
+**Deploy an AI Agent (Dual Patterns):**
 ```typescript
-import { createAgent } from '@demiurge/agent-foundry';
+import { createAgent, AgentFoundry } from '@demiurge/agent-foundry';
 
+// Pattern 1: Instant Keys - Generate and deploy immediately
 const agent = await createAgent({
   name: 'TradingBot',
   autonomy: 'bounded',
@@ -209,10 +256,17 @@ const agent = await createAgent({
   llm: { provider: 'gemini', apiKey: process.env.GEMINI_API_KEY },
 });
 
+// Pattern 2: Pre-registered - Use existing agent account
+const preRegisteredAgent = await AgentFoundry.fromRegisteredAccount({
+  agentAddress: '0x...',
+  privateKey: process.env.AGENT_PRIVATE_KEY,
+  // ... config
+});
+
 console.log('Agent DID:', agent.did);
 ```
 
-**Full Documentation:** https://demiurge.cloud/developers
+**Full Documentation:** [docs/](./docs/) | https://demiurge.cloud/developers
 
 ---
 
@@ -237,31 +291,34 @@ console.log('Agent DID:', agent.did);
 
 ## 🎯 Production Status
 
-### ✅ LIVE IN PRODUCTION
+### ✅ MAINNET v1 LIVE
 
 **Mainnet:** https://demiurge.cloud  
-**Block Height:** 250,000+  
+**Genesis:** Fresh reset (block #1)  
 **Block Time:** 2 seconds  
 **Finality:** Instant (BFT)  
-**Validators:** 4 active (testnet) + 1 production node  
-**Uptime:** 99.9%+
+**Treasury:** 1,000,000,000 CGT (Godmode account)  
+**Treasury Address:** `0x00000000000000000000000000000000DEMIURGE`
 
 ### Feature Completion: **100%** 🎉
 
 **Core Protocol:** ✅ 100%
-- Block production, consensus, security, networking
+- Block production, consensus, security, networking, fresh genesis
+
+**Authentication:** ✅ 100%
+- Hybrid auth (keypair + QOR ID), session management
 
 **Token Economics:** ✅ 100%
-- CGT transfers, Energy system, Staking
+- CGT transfers, Energy system, Staking, Godmode treasury
 
 **NFT Standard (DRC-369):** ✅ 100%
 - Minting, transfers, dynamic state, physics metadata
 
 **Agentic Layer:** ✅ 100%
-- Agent deployment, VCP, Sentinel Oracle, bounties
+- Dual registration patterns (instant keys + pre-registered)
 
 **Identity (QOR ID):** ✅ 100%
-- Registration, authentication, profile management
+- Registration, keypair auth, profile management
 
 **Advanced Consensus:** ✅ 100%
 - Modular Fluidity, Elastic Sharding
@@ -270,7 +327,7 @@ console.log('Agent DID:', agent.did);
 - Dashboard, transaction UI, NFT minting, agent deployment
 
 **CLI Tools:** ✅ 100%
-- 30+ commands for chain, wallet, NFT, agent operations
+- Interactive shell mode, 30+ commands, animated splash screen
 
 **Documentation:** ✅ 100%
 - API docs, developer portal, guides
@@ -506,16 +563,17 @@ const playerNFTs = await nftClient.getTokensByOwner(playerAddress);
 ## 📊 Current Metrics
 
 **Blockchain:**
-- Block Height: 250,000+
+- Genesis: Fresh reset (Mainnet v1)
 - Block Time: 2.0 seconds
 - Finality: Instant (BFT)
 - TPS Capacity: 500-1,000 (tested)
 - Active Validators: 4
+- Godmode Treasury: 1,000,000,000 CGT
 
 **Platform:**
-- Registered Users: Growing
-- NFTs Minted: Ready for users
-- AI Agents Deployed: SDK ready
+- Authentication: Hybrid (keypair + QOR ID)
+- Agent Patterns: Instant keys + Pre-registered
+- CLI Mode: Interactive shell with animated splash
 - Transactions: Real-time signing operational
 
 ---
@@ -689,6 +747,6 @@ Create infrastructure so robust, so flexible, and so developer-friendly that it 
 
 **Built with 🔥 for the Sovereign Creative Substrate**
 
-**Last Updated:** January 31, 2026  
-**Version:** 1.0.0 (Production)  
-**Status:** Live and Operational
+**Last Updated:** February 1, 2026  
+**Version:** 1.0.0 (Mainnet v1)  
+**Status:** Live with Fresh Genesis

@@ -87,8 +87,7 @@ export async function POST(request: NextRequest) {
       rewardClaimed: true,
     });
 
-    // Log for admin tracking
-    console.log(`[Notify-Me] ${qorId} registered for ${feature}: email=${!!email}, phone=${!!phone}, reward=${cgtReward}CGT, badge=${secretBadgeEligible}`);
+    // TODO: Add proper logging service for admin tracking
 
     return NextResponse.json({
       success: true,

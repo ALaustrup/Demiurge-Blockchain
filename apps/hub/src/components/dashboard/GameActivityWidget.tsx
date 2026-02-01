@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { demiurgeRpc } from '@/lib/demiurge-rpc';
 
 interface RecentGame {
   id: string;
@@ -31,38 +32,68 @@ export function GameActivityWidget() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       loadGameActivity();
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   const loadGameActivity = async () => {
-    // TODO: Fetch from actual game stats API when games are integrated
+    if (!user) return;
     setLoading(true);
+    
     try {
-      // Try to load from localStorage (client-side game data)
-      const savedGames = localStorage.getItem('demiurge_game_activity');
-      if (savedGames) {
-        const data = JSON.parse(savedGames);
-        setRecentGames(data.recent || []);
-        setStats(data.stats || {
-          totalGamesPlayed: 0,
-          totalSparksEarned: 0,
-          totalPlayTime: 0,
-        });
-      } else {
-        // No game activity yet - show empty state
-        setRecentGames([]);
-        setStats({
-          totalGamesPlayed: 0,
-          totalSparksEarned: 0,
-          totalPlayTime: 0,
-        });
-      }
+      // Fetch real game activity from blockchain RPC
+      const userActivity = await demiurgeRpc.getUserActivity(user.id, 50);
+      const userStats = await demiurgeRpc.getUserStats(user.id);
+      
+      // Filter for game-related activity
+      const gameActivity = userActivity.filter(a => a.type === 'game');
+      
+      // Build recent games from activity
+      const gameMap = new Map<string, RecentGame>();
+      gameActivity.forEach(activity => {
+        // Extract game info from activity description
+        const gameId = activity.id.split('_')[0] || 'unknown';
+        const gameName = activity.description?.split(' in ')[1] || activity.description || 'Unknown Game';
+        
+        if (!gameMap.has(gameId)) {
+          gameMap.set(gameId, {
+            id: gameId,
+            title: gameName,
+            thumbnail: '',
+            lastPlayed: new Date(activity.timestamp),
+            totalSparksEarned: activity.reward || 0,
+            highScore: undefined,
+          });
+        } else {
+          const existing = gameMap.get(gameId)!;
+          existing.totalSparksEarned += activity.reward || 0;
+          if (activity.timestamp > existing.lastPlayed.getTime()) {
+            existing.lastPlayed = new Date(activity.timestamp);
+          }
+        }
+      });
+      
+      const recentGamesList = Array.from(gameMap.values())
+        .sort((a, b) => b.lastPlayed.getTime() - a.lastPlayed.getTime())
+        .slice(0, 5);
+      
+      setRecentGames(recentGamesList);
+      
+      // Calculate stats from real data
+      const totalSparksFromGames = gameActivity.reduce((sum, a) => sum + (a.reward || 0), 0);
+      setStats({
+        totalGamesPlayed: gameActivity.length,
+        totalSparksEarned: totalSparksFromGames,
+        totalPlayTime: Math.floor(gameActivity.length * 5), // Estimate 5 min per session
+        favoriteGame: recentGamesList[0]?.title,
+      });
+      
     } catch (error) {
-      console.error('Failed to load game activity:', error);
+      console.warn('Could not load game activity from blockchain:', error);
+      // Show empty state on error
       setRecentGames([]);
       setStats({
         totalGamesPlayed: 0,

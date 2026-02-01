@@ -1,47 +1,52 @@
 'use client'
 
-import { useState } from 'react'
-import { MessageSquare, Plus, Search, Clock } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { MessageSquare, Plus, Search, Clock, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
-// Mock forum data - in production, this would come from a database
-const mockPosts = [
-  {
-    id: 1,
-    title: 'How to set up development environment?',
-    author: 'Developer123',
-    replies: 5,
-    views: 42,
-    lastActivity: '2 hours ago',
-    category: 'Development',
-  },
-  {
-    id: 2,
-    title: 'CGT Mining Strategies',
-    author: 'Miner456',
-    replies: 12,
-    views: 89,
-    lastActivity: '5 hours ago',
-    category: 'Mining',
-  },
-  {
-    id: 3,
-    title: 'New Game Release: Space Explorer',
-    author: 'GameDev789',
-    replies: 8,
-    views: 156,
-    lastActivity: '1 day ago',
-    category: 'Games',
-  },
-]
+interface ForumPost {
+  id: number
+  title: string
+  author: string
+  replies: number
+  views: number
+  lastActivity: string
+  category: string
+}
 
 const categories = ['All', 'Development', 'Mining', 'Games', 'General', 'Support']
 
 export default function ForumPage() {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
+  const [posts, setPosts] = useState<ForumPost[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredPosts = mockPosts.filter((post) => {
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setError(null)
+        // TODO: Replace with actual forum API endpoint when available
+        // const response = await fetch('/api/forum/posts')
+        // const data = await response.json()
+        // setPosts(data.posts || [])
+        
+        // For now, return empty array - forum functionality not yet implemented
+        setPosts([])
+      } catch (error) {
+        console.error('Failed to fetch forum posts:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch forum posts')
+        setPosts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPosts()
+  }, [])
+
+  const filteredPosts = posts.filter((post) => {
     const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesCategory && matchesSearch
@@ -93,45 +98,66 @@ export default function ForumPage() {
         </div>
 
         {/* Forum Posts */}
-        <div className="space-y-4">
-          {filteredPosts.map((post) => (
-            <Link
-              key={post.id}
-              href={`/forum/${post.id}`}
-              className="glass-panel p-6 hover:scale-[1.02] transition-all duration-300 block"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <span className="px-2 py-1 bg-neon-cyan/20 text-neon-cyan text-xs font-medium rounded">
-                      {post.category}
-                    </span>
-                    <h3 className="text-xl font-orbitron font-bold text-white">{post.title}</h3>
-                  </div>
-                  <div className="flex items-center space-x-4 text-sm text-gray-400">
-                    <span>By {post.author}</span>
-                    <span className="flex items-center space-x-1">
-                      <MessageSquare className="w-4 h-4" />
-                      <span>{post.replies} replies</span>
-                    </span>
-                    <span>{post.views} views</span>
-                    <span className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{post.lastActivity}</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {filteredPosts.length === 0 && (
+        {loading ? (
           <div className="glass-panel p-12 text-center">
-            <MessageSquare className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-            <h3 className="text-2xl font-orbitron font-bold text-gray-400 mb-2">No posts found</h3>
-            <p className="text-gray-500">Try adjusting your search or category filter</p>
+            <Loader2 className="w-16 h-16 text-neon-cyan mx-auto mb-4 animate-spin" />
+            <p className="text-gray-400">Loading forum posts...</p>
           </div>
+        ) : error ? (
+          <div className="glass-panel p-12 text-center">
+            <MessageSquare className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-2xl font-orbitron font-bold text-gray-400 mb-2">Error loading forum</h3>
+            <p className="text-gray-500">{error}</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-4">
+              {filteredPosts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/forum/${post.id}`}
+                  className="glass-panel p-6 hover:scale-[1.02] transition-all duration-300 block"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <span className="px-2 py-1 bg-neon-cyan/20 text-neon-cyan text-xs font-medium rounded">
+                          {post.category}
+                        </span>
+                        <h3 className="text-xl font-orbitron font-bold text-white">{post.title}</h3>
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-gray-400">
+                        <span>By {post.author}</span>
+                        <span className="flex items-center space-x-1">
+                          <MessageSquare className="w-4 h-4" />
+                          <span>{post.replies} replies</span>
+                        </span>
+                        <span>{post.views} views</span>
+                        <span className="flex items-center space-x-1">
+                          <Clock className="w-4 h-4" />
+                          <span>{post.lastActivity}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {filteredPosts.length === 0 && (
+              <div className="glass-panel p-12 text-center">
+                <MessageSquare className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                <h3 className="text-2xl font-orbitron font-bold text-gray-400 mb-2">
+                  {posts.length === 0 ? 'Forum coming soon' : 'No posts found'}
+                </h3>
+                <p className="text-gray-500">
+                  {posts.length === 0
+                    ? 'The community forum is under development. Check back soon!'
+                    : 'Try adjusting your search or category filter'}
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

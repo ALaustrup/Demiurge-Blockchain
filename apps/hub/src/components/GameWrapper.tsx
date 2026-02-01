@@ -125,7 +125,7 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
         const script = iframeWindow.document.createElement('script');
         script.src = '/inject-hud.js';
         script.onload = () => {
-          console.log('HUD script injected successfully');
+          // HUD script injected successfully
         };
         script.onerror = () => {
           // HUD failed to load - this is OK, game still works
@@ -234,7 +234,6 @@ export function GameWrapper({ gameId, gameUrl }: GameWrapperProps) {
         case 'UPDATE_XP':
           try {
             // TODO: Update XP on blockchain/QOR ID
-            console.log(`Updating XP: +${value} from ${source}`);
             // This would call the QOR Auth API to update XP
           } catch (err) {
             console.error('Failed to update XP:', err);

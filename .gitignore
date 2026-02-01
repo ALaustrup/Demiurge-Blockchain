@@ -89,6 +89,7 @@ docker-compose.override.yml
 Thumbs.db
 .DS_Store
 *.tmp
+.tmp.driveupload/
 
 # UE5 Source (large, not tracked)
 ue5-source/

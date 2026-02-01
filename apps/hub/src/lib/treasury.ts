@@ -35,7 +35,6 @@ class TreasuryService {
       this.keyring = new Keyring({ type: 'sr25519' });
       this.treasuryPair = this.keyring.addFromMnemonic(TREASURY_SEED);
       
-      console.log('[Treasury] Initialized treasury account:', this.treasuryPair.address);
       this.initialized = true;
       return true;
     } catch (error) {
@@ -85,8 +84,6 @@ class TreasuryService {
       // Convert CGT to smallest units (100 Sparks = 1 CGT)
       const amountInSmallestUnits = Math.floor(amount * 100).toString();
 
-      console.log(`[Treasury] Transferring ${amount} CGT to ${toAddress} - ${reason}`);
-
       // Execute transfer
       const txHash = await blockchainClient.transferCGT(
         this.treasuryPair,
@@ -94,7 +91,6 @@ class TreasuryService {
         amountInSmallestUnits
       );
 
-      console.log(`[Treasury] Transfer complete: ${txHash}`);
       return txHash;
     } catch (error: any) {
       console.error('[Treasury] Transfer failed:', error.message || error);

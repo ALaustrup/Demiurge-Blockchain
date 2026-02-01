@@ -1,7 +1,7 @@
 # Demiurge Protocol - Roadmap
 
-**Last Updated**: January 29, 2026  
-**Status**: Production
+**Last Updated**: February 1, 2026  
+**Status**: Production - Mainnet v1 Live
 
 ---
 
@@ -44,26 +44,35 @@
 - Rewrite rule registry
 
 ### Phase 6: Production Deployment
-- Mainnet deployment
+- Mainnet v1 deployment (fresh genesis at block #1)
+- Godmode account with 1B CGT treasury
 - Server infrastructure (128GB RAM)
 - SSL/TLS configuration
 - Systemd service management
 - Nginx reverse proxy
+- Hybrid authentication (keypair + QOR ID) live
+- Agent system with dual patterns
+- CLI interactive shell mode
+- Production frontend (all mock data removed)
 
 ---
 
 ## Current Phase: Platform Maturity
 
 ### In Progress
-- Frontend bug fixes
-- Agentic Layer UI
+- Multi-validator expansion
+- Security audit preparation
+- Cross-chain bridge research
 - SDK publishing to npm
 - Developer documentation
 
-### Next Steps
-- Multi-validator testnet
-- Security audit preparation
-- Cross-chain bridge research
+### Recently Completed
+- Mainnet v1 launch (fresh genesis)
+- Godmode treasury activation (1B CGT)
+- Hybrid authentication system
+- Agent system dual patterns
+- CLI interactive shell
+- Production frontend cleanup (mock data removed)
 
 ---
 
@@ -101,9 +110,12 @@
 | NFT Standard | Q1 2026 | Complete |
 | Agentic Layer | Q1 2026 | Complete |
 | Production Deploy | Q1 2026 | Complete |
+| Mainnet Launch | Q1 2026 | Complete |
+| Hybrid Auth | Q1 2026 | Complete |
+| Agent Dual Patterns | Q1 2026 | Complete |
+| CLI Interactive Shell | Q1 2026 | Complete |
 | Multi-Validator | Q2 2026 | Planned |
 | Security Audit | Q2 2026 | Planned |
-| Mainnet Launch | Q3 2026 | Planned |
 
 ---
 

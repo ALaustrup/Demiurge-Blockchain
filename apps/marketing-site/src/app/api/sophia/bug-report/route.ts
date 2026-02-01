@@ -52,11 +52,7 @@ ${environment || 'Not provided'}
 Submitted: ${new Date().toISOString()}
     `.trim()
 
-    // In production, you would send this via email or save to a database
-    // For now, we'll log it and return success
-    console.log('Bug Report:', bugReport)
-
-    // TODO: Implement email sending or database storage
+    // TODO: Implement email sending or database storage in production
     // Example: await sendEmail(BUG_REPORT_EMAIL, 'Bug Report from Sophia', bugReport)
 
     return NextResponse.json({

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBlockchain } from '@/contexts/BlockchainContext';
+import { demiurgeRpc } from '@/lib/demiurge-rpc';
+import { getOrCreateAddressForQorId } from '@/lib/qor-wallet';
 
 interface NFTAsset {
   id: string;
@@ -40,31 +42,59 @@ export function NFTSnapshotWidget() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       loadNFTData();
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   const loadNFTData = async () => {
+    if (!user) return;
     setLoading(true);
+    
     try {
-      // Fetch real NFT data from blockchain
-      // TODO: Implement when DRC-369 RPC methods are available
-      // For now, show accurate empty state
-      const realAssets: NFTAsset[] = [];
-      const realOffers: BuyOffer[] = [];
-
-      setRecentAssets(realAssets);
-      setPendingOffers(realOffers);
+      // Get user's wallet address
+      const userAddress = await getOrCreateAddressForQorId(user, false);
+      
+      if (!userAddress) {
+        // No wallet address yet
+        setRecentAssets([]);
+        setPendingOffers([]);
+        setStats({ totalOwned: 0, totalValue: 0, pendingOffers: 0 });
+        return;
+      }
+      
+      // Fetch real NFT data from blockchain using DRC-369 RPC
+      const nfts = await demiurgeRpc.getUserNFTs(userAddress);
+      
+      // Transform blockchain NFT data to component format
+      const assets: NFTAsset[] = nfts.map(nft => ({
+        id: nft.id,
+        name: nft.name,
+        thumbnail: nft.image,
+        collection: nft.collection,
+      }));
+      
+      setRecentAssets(assets);
+      
+      // TODO: Fetch pending offers when marketplace RPC is available
+      // For now, set empty offers
+      setPendingOffers([]);
+      
+      // Calculate stats
       setStats({
-        totalOwned: realAssets.length,
-        totalValue: 0,
-        pendingOffers: realOffers.length,
+        totalOwned: assets.length,
+        totalValue: 0, // Would need marketplace price data
+        pendingOffers: 0,
       });
+      
     } catch (error) {
-      console.error('Failed to load NFT data:', error);
+      console.warn('Could not load NFT data from blockchain:', error);
+      // Show empty state on error
+      setRecentAssets([]);
+      setPendingOffers([]);
+      setStats({ totalOwned: 0, totalValue: 0, pendingOffers: 0 });
     } finally {
       setLoading(false);
     }

@@ -527,6 +527,89 @@ export class DemiurgeRpcClient {
       return [];
     }
   }
+
+  /**
+   * Get user stats (level, XP, achievements, karma)
+   */
+  async getUserStats(userId: string): Promise<{
+    level: number;
+    xp: number;
+    achievements: number;
+    karma: number;
+  } | null> {
+    try {
+      return await this.request('user_getStats', [userId]);
+    } catch (error) {
+      console.warn('Failed to fetch user stats:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get user activity history
+   */
+  async getUserActivity(userId: string, limit: number = 10): Promise<Array<{
+    id: string;
+    type: string;
+    description: string;
+    timestamp: number;
+    reward?: number;
+  }>> {
+    try {
+      return await this.request('user_getActivity', [userId, limit]);
+    } catch (error) {
+      console.warn('Failed to fetch user activity:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get marketplace listings
+   */
+  async getMarketplaceListings(filter?: string): Promise<any[]> {
+    try {
+      return await this.request('marketplace_getListings', [filter]);
+    } catch (error) {
+      console.warn('Failed to fetch marketplace listings:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get sponsorship history for a developer address
+   */
+  async getSponsorshipHistory(developerAddress: string): Promise<Array<{
+    id: string;
+    userAddress: string;
+    energyCost: number;
+    timestamp: number;
+    status: 'success' | 'failed';
+  }>> {
+    try {
+      return await this.request('energy_getSponsorshipHistory', [developerAddress]);
+    } catch (error) {
+      console.warn('Failed to fetch sponsorship history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get network historical data for analytics
+   */
+  async getNetworkHistory(timeRange: '1h' | '24h' | '7d' | '30d'): Promise<Array<{
+    timestamp: number;
+    blockNumber: number;
+    transactionVolume: number;
+    activeValidators: number;
+    totalStake: number;
+  }>> {
+    try {
+      return await this.request('analytics_getNetworkHistory', [timeRange]);
+    } catch (error) {
+      console.warn('Failed to fetch network history:', error);
+      return [];
+    }
+  }
 }
 
 // Export singleton instance

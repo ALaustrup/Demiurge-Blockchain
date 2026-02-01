@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatQorId } from '@/lib/qor-wallet';
 import { KarmaBadge } from '@/components/vyb/KarmaDisplay';
+import { demiurgeRpc } from '@/lib/demiurge-rpc';
 
 interface UserStats {
   level: number;
@@ -23,23 +24,37 @@ export function UserIdentityHeader() {
     achievements: 0,
     karma: 0,
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (isAuthenticated && user) {
       loadUserStats();
+    } else {
+      setLoading(false);
     }
   }, [isAuthenticated, user]);
 
   const loadUserStats = async () => {
-    // TODO: Fetch from actual user stats API
-    // Mock data for now
-    setStats({
-      level: 7,
-      xp: 2450,
-      xpToNextLevel: 3000,
-      achievements: 12,
-      karma: 850,
-    });
+    setLoading(true);
+    try {
+      // Fetch real user stats from API
+      const userStats = await demiurgeRpc.getUserStats(user?.id || '');
+      if (userStats) {
+        const xpToNext = Math.ceil((userStats.level + 1) * 500);
+        setStats({
+          level: userStats.level || 1,
+          xp: userStats.xp || 0,
+          xpToNextLevel: xpToNext,
+          achievements: userStats.achievements || 0,
+          karma: userStats.karma || 0,
+        });
+      }
+    } catch (error) {
+      console.warn('Could not load user stats:', error);
+      // Keep default empty stats on error
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isAuthenticated || !user) {
@@ -108,23 +123,33 @@ export function UserIdentityHeader() {
           
           {/* XP Progress */}
           <div className="mt-3 max-w-xs mx-auto md:mx-0">
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-gray-400">Level {stats.level}</span>
-              <span className="text-neon-cyan">{stats.xp.toLocaleString()} / {stats.xpToNextLevel.toLocaleString()} XP</span>
-            </div>
-            <div className="h-2 bg-black/50 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full transition-all duration-500"
-                style={{ width: `${xpProgress}%` }}
-              />
-            </div>
+            {loading ? (
+              <div className="h-6 bg-black/30 rounded animate-pulse" />
+            ) : stats.xp > 0 ? (
+              <>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-gray-400">Level {stats.level}</span>
+                  <span className="text-neon-cyan">{stats.xp.toLocaleString()} / {stats.xpToNextLevel.toLocaleString()} XP</span>
+                </div>
+                <div className="h-2 bg-black/50 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full transition-all duration-500"
+                    style={{ width: `${xpProgress}%` }}
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-gray-500">Complete tasks to earn XP</p>
+            )}
           </div>
         </div>
 
         {/* Quick Stats */}
         <div className="flex gap-4 md:gap-6">
           <div className="text-center">
-            <div className="text-2xl font-grunge text-neon-green">{stats.achievements}</div>
+            <div className="text-2xl font-grunge text-neon-green">
+              {loading ? '...' : stats.achievements}
+            </div>
             <div className="text-xs text-gray-400">Achievements</div>
           </div>
           <div className="h-10 w-px bg-white/10" />

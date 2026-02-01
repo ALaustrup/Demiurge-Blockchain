@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { qorAuth } from '@demiurge/qor-sdk';
+import { useToast } from '@/components/notifications';
 
 interface User {
   id: string;
@@ -41,11 +42,14 @@ interface MintResult {
 
 export default function AdminPage() {
   const router = useRouter();
+  const toast = useToast();
   const [isGod, setIsGod] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'users' | 'tokens' | 'transactions' | 'stats'>('users');
   const [mintLoading, setMintLoading] = useState(false);
   const [mintResult, setMintResult] = useState<MintResult | null>(null);
@@ -75,6 +79,7 @@ export default function AdminPage() {
   }, [router]);
 
   const loadUsers = async () => {
+    setUsersLoading(true);
     try {
       const token = qorAuth.getToken();
       const response = await fetch('http://localhost:8080/api/v1/admin/users', {
@@ -86,6 +91,9 @@ export default function AdminPage() {
       setUsers(data.users || []);
     } catch (error) {
       console.error('Failed to load users:', error);
+      toast.error('Failed to load users', 'Check server connection');
+    } finally {
+      setUsersLoading(false);
     }
   };
 
@@ -101,6 +109,7 @@ export default function AdminPage() {
       setStats(data);
     } catch (error) {
       console.error('Failed to load stats:', error);
+      toast.error('Failed to load stats');
     }
   };
 
@@ -120,10 +129,13 @@ export default function AdminPage() {
       
       if (response.ok) {
         await loadUsers();
-        alert('User banned successfully');
+        toast.success('User banned successfully');
+      } else {
+        toast.error('Failed to ban user', 'Server returned an error');
       }
     } catch (error) {
       console.error('Failed to ban user:', error);
+      toast.error('Failed to ban user', 'Network error');
     }
   };
 
@@ -144,14 +156,18 @@ export default function AdminPage() {
       });
       
       if (response.ok) {
-        alert('Token transfer initiated');
+        toast.success('Token transfer initiated', `Sent ${amount} CGT to ${toUserId}`);
+      } else {
+        toast.error('Transfer failed', 'Server returned an error');
       }
     } catch (error) {
       console.error('Failed to transfer tokens:', error);
+      toast.error('Transfer failed', 'Network error');
     }
   };
 
   const loadTransactions = async () => {
+    setTransactionsLoading(true);
     try {
       const response = await fetch(
         (process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud'),
@@ -172,6 +188,9 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('Failed to load transactions:', error);
+      toast.error('Failed to load transactions');
+    } finally {
+      setTransactionsLoading(false);
     }
   };
 
@@ -202,12 +221,13 @@ export default function AdminPage() {
       
       if (data.result) {
         setMintResult(data.result);
+        toast.success('CGT Minted Successfully', `Minted to ${toAddress.slice(0, 10)}...`);
       } else if (data.error) {
-        alert(`Mint failed: ${data.error.message}`);
+        toast.error('Mint failed', data.error.message);
       }
     } catch (error) {
       console.error('Failed to mint CGT:', error);
-      alert('Failed to mint CGT');
+      toast.error('Failed to mint CGT', 'Network error');
     } finally {
       setMintLoading(false);
     }
@@ -216,7 +236,8 @@ export default function AdminPage() {
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <div className="glass-panel p-8 rounded-lg">
+        <div className="glass-panel p-8 rounded-lg text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-demiurge-gold mx-auto mb-4" />
           <div className="text-demiurge-cyan">Loading admin portal...</div>
         </div>
       </main>
@@ -257,56 +278,86 @@ export default function AdminPage() {
         {/* Users Tab */}
         {activeTab === 'users' && (
           <div className="glass-panel p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4 text-demiurge-cyan">User Management</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-demiurge-cyan/20">
-                    <th className="text-left p-2">QOR ID</th>
-                    <th className="text-left p-2">Email</th>
-                    <th className="text-left p-2">Role</th>
-                    <th className="text-left p-2">Status</th>
-                    <th className="text-left p-2">Created</th>
-                    <th className="text-left p-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id} className="border-b border-demiurge-cyan/10">
-                      <td className="p-2">{user.qor_id}</td>
-                      <td className="p-2 text-gray-400">{user.email}</td>
-                      <td className="p-2">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          user.role === 'god' ? 'bg-demiurge-gold/20 text-demiurge-gold' :
-                          user.role === 'admin' ? 'bg-demiurge-violet/20 text-demiurge-violet' :
-                          'bg-demiurge-cyan/20 text-demiurge-cyan'
-                        }`}>
-                          {user.role}
-                        </span>
-                      </td>
-                      <td className="p-2">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          user.status === 'active' ? 'text-green-400' : 'text-red-400'
-                        }`}>
-                          {user.status}
-                        </span>
-                      </td>
-                      <td className="p-2 text-gray-400 text-sm">
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="p-2">
-                        <button
-                          onClick={() => handleBanUser(user.id)}
-                          className="text-red-400 hover:text-red-300 text-sm"
-                        >
-                          Ban
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-demiurge-cyan">User Management</h2>
+              <button
+                onClick={loadUsers}
+                disabled={usersLoading}
+                className="glass-panel px-4 py-2 rounded-lg hover:chroma-glow transition-all text-sm disabled:opacity-50"
+              >
+                {usersLoading ? 'Loading...' : 'Refresh'}
+              </button>
             </div>
+            
+            {usersLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-12 bg-white/5 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : users.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-5xl mb-4">👤</div>
+                <h3 className="text-xl font-bold text-white mb-2">No Users Found</h3>
+                <p className="text-gray-400 mb-4">User data will appear here once users register.</p>
+                <button
+                  onClick={loadUsers}
+                  className="text-demiurge-cyan hover:underline"
+                >
+                  Try loading again
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-demiurge-cyan/20">
+                      <th className="text-left p-2">QOR ID</th>
+                      <th className="text-left p-2">Email</th>
+                      <th className="text-left p-2">Role</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-left p-2">Created</th>
+                      <th className="text-left p-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((user) => (
+                      <tr key={user.id} className="border-b border-demiurge-cyan/10 hover:bg-white/5">
+                        <td className="p-2">{user.qor_id}</td>
+                        <td className="p-2 text-gray-400">{user.email}</td>
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            user.role === 'god' ? 'bg-demiurge-gold/20 text-demiurge-gold' :
+                            user.role === 'admin' ? 'bg-demiurge-violet/20 text-demiurge-violet' :
+                            'bg-demiurge-cyan/20 text-demiurge-cyan'
+                          }`}>
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            user.status === 'active' ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {user.status}
+                          </span>
+                        </td>
+                        <td className="p-2 text-gray-400 text-sm">
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="p-2">
+                          <button
+                            onClick={() => handleBanUser(user.id)}
+                            className="text-red-400 hover:text-red-300 text-sm"
+                          >
+                            Ban
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -432,18 +483,27 @@ export default function AdminPage() {
               <h2 className="text-2xl font-bold text-demiurge-cyan">Transaction Viewer</h2>
               <button
                 onClick={loadTransactions}
-                className="glass-panel px-4 py-2 rounded-lg hover:chroma-glow transition-all text-sm"
+                disabled={transactionsLoading}
+                className="glass-panel px-4 py-2 rounded-lg hover:chroma-glow transition-all text-sm disabled:opacity-50"
               >
-                Refresh
+                {transactionsLoading ? 'Loading...' : 'Refresh'}
               </button>
             </div>
             
-            {transactions.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                <p>No transactions found.</p>
+            {transactionsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-10 bg-white/5 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-5xl mb-4">📋</div>
+                <h3 className="text-xl font-bold text-white mb-2">No Transactions</h3>
+                <p className="text-gray-400 mb-4">Click below to load recent blockchain transactions.</p>
                 <button
                   onClick={loadTransactions}
-                  className="mt-4 text-demiurge-cyan hover:underline"
+                  className="glass-panel px-4 py-2 rounded-lg text-demiurge-cyan hover:chroma-glow transition-all"
                 >
                   Load Transactions
                 </button>

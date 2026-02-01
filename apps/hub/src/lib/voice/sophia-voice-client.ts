@@ -138,7 +138,6 @@ export class SophiaVoiceClient {
       this.websocket = new WebSocket(wsUrl);
 
       this.websocket.onopen = () => {
-        console.log('[SophiaVoice] WebSocket connected');
         this.configureSession();
       };
 
@@ -152,7 +151,6 @@ export class SophiaVoiceClient {
       };
 
       this.websocket.onclose = (event) => {
-        console.log('[SophiaVoice] WebSocket closed:', event.code, event.reason);
         this.setConnectionState('disconnected');
         this.cleanup();
       };
@@ -206,12 +204,10 @@ export class SophiaVoiceClient {
       
       switch (event.type) {
         case 'session.updated':
-          console.log('[SophiaVoice] Session configured');
           this.setConnectionState('connected');
           break;
 
         case 'conversation.created':
-          console.log('[SophiaVoice] Conversation created:', event.conversation.id);
           break;
 
         case 'input_audio_buffer.speech_started':

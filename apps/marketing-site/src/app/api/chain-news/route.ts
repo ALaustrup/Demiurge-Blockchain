@@ -29,10 +29,8 @@ export async function GET() {
     // 3. Generate blog posts automatically
     // 4. Store in a database
 
-    // Example: Check for recent commits
+    // Check for recent commits and generate posts from actual git history
     try {
-      // This would run in the context of the repository
-      // For now, we'll return mock data that would be generated from actual monitoring
       const { stdout } = await execAsync('git log --oneline -10', {
         cwd: process.cwd(),
       }).catch(() => ({ stdout: '' }))
@@ -80,15 +78,8 @@ export async function GET() {
       })
     } catch (error) {
       console.error('Error checking git commits:', error)
-      // Return mock data if git check fails
-      posts.push({
-        id: 1,
-        title: 'Chain News System Active',
-        excerpt: 'The Chain News blog is now monitoring blockchain updates automatically.',
-        date: new Date().toISOString(),
-        category: 'System',
-        featured: true,
-      })
+      // If git check fails, return empty array - no posts will be shown
+      // Frontend will display appropriate empty state
     }
 
     // Sort by date (newest first)

@@ -1,9 +1,9 @@
 # Demiurge Protocol - Production Status
 
-**Last Updated**: January 29, 2026  
+**Last Updated**: February 1, 2026  
 **Status**: **LIVE IN PRODUCTION**  
-**Network**: Mainnet  
-**Block Height**: 176,000+
+**Network**: Mainnet v1  
+**Block Height**: Fresh genesis at block #1
 
 ---
 
@@ -140,15 +140,26 @@ The Demiurge Protocol treats AI agents as First-Class Citizens with:
 
 ---
 
+## Key Features - Live
+
+- **Mainnet v1**: Fresh genesis deployment at block #1
+- **Godmode Account**: Active with 1B CGT treasury
+- **Hybrid Authentication**: Keypair + QOR ID authentication live
+- **Agent System**: Dual pattern agent architecture available
+- **CLI**: Interactive shell mode enabled
+- **Production Frontend**: All mock data removed
+
 ## Statistics
 
 | Metric | Value |
 |--------|-------|
-| Block Height | 176,000+ |
+| Network | Mainnet v1 |
+| Block Height | Starting from #1 |
 | Block Time | 2 seconds |
 | Active Modules | 11 |
 | RPC Methods | 40+ |
 | Tests Passing | 100+ |
+| Treasury (Godmode) | 1B CGT |
 
 ---
 

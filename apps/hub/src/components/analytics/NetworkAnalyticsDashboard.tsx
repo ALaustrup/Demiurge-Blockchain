@@ -83,23 +83,24 @@ export function NetworkAnalyticsDashboard() {
   };
 
   const loadHistoricalData = async () => {
-    // TODO: Load from RPC when historical data endpoint is available
-    // For now, generate mock historical data
-    const now = Date.now();
-    const dataPoints = timeRange === '1h' ? 60 : timeRange === '24h' ? 24 : timeRange === '7d' ? 7 : 30;
-    const interval = timeRange === '1h' ? 60000 : timeRange === '24h' ? 3600000 : timeRange === '7d' ? 86400000 : 86400000;
-
-    const historical: HistoricalData[] = [];
-    for (let i = dataPoints - 1; i >= 0; i--) {
-      historical.push({
-        timestamp: now - (i * interval),
-        blockNumber: (metrics?.blockNumber || 0) - (dataPoints - i) * 100,
-        transactionVolume: 50000 + Math.random() * 20000,
-        activeValidators: 8 + Math.floor(Math.random() * 4),
-        totalStake: 10000000 + Math.random() * 2000000,
-      });
+    try {
+      const history = await demiurgeRpc.getNetworkHistory(timeRange);
+      if (history && history.length > 0) {
+        setHistoricalData(history.map((h: any) => ({
+          timestamp: h.timestamp,
+          blockNumber: h.blockNumber,
+          transactionVolume: h.transactionVolume || 0,
+          activeValidators: h.activeValidators || 0,
+          totalStake: h.totalStake || 0,
+        })));
+      } else {
+        // No historical data available - show empty
+        setHistoricalData([]);
+      }
+    } catch (error) {
+      console.warn('Could not load historical data:', error);
+      setHistoricalData([]);
     }
-    setHistoricalData(historical);
   };
 
   const formatBalance = (balance: string): string => {
@@ -170,10 +171,10 @@ export function NetworkAnalyticsDashboard() {
     );
   }
 
-  // Calculate chart data
-  const maxVolume = Math.max(...historicalData.map(d => d.transactionVolume));
-  const maxStake = Math.max(...historicalData.map(d => d.totalStake));
-  const maxValidators = Math.max(...historicalData.map(d => d.activeValidators));
+  // Calculate chart data - handle empty arrays
+  const maxVolume = historicalData.length > 0 ? Math.max(...historicalData.map(d => d.transactionVolume)) : 1;
+  const maxStake = historicalData.length > 0 ? Math.max(...historicalData.map(d => d.totalStake)) : 1;
+  const maxValidators = historicalData.length > 0 ? Math.max(...historicalData.map(d => d.activeValidators)) : 1;
 
   return (
     <div className="space-y-6">
@@ -253,79 +254,103 @@ export function NetworkAnalyticsDashboard() {
         {/* Transaction Volume Chart */}
         <div className="glass-panel rounded-lg p-6 border border-gray-700">
           <h2 className="text-xl font-bold text-white mb-4">Transaction Volume</h2>
-          <div className="h-64 flex items-end gap-2">
-            {historicalData.map((data, index) => {
-              const height = (data.transactionVolume / maxVolume) * 100;
-              return (
-                <div
-                  key={index}
-                  className="flex-1 flex flex-col items-center group"
-                  title={`${formatBalance(data.transactionVolume.toString())} CGT`}
-                >
-                  <div
-                    className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 rounded-t transition-all hover:from-yellow-500 hover:to-yellow-300"
-                    style={{ height: `${height}%` }}
-                  ></div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
-            <span>Min: {formatBalance(Math.min(...historicalData.map(d => d.transactionVolume)).toString())} CGT</span>
-            <span>Max: {formatBalance(Math.max(...historicalData.map(d => d.transactionVolume)).toString())} CGT</span>
-          </div>
+          {historicalData.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-gray-500">
+              No historical data available
+            </div>
+          ) : (
+            <>
+              <div className="h-64 flex items-end gap-2">
+                {historicalData.map((data, index) => {
+                  const height = (data.transactionVolume / maxVolume) * 100;
+                  return (
+                    <div
+                      key={index}
+                      className="flex-1 flex flex-col items-center group"
+                      title={`${formatBalance(data.transactionVolume.toString())} CGT`}
+                    >
+                      <div
+                        className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 rounded-t transition-all hover:from-yellow-500 hover:to-yellow-300"
+                        style={{ height: `${height}%` }}
+                      ></div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+                <span>Min: {formatBalance(Math.min(...historicalData.map(d => d.transactionVolume)).toString())} CGT</span>
+                <span>Max: {formatBalance(Math.max(...historicalData.map(d => d.transactionVolume)).toString())} CGT</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Active Validators Chart */}
         <div className="glass-panel rounded-lg p-6 border border-gray-700">
           <h2 className="text-xl font-bold text-white mb-4">Active Validators</h2>
-          <div className="h-64 flex items-end gap-2">
-            {historicalData.map((data, index) => {
-              const height = (data.activeValidators / maxValidators) * 100;
-              return (
-                <div
-                  key={index}
-                  className="flex-1 flex flex-col items-center group"
-                  title={`${data.activeValidators} validators`}
-                >
-                  <div
-                    className="w-full bg-gradient-to-t from-green-600 to-green-400 rounded-t transition-all hover:from-green-500 hover:to-green-300"
-                    style={{ height: `${height}%` }}
-                  ></div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
-            <span>Min: {Math.min(...historicalData.map(d => d.activeValidators))}</span>
-            <span>Max: {Math.max(...historicalData.map(d => d.activeValidators))}</span>
-          </div>
+          {historicalData.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-gray-500">
+              No historical data available
+            </div>
+          ) : (
+            <>
+              <div className="h-64 flex items-end gap-2">
+                {historicalData.map((data, index) => {
+                  const height = (data.activeValidators / maxValidators) * 100;
+                  return (
+                    <div
+                      key={index}
+                      className="flex-1 flex flex-col items-center group"
+                      title={`${data.activeValidators} validators`}
+                    >
+                      <div
+                        className="w-full bg-gradient-to-t from-green-600 to-green-400 rounded-t transition-all hover:from-green-500 hover:to-green-300"
+                        style={{ height: `${height}%` }}
+                      ></div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+                <span>Min: {Math.min(...historicalData.map(d => d.activeValidators))}</span>
+                <span>Max: {Math.max(...historicalData.map(d => d.activeValidators))}</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Total Stake Chart */}
         <div className="glass-panel rounded-lg p-6 border border-gray-700">
           <h2 className="text-xl font-bold text-white mb-4">Total Stake Trend</h2>
-          <div className="h-64 flex items-end gap-2">
-            {historicalData.map((data, index) => {
-              const height = (data.totalStake / maxStake) * 100;
-              return (
-                <div
-                  key={index}
-                  className="flex-1 flex flex-col items-center group"
-                  title={`${formatBalance(data.totalStake.toString())} CGT`}
-                >
-                  <div
-                    className="w-full bg-gradient-to-t from-purple-600 to-purple-400 rounded-t transition-all hover:from-purple-500 hover:to-purple-300"
-                    style={{ height: `${height}%` }}
-                  ></div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
-            <span>Min: {formatBalance(Math.min(...historicalData.map(d => d.totalStake)).toString())} CGT</span>
-            <span>Max: {formatBalance(Math.max(...historicalData.map(d => d.totalStake)).toString())} CGT</span>
-          </div>
+          {historicalData.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-gray-500">
+              No historical data available
+            </div>
+          ) : (
+            <>
+              <div className="h-64 flex items-end gap-2">
+                {historicalData.map((data, index) => {
+                  const height = (data.totalStake / maxStake) * 100;
+                  return (
+                    <div
+                      key={index}
+                      className="flex-1 flex flex-col items-center group"
+                      title={`${formatBalance(data.totalStake.toString())} CGT`}
+                    >
+                      <div
+                        className="w-full bg-gradient-to-t from-purple-600 to-purple-400 rounded-t transition-all hover:from-purple-500 hover:to-purple-300"
+                        style={{ height: `${height}%` }}
+                      ></div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+                <span>Min: {formatBalance(Math.min(...historicalData.map(d => d.totalStake)).toString())} CGT</span>
+                <span>Max: {formatBalance(Math.max(...historicalData.map(d => d.totalStake)).toString())} CGT</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Network Health Metrics */}

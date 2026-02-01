@@ -43,9 +43,8 @@ export async function POST(
       return NextResponse.json({ success: true, message: 'Report submitted successfully' });
     }
 
-    // If backend doesn't exist, log and return success for development
+    // If backend doesn't exist, return success for development
     if (response.status === 404) {
-      console.log(`[DEV] Artist report submitted:`, { artistId: id, reason, details, realArtistLink });
       return NextResponse.json({ success: true, message: 'Report submitted (dev mode)' });
     }
 

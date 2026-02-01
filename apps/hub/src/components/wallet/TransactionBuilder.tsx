@@ -137,7 +137,6 @@ export function TransactionBuilder({ fromAddress, onSuccess, onCancel }: Transac
             txHash={txHash} 
             onConfirmed={() => {
               // Optionally refresh balance or show success message
-              console.log('Transaction confirmed:', txHash);
             }}
           />
         )}

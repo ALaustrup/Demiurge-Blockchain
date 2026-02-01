@@ -15,14 +15,34 @@ import {
   TopFriends,
 } from '@/components/vyb';
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
+import { vybService } from '@/lib/vyb/service';
 
 type TabType = 'feed' | 'messages' | 'gallery' | 'services' | 'notifications';
+
+interface OnlineFriend {
+  id: string;
+  name: string;
+  icon: string;
+  status: string;
+}
+
+interface UserGroup {
+  name: string;
+  icon: string;
+  members: number;
+}
 
 export default function SocialPage() {
   const { user } = useAuth();
   const { profile, unreadMessageCount, unreadNotificationCount } = useVYB();
   const [activeTab, setActiveTab] = useState<TabType>('feed');
   const [showWelcome, setShowWelcome] = useState(false);
+  const [onlineFriends, setOnlineFriends] = useState<OnlineFriend[]>([]);
+  const [myGroups, setMyGroups] = useState<UserGroup[]>([]);
+  const [weeklyStats, setWeeklyStats] = useState({ cgt: 0, friends: 0, likes: 0, tips: 0 });
+  const [trending, setTrending] = useState<{ tag: string; posts: number }[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<{ name: string; time: string; type: string }[]>([]);
+  const [loadingSidebar, setLoadingSidebar] = useState(true);
 
   // NOTE: No redirect needed - AuthGate ensures users are authenticated before reaching this page
 
@@ -36,6 +56,64 @@ export default function SocialPage() {
       }
     }
   }, [profile]);
+
+  // Load sidebar data
+  useEffect(() => {
+    loadSidebarData();
+  }, []);
+
+  const loadSidebarData = async () => {
+    setLoadingSidebar(true);
+    try {
+      const [friendsData, groupsData, statsData, trendingData, eventsData] = await Promise.all([
+        vybService.getOnlineFriends().catch(() => []),
+        vybService.getUserGroups().catch(() => []),
+        vybService.getWeeklyStats().catch(() => ({ cgt: 0, friends: 0, likes: 0, tips: 0 })),
+        vybService.getTrending().catch(() => []),
+        vybService.getUpcomingEvents(3).catch(() => []),
+      ]);
+
+      setOnlineFriends(friendsData.map((f: any) => ({
+        id: f.id,
+        name: f.displayName,
+        icon: f.avatar || '👤',
+        status: f.status || 'Online',
+      })));
+
+      setMyGroups(groupsData.map((g: any) => ({
+        name: g.name,
+        icon: g.icon || '🏛️',
+        members: g.memberCount || 0,
+      })));
+
+      setWeeklyStats(statsData);
+      setTrending(trendingData);
+      setUpcomingEvents(eventsData.map((e: any) => ({
+        name: e.title,
+        time: formatEventTime(e.date),
+        type: e.type,
+      })));
+    } catch (error) {
+      console.warn('Could not load sidebar data:', error);
+    } finally {
+      setLoadingSidebar(false);
+    }
+  };
+
+  const formatEventTime = (date: string | number): string => {
+    const eventDate = new Date(date);
+    const now = new Date();
+    const diff = eventDate.getTime() - now.getTime();
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (days === 0) {
+      if (hours <= 0) return 'Starting soon';
+      return `Today ${eventDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    }
+    if (days === 1) return `Tomorrow ${eventDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    return eventDate.toLocaleDateString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+  };
 
   const handleWelcomeClose = () => {
     localStorage.setItem('vyb-welcome-seen', 'true');
@@ -52,22 +130,14 @@ export default function SocialPage() {
     { id: 'notifications', label: 'Notifications', icon: '🔔', badge: unreadNotificationCount },
   ];
 
-  // Quick navigation items
+  // Quick navigation items - counts will be loaded dynamically
   const quickNav = [
-    { href: '/social/friends', icon: '👥', label: 'Friends', count: 142 },
-    { href: '/social/groups', icon: '🏛️', label: 'Groups', count: 8 },
-    { href: '/social/events', icon: '📅', label: 'Events', count: 3 },
+    { href: '/social/friends', icon: '👥', label: 'Friends', count: profile?.stats?.following },
+    { href: '/social/groups', icon: '🏛️', label: 'Groups' },
+    { href: '/social/events', icon: '📅', label: 'Events' },
     { href: '/games', icon: '🎮', label: 'Games' },
     { href: '/music', icon: '🎵', label: 'Music' },
     { href: '/marketplace', icon: '🛒', label: 'Market' },
-  ];
-
-  // Online friends mock
-  const onlineFriends = [
-    { id: '1', name: 'CryptoArtist', icon: '🎨', status: 'Playing Cosmic Drift' },
-    { id: '2', name: 'BlockDev', icon: '💻', status: 'Online' },
-    { id: '3', name: 'PixelKing', icon: '🎮', status: 'In Voice Room' },
-    { id: '4', name: 'SynthMaster', icon: '🎵', status: 'Listening to music' },
   ];
 
   return (
@@ -154,28 +224,38 @@ export default function SocialPage() {
                   </h3>
                   <span className="text-gray-500 text-xs">{onlineFriends.length} friends</span>
                 </div>
-                <div className="space-y-3">
-                  {onlineFriends.map((friend) => (
-                    <Link
-                      key={friend.id}
-                      href={`/social/profile/${friend.id}`}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors group"
-                    >
-                      <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-cyan/50 to-neon-purple/50 flex items-center justify-center text-lg">
-                          {friend.icon}
+                {loadingSidebar ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-12 bg-white/5 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : onlineFriends.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-4">No friends online</p>
+                ) : (
+                  <div className="space-y-3">
+                    {onlineFriends.map((friend) => (
+                      <Link
+                        key={friend.id}
+                        href={`/social/profile/${friend.id}`}
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors group"
+                      >
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-cyan/50 to-neon-purple/50 flex items-center justify-center text-lg">
+                            {friend.icon}
+                          </div>
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-blockchain-dark" />
                         </div>
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-blockchain-dark" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm group-hover:text-neon-cyan transition-colors truncate">
-                          {friend.name}
-                        </p>
-                        <p className="text-gray-500 text-xs truncate">{friend.status}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm group-hover:text-neon-cyan transition-colors truncate">
+                            {friend.name}
+                          </p>
+                          <p className="text-gray-500 text-xs truncate">{friend.status}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
                 <Link 
                   href="/social/friends"
                   className="block text-center text-neon-cyan text-sm mt-4 hover:underline"
@@ -189,29 +269,35 @@ export default function SocialPage() {
                 <h3 className="font-grunge-alt text-lg text-neon-purple mb-4 flex items-center gap-2">
                   🏛️ My Groups
                 </h3>
-                <div className="space-y-2">
-                  {[
-                    { name: 'Cosmic Drift Players', icon: '🌌', members: 1247 },
-                    { name: 'NFT Artists Collective', icon: '🎨', members: 892 },
-                    { name: 'Demiurge Developers', icon: '💻', members: 456 },
-                  ].map((group, i) => (
-                    <Link
-                      key={i}
-                      href={`/social/groups/${i+1}`}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors group"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-neon-purple/50 to-neon-cyan/50 flex items-center justify-center">
-                        {group.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm group-hover:text-neon-purple transition-colors truncate">
-                          {group.name}
-                        </p>
-                        <p className="text-gray-500 text-xs">{group.members} members</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                {loadingSidebar ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-10 bg-white/5 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : myGroups.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-4">No groups joined yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {myGroups.map((group, i) => (
+                      <Link
+                        key={i}
+                        href={`/social/groups/${i+1}`}
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-neon-purple/50 to-neon-cyan/50 flex items-center justify-center">
+                          {group.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm group-hover:text-neon-purple transition-colors truncate">
+                            {group.name}
+                          </p>
+                          <p className="text-gray-500 text-xs">{group.members} members</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
                 <Link 
                   href="/social/groups"
                   className="block text-center text-neon-purple text-sm mt-4 hover:underline"
@@ -231,66 +317,90 @@ export default function SocialPage() {
               {/* Quick Stats */}
               <div className="glass-panel p-4 rounded-xl">
                 <h3 className="font-grunge-alt text-lg text-neon-cyan mb-4">📊 This Week</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-sm">CGT Earned</span>
-                    <span className="text-green-400 font-grunge">+42</span>
+                {loadingSidebar ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="h-5 bg-white/5 rounded animate-pulse" />
+                    ))}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-sm">New Friends</span>
-                    <span className="text-blue-400 font-grunge">+8</span>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-sm">CGT Earned</span>
+                      <span className="text-green-400 font-grunge">
+                        {weeklyStats.cgt > 0 ? `+${weeklyStats.cgt}` : '0'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-sm">New Friends</span>
+                      <span className="text-blue-400 font-grunge">
+                        {weeklyStats.friends > 0 ? `+${weeklyStats.friends}` : '0'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-sm">Post Likes</span>
+                      <span className="text-pink-400 font-grunge">
+                        {weeklyStats.likes > 0 ? `+${weeklyStats.likes}` : '0'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-sm">Tips Received</span>
+                      <span className="text-yellow-400 font-grunge">
+                        {weeklyStats.tips > 0 ? `+${weeklyStats.tips} CGT` : '0'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-sm">Post Likes</span>
-                    <span className="text-pink-400 font-grunge">+86</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-sm">Tips Received</span>
-                    <span className="text-yellow-400 font-grunge">+15 CGT</span>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Trending */}
               <div className="glass-panel p-4 rounded-xl">
                 <h3 className="font-grunge-alt text-lg text-neon-cyan mb-4">🔥 Trending</h3>
-                <div className="space-y-2">
-                  <button className="w-full text-left p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors">
-                    <span className="text-gray-500 text-xs">#1</span>
-                    <p className="text-white text-sm">#CosmicDrift</p>
-                    <p className="text-gray-500 text-xs">1.2K posts</p>
-                  </button>
-                  <button className="w-full text-left p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors">
-                    <span className="text-gray-500 text-xs">#2</span>
-                    <p className="text-white text-sm">#NFTArt</p>
-                    <p className="text-gray-500 text-xs">856 posts</p>
-                  </button>
-                  <button className="w-full text-left p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors">
-                    <span className="text-gray-500 text-xs">#3</span>
-                    <p className="text-white text-sm">#StakingRewards</p>
-                    <p className="text-gray-500 text-xs">642 posts</p>
-                  </button>
-                </div>
+                {loadingSidebar ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-14 bg-white/5 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : trending.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-4">No trending topics yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {trending.map((item, i) => (
+                      <button key={i} className="w-full text-left p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors">
+                        <span className="text-gray-500 text-xs">#{i + 1}</span>
+                        <p className="text-white text-sm">#{item.tag}</p>
+                        <p className="text-gray-500 text-xs">{item.posts.toLocaleString()} posts</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Upcoming Events */}
               <div className="glass-panel p-4 rounded-xl">
                 <h3 className="font-grunge-alt text-lg text-yellow-400 mb-4">📅 Upcoming</h3>
-                <div className="space-y-3">
-                  {[
-                    { name: 'NFT Drop: Genesis Collection', time: 'Today 8PM', type: 'drop' },
-                    { name: 'Cosmic Drift Tournament', time: 'Tomorrow 3PM', type: 'tournament' },
-                    { name: 'Dev AMA with Core Team', time: 'Sat 6PM', type: 'ama' },
-                  ].map((event, i) => (
-                    <div key={i} className="p-2 rounded-lg bg-blockchain-light/30">
-                      <p className="text-white text-sm">{event.name}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-yellow-400 text-xs">🕐 {event.time}</span>
-                        <button className="text-neon-cyan text-xs hover:underline">RSVP</button>
+                {loadingSidebar ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-14 bg-white/5 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : upcomingEvents.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-4">No upcoming events</p>
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingEvents.map((event, i) => (
+                      <div key={i} className="p-2 rounded-lg bg-blockchain-light/30">
+                        <p className="text-white text-sm">{event.name}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-yellow-400 text-xs">🕐 {event.time}</span>
+                          <button className="text-neon-cyan text-xs hover:underline">RSVP</button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
                 <Link 
                   href="/social/events"
                   className="block text-center text-yellow-400 text-sm mt-4 hover:underline"
@@ -299,36 +409,18 @@ export default function SocialPage() {
                 </Link>
               </div>
 
-              {/* Suggested Creators */}
+              {/* Suggested Creators - shows empty state until real API */}
               <div className="glass-panel p-4 rounded-xl">
                 <h3 className="font-grunge-alt text-lg text-neon-cyan mb-4">✨ People to Follow</h3>
-                <div className="space-y-3">
-                  {[
-                    { name: 'CryptoArtist', role: 'artist', icon: '🎨', mutuals: 12 },
-                    { name: 'BlockDev', role: 'developer', icon: '💻', mutuals: 8 },
-                    { name: 'SynthMaster', role: 'musician', icon: '🎵', mutuals: 5 },
-                  ].map((creator, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <Link 
-                        href={`/social/profile/${creator.name.toLowerCase()}`}
-                        className="flex items-center gap-2 group"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-cyan/50 to-neon-purple/50 flex items-center justify-center text-sm">
-                          {creator.icon}
-                        </div>
-                        <div>
-                          <p className="text-white text-sm group-hover:text-neon-cyan transition-colors">
-                            {creator.name}
-                          </p>
-                          <p className="text-gray-500 text-xs">{creator.mutuals} mutual friends</p>
-                        </div>
-                      </Link>
-                      <button className="text-neon-cyan text-sm hover:bg-neon-cyan/10 px-3 py-1 rounded-full transition-colors">
-                        + Add
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-gray-500 text-sm text-center py-4">
+                  Suggestions coming soon
+                </p>
+                <Link 
+                  href="/social/friends"
+                  className="block text-center text-neon-cyan text-sm hover:underline"
+                >
+                  Find friends →
+                </Link>
               </div>
             </div>
           </div>

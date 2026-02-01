@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import { vybService } from '@/lib/vyb/service';
 
 type TabType = 'discover' | 'my-groups' | 'invites';
 
@@ -38,112 +39,67 @@ export default function GroupsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [invites, setInvites] = useState<Group[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(true);
 
-  // Mock data
-  const mockGroups: Group[] = [
-    {
-      id: '1',
-      name: 'Cosmic Drift Players',
-      description: 'The official community for Cosmic Drift fans. Share strategies, find teammates, and compete in tournaments!',
-      icon: '🌌',
-      coverGradient: ['#00f5ff', '#bf00ff'],
-      category: 'gaming',
-      memberCount: 1247,
-      onlineCount: 89,
-      isJoined: true,
-      privacy: 'public',
-      createdBy: 'PixelKing#1234',
-      recentActivity: 'Tournament starting in 2 hours!'
-    },
-    {
-      id: '2',
-      name: 'NFT Artists Collective',
-      description: 'A space for digital artists to share work, get feedback, and collaborate on projects.',
-      icon: '🎨',
-      coverGradient: ['#ff6b35', '#f7c59f'],
-      category: 'art',
-      memberCount: 892,
-      onlineCount: 45,
-      isJoined: true,
-      privacy: 'public',
-      createdBy: 'CryptoArtist#5678',
-      recentActivity: 'New collab opportunity posted'
-    },
-    {
-      id: '3',
-      name: 'Demiurge Developers',
-      description: 'Technical discussions, SDK help, and collaboration for developers building on Demiurge.',
-      icon: '💻',
-      coverGradient: ['#00ff41', '#008f11'],
-      category: 'development',
-      memberCount: 456,
-      onlineCount: 32,
-      isJoined: false,
-      privacy: 'public',
-      createdBy: 'BlockDev#9012'
-    },
-    {
-      id: '4',
-      name: 'Synthwave Producers',
-      description: 'For producers and fans of synthwave, retrowave, and electronic music.',
-      icon: '🎵',
-      coverGradient: ['#7b2cbf', '#c77dff'],
-      category: 'music',
-      memberCount: 678,
-      onlineCount: 28,
-      isJoined: false,
-      privacy: 'public',
-      createdBy: 'SynthMaster#3456'
-    },
-    {
-      id: '5',
-      name: 'CGT Traders',
-      description: 'Market analysis, trading strategies, and discussion for CGT and Demiurge ecosystem tokens.',
-      icon: '📈',
-      coverGradient: ['#ff4500', '#ff8c00'],
-      category: 'trading',
-      memberCount: 2341,
-      onlineCount: 156,
-      isJoined: false,
-      privacy: 'public',
-      createdBy: 'TraderPro#7890'
-    },
-    {
-      id: '6',
-      name: 'Pixel Art Masters',
-      description: 'Learn and share pixel art techniques. Weekly challenges and critiques.',
-      icon: '👾',
-      coverGradient: ['#0096c7', '#90e0ef'],
-      category: 'art',
-      memberCount: 534,
-      onlineCount: 19,
-      isJoined: false,
-      privacy: 'public',
-      createdBy: 'PixelKing#1234'
-    },
-  ];
+  useEffect(() => {
+    loadGroupsData();
+  }, []);
 
-  const mockInvites: Group[] = [
-    {
-      id: '7',
-      name: 'Elite Gamers Guild',
-      description: 'Private group for competitive players. Invitation only.',
-      icon: '🏆',
-      coverGradient: ['#ffd700', '#ff8c00'],
-      category: 'gaming',
-      memberCount: 128,
-      onlineCount: 24,
-      isJoined: false,
-      isInvited: true,
-      privacy: 'private',
-      createdBy: 'ChampionX#0001'
+  const loadGroupsData = async () => {
+    setLoadingGroups(true);
+    try {
+      const [allGroupsData, invitesData] = await Promise.all([
+        vybService.getGroups().catch(() => []),
+        vybService.getGroupInvites().catch(() => []),
+      ]);
+
+      setGroups(allGroupsData.map(formatGroup));
+      setInvites(invitesData.map((g: any) => ({ ...formatGroup(g), isInvited: true })));
+    } catch (error) {
+      console.warn('Could not load groups data:', error);
+    } finally {
+      setLoadingGroups(false);
     }
-  ];
+  };
 
-  const myGroups = mockGroups.filter(g => g.isJoined);
-  const discoverGroups = mockGroups.filter(g => !g.isJoined);
+  const formatGroup = (g: any): Group => ({
+    id: g.id,
+    name: g.name,
+    description: g.description || '',
+    icon: g.icon || getCategoryIcon(g.category),
+    coverGradient: getCategoryGradient(g.category),
+    category: g.category || 'social',
+    memberCount: g.memberCount || 0,
+    onlineCount: g.onlineCount || 0,
+    isJoined: g.isJoined || false,
+    isInvited: g.isInvited,
+    privacy: g.privacy || 'public',
+    createdBy: g.createdBy || 'Unknown',
+    recentActivity: g.recentActivity,
+  });
 
-  const filteredGroups = (activeTab === 'my-groups' ? myGroups : activeTab === 'invites' ? mockInvites : discoverGroups)
+  const getCategoryIcon = (category: string): string => {
+    const cat = CATEGORIES.find(c => c.id === category);
+    return cat?.icon || '🏛️';
+  };
+
+  const getCategoryGradient = (category: string): [string, string] => {
+    switch (category) {
+      case 'gaming': return ['#00f5ff', '#bf00ff'];
+      case 'art': return ['#ff6b35', '#f7c59f'];
+      case 'development': return ['#00ff41', '#008f11'];
+      case 'music': return ['#7b2cbf', '#c77dff'];
+      case 'trading': return ['#ff4500', '#ff8c00'];
+      default: return ['#6b7280', '#9ca3af'];
+    }
+  };
+
+  const myGroups = groups.filter(g => g.isJoined);
+  const discoverGroups = groups.filter(g => !g.isJoined);
+
+  const filteredGroups = (activeTab === 'my-groups' ? myGroups : activeTab === 'invites' ? invites : discoverGroups)
     .filter(g => 
       (selectedCategory === 'all' || g.category === selectedCategory) &&
       (g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -155,7 +111,7 @@ export default function GroupsPage() {
     return count.toString();
   };
 
-  if (loading) {
+  if (loading || loadingGroups) {
     return (
       <main className="min-h-screen p-8 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-cyan"></div>
@@ -166,7 +122,7 @@ export default function GroupsPage() {
   const tabs = [
     { id: 'discover' as TabType, label: 'Discover', icon: '🔍' },
     { id: 'my-groups' as TabType, label: 'My Groups', icon: '⭐', count: myGroups.length },
-    { id: 'invites' as TabType, label: 'Invites', icon: '✉️', count: mockInvites.length },
+    { id: 'invites' as TabType, label: 'Invites', icon: '✉️', count: invites.length },
   ];
 
   return (

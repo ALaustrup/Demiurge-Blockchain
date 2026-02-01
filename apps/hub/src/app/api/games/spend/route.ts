@@ -104,9 +104,6 @@ export async function POST(request: NextRequest) {
       amountInSmallestUnits
     );
 
-    // Log transaction
-    console.log(`[Spend] ${qorId} spent ${amountNum} CGT - ${reason} (${txHash})`);
-
     return NextResponse.json({
       success: true,
       txHash,

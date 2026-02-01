@@ -13,8 +13,6 @@ import type {
   ServiceListing,
   Notification,
   ProfileTheme,
-  UserRole,
-  FeedItemType,
 } from './types';
 
 // Default profile theme
@@ -27,13 +25,8 @@ const DEFAULT_THEME: ProfileTheme = {
   musicEnabled: true,
 };
 
-// Mock data for development - will be replaced with blockchain/backend calls
-const MOCK_PROFILES: Map<string, VYBProfile> = new Map();
-const MOCK_FEED: FeedItem[] = [];
-const MOCK_CONVERSATIONS: Map<string, Conversation[]> = new Map();
-const MOCK_MESSAGES: Map<string, Message[]> = new Map();
-const MOCK_GALLERY: Map<string, GalleryItem[]> = new Map();
-const MOCK_NOTIFICATIONS: Map<string, Notification[]> = new Map();
+// Profile cache for session persistence (not mock data)
+const profileCache: Map<string, VYBProfile> = new Map();
 
 class VYBService {
   private currentUser: string | null = null;
@@ -45,28 +38,29 @@ class VYBService {
   // ============ Profile Methods ============
 
   async getProfile(qorId: string): Promise<VYBProfile | null> {
-    // Check mock data first
-    if (MOCK_PROFILES.has(qorId)) {
-      return MOCK_PROFILES.get(qorId)!;
+    // Check cache first
+    if (profileCache.has(qorId)) {
+      return profileCache.get(qorId)!;
     }
 
-    // Return a default profile for any user (auto-create)
+    // TODO: Fetch from real API when available
+    // For now, return a default profile with zero stats (not random mock data)
     const profile: VYBProfile = {
       qorId,
       walletAddress: '',
       displayName: qorId.split('#')[0] || 'User',
-      bio: 'New to VYB - Building something amazing!',
+      bio: '',
       role: 'user',
       badges: [],
       stats: {
-        followers: Math.floor(Math.random() * 100),
-        following: Math.floor(Math.random() * 50),
-        posts: Math.floor(Math.random() * 20),
-        nftsOwned: Math.floor(Math.random() * 10),
+        followers: 0,
+        following: 0,
+        posts: 0,
+        nftsOwned: 0,
         nftsCreated: 0,
-        cgtEarned: Math.floor(Math.random() * 1000),
-        gamesPlayed: Math.floor(Math.random() * 15),
-        achievementsUnlocked: Math.floor(Math.random() * 8),
+        cgtEarned: 0,
+        gamesPlayed: 0,
+        achievementsUnlocked: 0,
       },
       theme: DEFAULT_THEME,
       createdAt: new Date(),
@@ -75,7 +69,7 @@ class VYBService {
       socialLinks: {},
     };
 
-    MOCK_PROFILES.set(qorId, profile);
+    profileCache.set(qorId, profile);
     return profile;
   }
 
@@ -84,7 +78,8 @@ class VYBService {
     if (!existing) throw new Error('Profile not found');
 
     const updated = { ...existing, ...updates };
-    MOCK_PROFILES.set(qorId, updated);
+    profileCache.set(qorId, updated);
+    // TODO: Persist to backend API when available
     return updated;
   }
 
@@ -99,13 +94,11 @@ class VYBService {
 
   async followUser(targetQorId: string): Promise<boolean> {
     // TODO: Implement follow logic
-    console.log(`Following ${targetQorId}`);
     return true;
   }
 
   async unfollowUser(targetQorId: string): Promise<boolean> {
     // TODO: Implement unfollow logic
-    console.log(`Unfollowing ${targetQorId}`);
     return true;
   }
 
@@ -117,11 +110,15 @@ class VYBService {
     limit?: number;
     offset?: number;
   }): Promise<FeedItem[]> {
-    const limit = options?.limit || 20;
-    
-    // Generate mock feed items
-    const feed = this.generateMockFeed(limit, options?.userId);
-    return feed;
+    try {
+      // TODO: Fetch from real API when available
+      // const response = await fetch(`/api/vyb/feed?type=${options?.type}&limit=${options?.limit || 20}`);
+      // return await response.json();
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch feed:', error);
+      return [];
+    }
   }
 
   async createPost(content: {
@@ -131,6 +128,7 @@ class VYBService {
   }): Promise<FeedItem> {
     if (!this.currentUser) throw new Error('Not logged in');
 
+    // TODO: Submit to backend API when available
     const post: FeedItem = {
       id: `post_${Date.now()}`,
       type: 'post',
@@ -160,127 +158,19 @@ class VYBService {
       visibility: content.visibility || 'public',
     };
 
-    MOCK_FEED.unshift(post);
     return post;
   }
 
   async likePost(postId: string): Promise<boolean> {
-    const post = MOCK_FEED.find(p => p.id === postId);
-    if (post) {
-      post.isLiked = !post.isLiked;
-      post.likes += post.isLiked ? 1 : -1;
-    }
+    // TODO: Submit to backend API when available
     return true;
   }
 
   async tipPost(postId: string, amount: number): Promise<boolean> {
     if (!this.currentUser) throw new Error('Not logged in');
     
-    const post = MOCK_FEED.find(p => p.id === postId);
-    if (post) {
-      post.isTipped = true;
-      post.tips += 1;
-      post.tipsAmount += amount;
-    }
-    
-    // TODO: Execute actual CGT transfer
+    // TODO: Execute actual CGT transfer via blockchain
     return true;
-  }
-
-  private generateMockFeed(limit: number, userId?: string): FeedItem[] {
-    const feedTypes: FeedItemType[] = ['post', 'achievement', 'nft_mint', 'game_score', 'reward'];
-    const mockUsers = [
-      { qorId: 'artist#0042', displayName: 'CryptoArtist', role: 'artist' as UserRole, isVerified: true },
-      { qorId: 'dev#0101', displayName: 'BlockDev', role: 'developer' as UserRole, isVerified: true },
-      { qorId: 'musician#0088', displayName: 'SynthMaster', role: 'musician' as UserRole, isVerified: false },
-      { qorId: 'gamer#1337', displayName: 'ProGamer', role: 'gamer' as UserRole, isVerified: false },
-      { qorId: 'designer#0033', displayName: 'PixelPerfect', role: 'designer' as UserRole, isVerified: true },
-    ];
-
-    const posts: string[] = [
-      'Just minted my latest NFT collection! Check it out on the marketplace 🎨',
-      'Hit a new high score in Cosmic Drift! Who can beat 15,000 points? 🚀',
-      'Working on a new game for the Demiurge platform. Stay tuned! 🎮',
-      'Loving the new staking rewards! 5% APY is amazing 📈',
-      'New music track dropping tomorrow. Preview in my profile 🎵',
-      'Just completed the "Creator God" achievement! Platinum tier 🏆',
-      'Looking for collaborators on a metaverse project. DM me!',
-      'The VYB community is growing fast! Welcome to all the new creators 💜',
-    ];
-
-    const feed: FeedItem[] = [];
-    
-    for (let i = 0; i < limit; i++) {
-      const type = feedTypes[Math.floor(Math.random() * feedTypes.length)];
-      const author = mockUsers[Math.floor(Math.random() * mockUsers.length)];
-      
-      const item: FeedItem = {
-        id: `feed_${Date.now()}_${i}`,
-        type,
-        author,
-        content: this.generateContentForType(type, posts),
-        timestamp: new Date(Date.now() - i * 1000 * 60 * 30), // 30 min apart
-        likes: Math.floor(Math.random() * 100),
-        comments: Math.floor(Math.random() * 20),
-        tips: Math.floor(Math.random() * 10),
-        tipsAmount: Math.floor(Math.random() * 50),
-        isLiked: Math.random() > 0.7,
-        isTipped: Math.random() > 0.9,
-        visibility: 'public',
-      };
-      
-      feed.push(item);
-    }
-    
-    return feed;
-  }
-
-  private generateContentForType(type: FeedItemType, posts: string[]): FeedItem['content'] {
-    switch (type) {
-      case 'post':
-        return { text: posts[Math.floor(Math.random() * posts.length)] };
-      case 'achievement':
-        return {
-          text: 'Unlocked a new achievement!',
-          achievement: {
-            id: `ach_${Date.now()}`,
-            name: ['First Steps', 'Rising Star', 'Creator God', 'Diamond Hands'][Math.floor(Math.random() * 4)],
-            icon: '🏆',
-            tier: ['bronze', 'silver', 'gold', 'platinum'][Math.floor(Math.random() * 4)],
-          },
-        };
-      case 'nft_mint':
-        return {
-          text: 'Just minted a new NFT!',
-          nft: {
-            id: `nft_${Date.now()}`,
-            name: ['Cosmic Journey', 'Digital Dreams', 'Neon Nights', 'Cyber Soul'][Math.floor(Math.random() * 4)],
-            image: '/placeholder-nft.png',
-          },
-        };
-      case 'game_score':
-        return {
-          text: 'New personal best!',
-          game: {
-            id: 'cosmic-drift',
-            name: 'Cosmic Drift',
-            thumbnail: '/games/cosmic-drift.png',
-            score: Math.floor(Math.random() * 20000),
-            leaderboardRank: Math.floor(Math.random() * 100) + 1,
-          },
-        };
-      case 'reward':
-        return {
-          text: 'Earned CGT rewards!',
-          reward: {
-            amount: Math.floor(Math.random() * 100) + 10,
-            reason: ['Daily login', 'Game completion', 'Achievement unlocked', 'Staking reward'][Math.floor(Math.random() * 4)],
-            source: ['game', 'staking', 'achievement'][Math.floor(Math.random() * 3)] as any,
-          },
-        };
-      default:
-        return { text: 'Something happened!' };
-    }
   }
 
   // ============ Messaging Methods ============
@@ -288,84 +178,23 @@ class VYBService {
   async getConversations(): Promise<Conversation[]> {
     if (!this.currentUser) return [];
     
-    // Return mock conversations
-    const mockConversations: Conversation[] = [
-      {
-        id: 'conv_1',
-        participants: [
-          { qorId: 'artist#0042', displayName: 'CryptoArtist', isOnline: true },
-        ],
-        lastMessage: {
-          id: 'msg_1',
-          conversationId: 'conv_1',
-          sender: 'artist#0042',
-          content: { text: 'Hey! Loved your latest post 🎨' },
-          timestamp: new Date(Date.now() - 1000 * 60 * 5),
-          status: 'delivered',
-          reactions: [],
-        },
-        unreadCount: 2,
-        isPinned: true,
-        isMuted: false,
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-        updatedAt: new Date(Date.now() - 1000 * 60 * 5),
-      },
-      {
-        id: 'conv_2',
-        participants: [
-          { qorId: 'dev#0101', displayName: 'BlockDev', isOnline: false, lastSeen: new Date(Date.now() - 1000 * 60 * 30) },
-        ],
-        lastMessage: {
-          id: 'msg_2',
-          conversationId: 'conv_2',
-          sender: this.currentUser,
-          content: { text: 'Thanks for the collaboration offer!' },
-          timestamp: new Date(Date.now() - 1000 * 60 * 60),
-          status: 'read',
-          reactions: [],
-        },
-        unreadCount: 0,
-        isPinned: false,
-        isMuted: false,
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48),
-        updatedAt: new Date(Date.now() - 1000 * 60 * 60),
-      },
-    ];
-    
-    return mockConversations;
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch conversations:', error);
+      return [];
+    }
   }
 
   async getMessages(conversationId: string): Promise<Message[]> {
-    // Return mock messages
-    return [
-      {
-        id: 'msg_1',
-        conversationId,
-        sender: 'artist#0042',
-        content: { text: 'Hey there! 👋' },
-        timestamp: new Date(Date.now() - 1000 * 60 * 60),
-        status: 'read',
-        reactions: [],
-      },
-      {
-        id: 'msg_2',
-        conversationId,
-        sender: this.currentUser || 'me',
-        content: { text: 'Hi! How are you?' },
-        timestamp: new Date(Date.now() - 1000 * 60 * 55),
-        status: 'read',
-        reactions: [],
-      },
-      {
-        id: 'msg_3',
-        conversationId,
-        sender: 'artist#0042',
-        content: { text: 'Doing great! Loved your latest post 🎨' },
-        timestamp: new Date(Date.now() - 1000 * 60 * 5),
-        status: 'delivered',
-        reactions: [{ emoji: '❤️', count: 1, users: [this.currentUser || 'me'] }],
-      },
-    ];
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch messages:', error);
+      return [];
+    }
   }
 
   async sendMessage(conversationId: string, content: Message['content']): Promise<Message> {
@@ -405,42 +234,13 @@ class VYBService {
   // ============ Media Gallery Methods ============
 
   async getGallery(qorId: string): Promise<GalleryItem[]> {
-    // Return mock gallery items
-    const mockItems: GalleryItem[] = [
-      {
-        id: 'media_1',
-        ownerId: qorId,
-        type: 'image',
-        url: '/placeholder-1.png',
-        thumbnailUrl: '/placeholder-1-thumb.png',
-        title: 'My first upload',
-        tags: ['art', 'digital'],
-        uploadedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 83), // ~83 days left
-        isMinted: false,
-        isPublic: true,
-        views: 42,
-        likes: 12,
-      },
-      {
-        id: 'media_2',
-        ownerId: qorId,
-        type: 'image',
-        url: '/placeholder-2.png',
-        thumbnailUrl: '/placeholder-2-thumb.png',
-        title: 'Neon Dreams',
-        tags: ['neon', 'cyberpunk'],
-        uploadedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14),
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 76),
-        isMinted: true,
-        nftId: 'nft_001',
-        isPublic: true,
-        views: 156,
-        likes: 48,
-      },
-    ];
-    
-    return mockItems;
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch gallery:', error);
+      return [];
+    }
   }
 
   async uploadMedia(file: File): Promise<GalleryItem> {
@@ -471,8 +271,6 @@ class VYBService {
     royaltyPercent: number;
   }): Promise<{ success: boolean; nftId?: string; txHash?: string }> {
     // TODO: Call DRC-369 minting RPC
-    console.log(`Minting media ${mediaId} as NFT:`, options);
-    
     return {
       success: true,
       nftId: `nft_${Date.now()}`,
@@ -485,104 +283,162 @@ class VYBService {
   async getNotifications(): Promise<Notification[]> {
     if (!this.currentUser) return [];
 
-    // Return mock notifications
-    return [
-      {
-        id: 'notif_1',
-        type: 'tip',
-        title: 'You received a tip!',
-        message: 'artist#0042 tipped you 5 CGT',
-        isRead: false,
-        createdAt: new Date(Date.now() - 1000 * 60 * 5),
-        actionUrl: '/social',
-      },
-      {
-        id: 'notif_2',
-        type: 'follow',
-        title: 'New follower',
-        message: 'gamer#1337 started following you',
-        isRead: false,
-        createdAt: new Date(Date.now() - 1000 * 60 * 30),
-        actionUrl: '/social/profile/gamer%231337',
-      },
-      {
-        id: 'notif_3',
-        type: 'achievement',
-        title: 'Achievement unlocked!',
-        message: 'You earned the "Rising Star" badge',
-        isRead: true,
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      },
-      {
-        id: 'notif_4',
-        type: 'like',
-        title: 'Someone liked your post',
-        message: 'dev#0101 liked your post',
-        isRead: true,
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5),
-      },
-    ];
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch notifications:', error);
+      return [];
+    }
   }
 
   async markNotificationRead(notificationId: string): Promise<void> {
-    console.log(`Marking notification ${notificationId} as read`);
+    // TODO: Implement notification read status update
   }
 
   async markAllNotificationsRead(): Promise<void> {
-    console.log('Marking all notifications as read');
+    // TODO: Implement bulk notification read status update
   }
 
   // ============ Service Marketplace Methods ============
 
   async getServices(category?: string): Promise<ServiceListing[]> {
-    // Return mock services
-    return [
-      {
-        id: 'svc_1',
-        creatorId: 'artist#0042',
-        creator: { qorId: 'artist#0042', displayName: 'CryptoArtist', role: 'artist', isVerified: true },
-        title: 'Custom NFT Artwork',
-        description: 'Hand-drawn digital art for your NFT collection. Multiple styles available.',
-        category: 'art',
-        price: 50,
-        deliveryDays: 7,
-        rating: 4.8,
-        reviewCount: 24,
-        portfolio: [],
-        tags: ['nft', 'digital art', 'custom'],
-        isActive: true,
-      },
-      {
-        id: 'svc_2',
-        creatorId: 'musician#0088',
-        creator: { qorId: 'musician#0088', displayName: 'SynthMaster', role: 'musician', isVerified: false },
-        title: 'Game Soundtrack',
-        description: 'Original music for your game. Chiptune, synthwave, or orchestral.',
-        category: 'music',
-        price: 100,
-        deliveryDays: 14,
-        rating: 4.9,
-        reviewCount: 12,
-        portfolio: [],
-        tags: ['music', 'game', 'soundtrack'],
-        isActive: true,
-      },
-      {
-        id: 'svc_3',
-        creatorId: 'dev#0101',
-        creator: { qorId: 'dev#0101', displayName: 'BlockDev', role: 'developer', isVerified: true },
-        title: 'Smart Contract Development',
-        description: 'Custom smart contracts for your project. Audited and secure.',
-        category: 'smart-contracts',
-        price: 500,
-        deliveryDays: 21,
-        rating: 5.0,
-        reviewCount: 8,
-        portfolio: [],
-        tags: ['blockchain', 'smart contracts', 'development'],
-        isActive: true,
-      },
-    ];
+    // TODO: Fetch from real API when available
+    try {
+      // Will return empty for now until API is implemented
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch services:', error);
+      return [];
+    }
+  }
+
+  // ============ Friends Methods ============
+
+  async getFriends(): Promise<any[]> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch friends:', error);
+      return [];
+    }
+  }
+
+  async getFriendRequests(): Promise<any[]> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch friend requests:', error);
+      return [];
+    }
+  }
+
+  async getFriendSuggestions(): Promise<any[]> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch friend suggestions:', error);
+      return [];
+    }
+  }
+
+  async getTopFriends(limit: number = 8): Promise<any[]> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch top friends:', error);
+      return [];
+    }
+  }
+
+  async getOnlineFriends(): Promise<any[]> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch online friends:', error);
+      return [];
+    }
+  }
+
+  // ============ Groups Methods ============
+
+  async getGroups(): Promise<any[]> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch groups:', error);
+      return [];
+    }
+  }
+
+  async getUserGroups(): Promise<any[]> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch user groups:', error);
+      return [];
+    }
+  }
+
+  async getGroupInvites(): Promise<any[]> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch group invites:', error);
+      return [];
+    }
+  }
+
+  // ============ Events Methods ============
+
+  async getEvents(type: 'upcoming' | 'past' = 'upcoming'): Promise<any[]> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch events:', error);
+      return [];
+    }
+  }
+
+  async getUpcomingEvents(limit: number = 10): Promise<any[]> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch upcoming events:', error);
+      return [];
+    }
+  }
+
+  // ============ Stats Methods ============
+
+  async getWeeklyStats(): Promise<{ cgt: number; friends: number; likes: number; tips: number }> {
+    try {
+      // TODO: Fetch from real API when available
+      return { cgt: 0, friends: 0, likes: 0, tips: 0 };
+    } catch (error) {
+      console.warn('Failed to fetch weekly stats:', error);
+      return { cgt: 0, friends: 0, likes: 0, tips: 0 };
+    }
+  }
+
+  async getTrending(): Promise<Array<{ tag: string; posts: number }>> {
+    try {
+      // TODO: Fetch from real API when available
+      return [];
+    } catch (error) {
+      console.warn('Failed to fetch trending:', error);
+      return [];
+    }
   }
 }
 

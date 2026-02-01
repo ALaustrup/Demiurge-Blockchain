@@ -54,7 +54,6 @@ export default function UserProfilePage() {
     const amount = parseFloat(tipAmount);
     if (amount > 0) {
       // TODO: Execute CGT transfer
-      console.log(`Tipping ${amount} CGT to ${qorId}`);
       setShowTipModal(false);
       setTipAmount('');
     }

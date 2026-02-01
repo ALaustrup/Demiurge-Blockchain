@@ -2,60 +2,43 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Calendar, ArrowRight, Newspaper } from 'lucide-react'
+import { Calendar, ArrowRight, Newspaper, Loader2, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 
-// Mock blog posts - in production, this would fetch from a database or API
-// that monitors blockchain additions
-const mockPosts = [
-  {
-    id: 1,
-    title: 'New Pallet: Fractional Assets Released',
-    excerpt: 'The Fractional Assets pallet is now live, enabling NFT fractionalization on the chain.',
-    date: new Date('2026-01-15'),
-    category: 'Blockchain Updates',
-    featured: true,
-  },
-  {
-    id: 2,
-    title: 'CGT Staking Rewards Increased',
-    excerpt: 'Validator rewards have been increased by 15% for the next era.',
-    date: new Date('2026-01-14'),
-    category: 'Tokenomics',
-    featured: false,
-  },
-  {
-    id: 3,
-    title: 'New Game Development SDK Released',
-    excerpt: 'Version 2.0 of the Game Development SDK includes improved blockchain integration.',
-    date: new Date('2026-01-13'),
-    category: 'Developer Tools',
-    featured: false,
-  },
-  {
-    id: 4,
-    title: 'QOR ID Authentication Improvements',
-    excerpt: 'Enhanced security and faster authentication flows for QOR ID.',
-    date: new Date('2026-01-12'),
-    category: 'Identity',
-    featured: false,
-  },
-]
+interface BlogPost {
+  id: number
+  title: string
+  excerpt: string
+  date: string
+  category: string
+  featured: boolean
+  commitHash?: string
+  filesChanged?: string[]
+}
 
 export default function BlogPage() {
-  const [posts, setPosts] = useState(mockPosts)
+  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // In production, this would fetch from an API that monitors blockchain changes
   useEffect(() => {
-    // Fetch latest blockchain updates
-    // This would call an API that monitors git commits, pallet additions, etc.
     const fetchUpdates = async () => {
       try {
-        // Example: const response = await fetch('/api/chain-news')
-        // const data = await response.json()
-        // setPosts(data.posts)
+        setError(null)
+        const response = await fetch('/api/chain-news')
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch chain news: ${response.statusText}`)
+        }
+        
+        const data = await response.json()
+        setPosts(data.posts || [])
       } catch (error) {
         console.error('Failed to fetch chain news:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch chain news')
+        setPosts([])
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -65,7 +48,75 @@ export default function BlogPage() {
   }, [])
 
   const featuredPost = posts.find((p) => p.featured) || posts[0]
-  const regularPosts = posts.filter((p) => p.id !== featuredPost.id)
+  const regularPosts = posts.filter((p) => p.id !== featuredPost?.id)
+
+  if (loading) {
+    return (
+      <div className="min-h-screen py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center space-x-2 mb-4">
+              <Newspaper className="w-8 h-8 text-neon-cyan" />
+              <h1 className="text-5xl md:text-6xl font-orbitron font-bold neon-text">
+                Chain News
+              </h1>
+            </div>
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+              Stay updated with the latest blockchain updates, features, and announcements
+            </p>
+          </div>
+          <div className="glass-panel p-12 text-center">
+            <Loader2 className="w-16 h-16 text-neon-cyan mx-auto mb-4 animate-spin" />
+            <p className="text-gray-400">Loading chain news...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center space-x-2 mb-4">
+              <Newspaper className="w-8 h-8 text-neon-cyan" />
+              <h1 className="text-5xl md:text-6xl font-orbitron font-bold neon-text">
+                Chain News
+              </h1>
+            </div>
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+              Stay updated with the latest blockchain updates, features, and announcements
+            </p>
+          </div>
+          <div className="glass-panel p-12 text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-2xl font-orbitron font-bold text-gray-400 mb-2">Error loading news</h3>
+            <p className="text-gray-500 mb-4">{error}</p>
+            <button
+              onClick={() => {
+                setLoading(true)
+                setError(null)
+                fetch('/api/chain-news')
+                  .then((res) => res.json())
+                  .then((data) => {
+                    setPosts(data.posts || [])
+                    setLoading(false)
+                  })
+                  .catch((err) => {
+                    setError(err.message)
+                    setLoading(false)
+                  })
+              }}
+              className="neon-button"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen py-20 px-4 sm:px-6 lg:px-8">
@@ -101,7 +152,7 @@ export default function BlogPage() {
             <div className="flex items-center space-x-4 text-sm text-gray-500">
               <div className="flex items-center space-x-1">
                 <Calendar className="w-4 h-4" />
-                <span>{format(featuredPost.date, 'MMMM d, yyyy')}</span>
+                <span>{format(new Date(featuredPost.date), 'MMMM d, yyyy')}</span>
               </div>
               <span className="flex items-center space-x-1 text-neon-cyan">
                 <span>Read more</span>
@@ -126,7 +177,7 @@ export default function BlogPage() {
               <p className="text-gray-400 text-sm mb-4">{post.excerpt}</p>
               <div className="flex items-center space-x-2 text-xs text-gray-500">
                 <Calendar className="w-3 h-3" />
-                <span>{format(post.date, 'MMM d, yyyy')}</span>
+                <span>{format(new Date(post.date), 'MMM d, yyyy')}</span>
               </div>
             </Link>
           ))}

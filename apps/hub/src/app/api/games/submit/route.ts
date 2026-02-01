@@ -83,8 +83,6 @@ export async function POST(request: NextRequest) {
       minLevel: 1,
     });
 
-    console.log(`[API /games/submit] Game submitted: ${gameId} by ${userId}`);
-
     return NextResponse.json({ 
       message: 'Game submitted successfully',
       gameId,

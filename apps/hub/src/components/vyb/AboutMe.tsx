@@ -60,26 +60,13 @@ export function AboutMe({
     currentProjects
   });
 
-  // Mock data
-  const mockData = {
-    bio: bio || "Creator, builder, and blockchain enthusiast. I spend my days crafting digital experiences and my nights exploring virtual worlds. Always looking for the next adventure! 🚀\n\nDM me for collabs or just to chat about the future of Web3.",
-    interests: interests.length > 0 ? interests : [
-      { id: 'gaming', label: 'Gaming', icon: '🎮' },
-      { id: 'art', label: 'Digital Art', icon: '🎨' },
-      { id: 'crypto', label: 'Crypto', icon: '₿' },
-      { id: 'coding', label: 'Coding', icon: '💻' },
-      { id: 'music', label: 'Music', icon: '🎵' },
-    ],
-    favoriteGames: favoriteGames.length > 0 ? favoriteGames : [
-      { id: '1', name: 'Cosmic Drift', icon: '🌌' },
-      { id: '2', name: 'Neon Racer', icon: '🏎️' },
-      { id: '3', name: 'Block Legends', icon: '⚔️' },
-    ],
-    skills: skills.length > 0 ? skills : ['Rust', 'React', 'Pixel Art', 'Sound Design', 'Game Dev'],
-    currentProjects: currentProjects.length > 0 ? currentProjects : [
-      { name: 'NFT Collection', description: 'Working on a 1000-piece generative art collection', url: '#' },
-      { name: 'Indie Game', description: 'Solo dev roguelike in development', url: '#' },
-    ]
+  // Use provided data or empty values - no mock fallbacks
+  const displayData = {
+    bio: bio,
+    interests: interests,
+    favoriteGames: favoriteGames,
+    skills: skills,
+    currentProjects: currentProjects,
   };
 
   const handleSave = () => {
@@ -191,36 +178,44 @@ export function AboutMe({
             </button>
           )}
         </div>
-        <p className="text-gray-300 font-body whitespace-pre-wrap leading-relaxed">
-          {mockData.bio}
-        </p>
+        {displayData.bio ? (
+          <p className="text-gray-300 font-body whitespace-pre-wrap leading-relaxed">
+            {displayData.bio}
+          </p>
+        ) : (
+          <p className="text-gray-500 italic">
+            {isOwnProfile ? 'Click Edit to add a bio about yourself.' : 'No bio yet.'}
+          </p>
+        )}
       </div>
 
       {/* Interests */}
-      <div className="glass-panel rounded-xl p-6">
-        <h3 className="font-grunge-alt text-lg text-neon-purple mb-4 flex items-center gap-2">
-          ✨ Interests
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {mockData.interests.map((interest) => (
-            <span
-              key={interest.id}
-              className="px-4 py-2 rounded-full bg-gradient-to-r from-neon-cyan/10 to-neon-purple/10 border border-neon-cyan/20 text-white text-sm"
-            >
-              {interest.icon} {interest.label}
-            </span>
-          ))}
+      {displayData.interests.length > 0 && (
+        <div className="glass-panel rounded-xl p-6">
+          <h3 className="font-grunge-alt text-lg text-neon-purple mb-4 flex items-center gap-2">
+            ✨ Interests
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {displayData.interests.map((interest) => (
+              <span
+                key={interest.id}
+                className="px-4 py-2 rounded-full bg-gradient-to-r from-neon-cyan/10 to-neon-purple/10 border border-neon-cyan/20 text-white text-sm"
+              >
+                {interest.icon} {interest.label}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Skills */}
-      {mockData.skills.length > 0 && (
+      {displayData.skills.length > 0 && (
         <div className="glass-panel rounded-xl p-6">
           <h3 className="font-grunge-alt text-lg text-green-400 mb-4 flex items-center gap-2">
             🛠️ Skills
           </h3>
           <div className="flex flex-wrap gap-2">
-            {mockData.skills.map((skill, i) => (
+            {displayData.skills.map((skill, i) => (
               <span
                 key={i}
                 className="px-3 py-1 rounded bg-green-500/10 border border-green-500/30 text-green-400 text-sm"
@@ -233,13 +228,13 @@ export function AboutMe({
       )}
 
       {/* Favorite Games */}
-      {mockData.favoriteGames.length > 0 && (
+      {displayData.favoriteGames.length > 0 && (
         <div className="glass-panel rounded-xl p-6">
           <h3 className="font-grunge-alt text-lg text-yellow-400 mb-4 flex items-center gap-2">
             🎮 Favorite Games
           </h3>
           <div className="grid grid-cols-3 gap-3">
-            {mockData.favoriteGames.map((game) => (
+            {displayData.favoriteGames.map((game) => (
               <button
                 key={game.id}
                 className="p-3 rounded-lg bg-blockchain-light/50 border border-gray-700 hover:border-yellow-400/50 transition-colors text-center group"
@@ -255,13 +250,13 @@ export function AboutMe({
       )}
 
       {/* Current Projects */}
-      {mockData.currentProjects.length > 0 && (
+      {displayData.currentProjects.length > 0 && (
         <div className="glass-panel rounded-xl p-6">
           <h3 className="font-grunge-alt text-lg text-blue-400 mb-4 flex items-center gap-2">
             🚀 Current Projects
           </h3>
           <div className="space-y-3">
-            {mockData.currentProjects.map((project, i) => (
+            {displayData.currentProjects.map((project, i) => (
               <div
                 key={i}
                 className="p-4 rounded-lg bg-blockchain-light/30 border border-gray-700 hover:border-blue-400/50 transition-colors"

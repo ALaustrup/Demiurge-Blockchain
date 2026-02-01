@@ -7,6 +7,7 @@ import { useBlockchain } from '@/contexts/BlockchainContext';
 import { demiurgeRpc } from '@/lib/demiurge-rpc';
 import { getOrCreateAddressForQorId } from '@/lib/qor-wallet';
 import { uploadNFTToIPFS, ipfsToHttp } from '@/lib/ipfs-client';
+import { useToast } from '@/components/notifications';
 
 // Types
 interface NFTAsset {
@@ -28,55 +29,11 @@ interface Attribute {
 
 type ForgeTab = 'gallery' | 'mint' | 'offers';
 
-// Mock data for development
-const MOCK_NFTS: NFTAsset[] = [
-  {
-    id: 'nft-001',
-    name: 'Chronos Glaive Ship',
-    description: 'A legendary ship from the void wars',
-    image: '/nfts/ship-001.webp',
-    collection: 'Pixel Starship',
-    attributes: [
-      { trait_type: 'Rarity', value: 'Legendary' },
-      { trait_type: 'Power', value: '950' },
-    ],
-    royalty: 5,
-    owner: 'you',
-    mintedAt: new Date(Date.now() - 86400000 * 7),
-  },
-  {
-    id: 'nft-002',
-    name: 'Cyber Mining Rig v2',
-    description: 'Advanced mining equipment',
-    image: '/nfts/rig-001.webp',
-    collection: 'Cyber Forge',
-    attributes: [
-      { trait_type: 'Efficiency', value: '125%' },
-      { trait_type: 'Level', value: '7' },
-    ],
-    royalty: 2.5,
-    owner: 'you',
-    mintedAt: new Date(Date.now() - 86400000 * 3),
-  },
-  {
-    id: 'nft-003',
-    name: 'OG Founder Badge',
-    description: 'Proof of early adoption',
-    image: '/nfts/badge-001.webp',
-    collection: 'Demiurge Origins',
-    attributes: [
-      { trait_type: 'Badge', value: 'Founder' },
-      { trait_type: 'Year', value: '2026' },
-    ],
-    royalty: 0,
-    owner: 'you',
-    mintedAt: new Date(Date.now() - 86400000 * 30),
-  },
-];
 
 export default function ForgePage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { isConnected } = useBlockchain();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<ForgeTab>('gallery');
   const [nfts, setNfts] = useState<NFTAsset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,16 +87,16 @@ export default function ForgePage() {
           }));
           setNfts(formattedNfts);
         } else {
-          // Use mock data as fallback
-          setNfts(MOCK_NFTS);
+          // No NFTs found - show empty state
+          setNfts([]);
         }
       } catch (rpcError) {
-        console.warn('Could not fetch NFTs from chain, using mock data:', rpcError);
-        setNfts(MOCK_NFTS);
+        console.warn('Could not fetch NFTs from chain:', rpcError);
+        setNfts([]);
       }
     } catch (error) {
       console.error('Failed to load NFT data:', error);
-      setNfts(MOCK_NFTS);
+      setNfts([]);
     } finally {
       setLoading(false);
     }
@@ -182,14 +139,13 @@ export default function ForgePage() {
 
   const handleMint = async () => {
     if (!mintForm.name || !mediaFile || !address) {
-      alert('Please provide a name and upload media');
+      toast.warning('Missing Fields', 'Please provide a name and upload media');
       return;
     }
 
     setMinting(true);
     try {
       // 1. Upload media and metadata to IPFS
-      console.log('[Forge] Uploading to IPFS...');
       const uploadResult = await uploadNFTToIPFS(mediaFile, {
         name: mintForm.name,
         description: mintForm.description,
@@ -206,19 +162,16 @@ export default function ForgePage() {
         throw new Error(uploadResult.error || 'IPFS upload failed');
       }
 
-      console.log('[Forge] IPFS upload successful:', uploadResult);
-
       // 2. Mint NFT on blockchain
       // For MVP, we'll simulate the on-chain mint since wallet signing isn't fully wired
       // In production: await demiurgeRpc.mintNFT(address, uploadResult.metadataUri!, mintForm.royalty * 100, signature);
-      
-      console.log('[Forge] Minting NFT with metadata URI:', uploadResult.metadataUri);
       
       // Simulate blockchain transaction
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Show success
       setMintSuccess(true);
+      toast.success('NFT Minted!', `"${mintForm.name}" has been created`);
       
       // Reset form
       setMintForm({
@@ -235,7 +188,7 @@ export default function ForgePage() {
       await loadUserData();
     } catch (error: any) {
       console.error('Minting failed:', error);
-      alert(`Minting failed: ${error.message || 'Unknown error'}`);
+      toast.error('Minting Failed', error.message || 'Unknown error');
     } finally {
       setMinting(false);
     }
@@ -313,16 +266,13 @@ export default function ForgePage() {
           </button>
           <button
             onClick={() => setActiveTab('offers')}
-            className={`px-4 py-2 rounded-t-lg font-grunge-alt transition-all relative ${
+            className={`px-4 py-2 rounded-t-lg font-grunge-alt transition-all ${
               activeTab === 'offers'
                 ? 'bg-neon-green/20 text-neon-green border-b-2 border-neon-green'
                 : 'text-gray-400 hover:text-white'
             }`}
           >
             💰 Offers
-            <span className="absolute -top-1 -right-1 bg-neon-green text-black text-xs px-1.5 rounded-full">
-              1
-            </span>
           </button>
         </div>
 
@@ -337,7 +287,9 @@ export default function ForgePage() {
                   <div className="text-xs text-gray-400">Total NFTs</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-grunge text-demiurge-gold">2,500</div>
+                  <div className="text-2xl font-grunge text-demiurge-gold">
+                    {nfts.length > 0 ? '—' : '0'}
+                  </div>
                   <div className="text-xs text-gray-400">Est. Value (CGT)</div>
                 </div>
               </div>
@@ -612,31 +564,19 @@ export default function ForgePage() {
             <div className="glass-panel rounded-xl p-6">
               <h2 className="text-xl font-grunge text-white mb-4">Pending Offers</h2>
               
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-black/30 rounded-lg border border-neon-green/20">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-demiurge-gold/20 to-orange-500/20 flex items-center justify-center text-2xl">
-                      🚀
-                    </div>
-                    <div>
-                      <h3 className="font-grunge text-white">Chronos Glaive Ship</h3>
-                      <p className="text-sm text-gray-400">
-                        Offer from <span className="text-neon-cyan">collector#4521</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-grunge text-neon-green">500 CGT</div>
-                    <div className="flex gap-2 mt-2">
-                      <button className="px-4 py-1 bg-neon-green/20 text-neon-green rounded text-sm hover:bg-neon-green/30 transition-all">
-                        Accept
-                      </button>
-                      <button className="px-4 py-1 bg-red-500/20 text-red-400 rounded text-sm hover:bg-red-500/30 transition-all">
-                        Decline
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              <div className="text-center py-12">
+                <div className="text-5xl mb-4">💰</div>
+                <h3 className="text-lg font-grunge text-white mb-2">No Offers Yet</h3>
+                <p className="text-gray-400 text-sm max-w-md mx-auto">
+                  When collectors make offers on your NFTs, they will appear here. 
+                  List your NFTs on the marketplace to start receiving offers.
+                </p>
+                <button
+                  onClick={() => setActiveTab('gallery')}
+                  className="mt-6 px-6 py-2 glass-panel rounded-lg text-neon-cyan hover:border-neon-cyan/50 border border-transparent transition-all"
+                >
+                  View My Collection →
+                </button>
               </div>
             </div>
           </div>

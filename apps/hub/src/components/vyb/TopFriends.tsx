@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { vybService } from '@/lib/vyb/service';
 
 interface Friend {
   id: string;
@@ -21,27 +22,48 @@ interface TopFriendsProps {
 }
 
 export function TopFriends({ 
-  friends = [], 
+  friends: propsFriends, 
   isOwnProfile = false,
   maxDisplay = 8,
   onReorder 
 }: TopFriendsProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [friends, setFriends] = useState<Friend[]>(propsFriends || []);
+  const [loading, setLoading] = useState(!propsFriends);
 
-  // Mock data for demonstration
-  const mockFriends: Friend[] = friends.length > 0 ? friends : [
-    { id: '1', qorId: 'cryptoartist#1234', displayName: 'CryptoArtist', role: 'artist', isOnline: true },
-    { id: '2', qorId: 'blockdev#5678', displayName: 'BlockDev', role: 'developer', isOnline: true },
-    { id: '3', qorId: 'synthmaster#9012', displayName: 'SynthMaster', role: 'musician', isOnline: false },
-    { id: '4', qorId: 'pixelking#3456', displayName: 'PixelKing', role: 'gamer', isOnline: true },
-    { id: '5', qorId: 'nftqueen#7890', displayName: 'NFTQueen', role: 'collector', isOnline: false },
-    { id: '6', qorId: 'cosmicwolf#2345', displayName: 'CosmicWolf', role: 'creator', isOnline: true },
-    { id: '7', qorId: 'stargazer#6789', displayName: 'Stargazer', role: 'designer', isOnline: false },
-    { id: '8', qorId: 'moonrider#0123', displayName: 'MoonRider', role: 'gamer', isOnline: true },
-  ];
+  useEffect(() => {
+    if (!propsFriends) {
+      loadTopFriends();
+    }
+  }, [propsFriends]);
 
-  const displayFriends = mockFriends.slice(0, maxDisplay);
+  const loadTopFriends = async () => {
+    setLoading(true);
+    try {
+      const topFriendsData = await vybService.getTopFriends(maxDisplay);
+      if (topFriendsData && topFriendsData.length > 0) {
+        setFriends(topFriendsData.map((f: any) => ({
+          id: f.id,
+          qorId: f.qorId || f.qor_id || '',
+          displayName: f.displayName || f.name || 'Unknown',
+          avatar: f.avatar,
+          role: f.role || 'user',
+          isOnline: f.isOnline || false,
+          lastSeen: f.lastSeen ? new Date(f.lastSeen) : undefined,
+        })));
+      } else {
+        setFriends([]);
+      }
+    } catch (error) {
+      console.warn('Could not load top friends:', error);
+      setFriends([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const displayFriends = friends.slice(0, maxDisplay);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -71,7 +93,6 @@ export function TopFriends({
     if (!draggedId || draggedId === targetId) return;
     
     // Reorder logic would go here
-    console.log(`Reorder: ${draggedId} -> ${targetId}`);
     setDraggedId(null);
   };
 
@@ -94,14 +115,23 @@ export function TopFriends({
 
       {/* Friends Grid */}
       <div className="p-4">
-        {displayFriends.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-4 gap-3">
+            {[1, 2, 3, 4, 5, 6, 7, 8].slice(0, maxDisplay).map((i) => (
+              <div key={i} className="text-center">
+                <div className="w-14 h-14 rounded-full bg-white/5 mx-auto mb-2 animate-pulse" />
+                <div className="h-3 bg-white/5 rounded w-12 mx-auto animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : displayFriends.length === 0 ? (
           <div className="text-center py-6">
             <p className="text-4xl mb-2">👥</p>
             <p className="text-gray-400 text-sm">No top friends selected yet</p>
             {isOwnProfile && (
-              <button className="mt-2 text-neon-cyan text-sm hover:underline">
+              <Link href="/social/friends" className="mt-2 text-neon-cyan text-sm hover:underline block">
                 + Add friends
-              </button>
+              </Link>
             )}
           </div>
         ) : (

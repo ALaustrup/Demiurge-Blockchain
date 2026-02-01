@@ -35,12 +35,13 @@ export function WalletDropdown({
         if (userAddress) {
           setAddress(userAddress);
           
-          // Use external balance if provided, otherwise use mock for now
+          // Use external balance if provided, otherwise fetch from blockchain
           if (externalBalance) {
             setBalance(externalBalance);
           } else {
-            // Mock data - will be replaced by real blockchain query in hub app
-            setBalance('100050000000'); // 1000.5 CGT in smallest units
+            // TODO: Fetch balance from blockchain API when available
+            // For now, set to 0 if no external balance is provided
+            setBalance('0');
           }
         } else {
           // No on-chain address yet

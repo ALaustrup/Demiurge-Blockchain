@@ -51,37 +51,39 @@ export function EnergySponsorship({ developerAddress }: EnergySponsorshipProps) 
   };
 
   const loadSponsorshipHistory = async () => {
-    // TODO: Load from RPC when endpoint is available
-    // For now, use mock data
-    const mockTransactions: SponsoredTransaction[] = [
-      {
-        id: '1',
-        userAddress: '0x1234...5678',
-        energyCost: 100,
-        timestamp: Date.now() - 3600000,
-        status: 'success',
-      },
-      {
-        id: '2',
-        userAddress: '0xabcd...efgh',
-        energyCost: 100,
-        timestamp: Date.now() - 7200000,
-        status: 'success',
-      },
-    ];
-    setSponsoredTransactions(mockTransactions);
+    try {
+      const history = await demiurgeRpc.getSponsorshipHistory(developerAddress);
+      if (history && history.length > 0) {
+        const transactions: SponsoredTransaction[] = history.map((tx: any) => ({
+          id: tx.id,
+          userAddress: tx.userAddress,
+          energyCost: tx.energyCost || 100,
+          timestamp: tx.timestamp,
+          status: tx.status || 'success',
+        }));
+        setSponsoredTransactions(transactions);
 
-    // Calculate stats
-    const totalSponsored = mockTransactions.length;
-    const totalCost = mockTransactions.reduce((sum, tx) => sum + tx.energyCost, 0);
-    const successCount = mockTransactions.filter(tx => tx.status === 'success').length;
-    const successRate = totalSponsored > 0 ? (successCount / totalSponsored) * 100 : 0;
+        // Calculate stats
+        const totalSponsored = transactions.length;
+        const totalCost = transactions.reduce((sum, tx) => sum + tx.energyCost, 0);
+        const successCount = transactions.filter(tx => tx.status === 'success').length;
+        const successRate = totalSponsored > 0 ? (successCount / totalSponsored) * 100 : 0;
 
-    setStats({
-      totalSponsored,
-      totalCost,
-      successRate,
-    });
+        setStats({
+          totalSponsored,
+          totalCost,
+          successRate,
+        });
+      } else {
+        // No sponsorship history
+        setSponsoredTransactions([]);
+        setStats({ totalSponsored: 0, totalCost: 0, successRate: 0 });
+      }
+    } catch (error) {
+      console.warn('Could not load sponsorship history:', error);
+      setSponsoredTransactions([]);
+      setStats({ totalSponsored: 0, totalCost: 0, successRate: 0 });
+    }
   };
 
   const handleToggleSponsorship = async () => {

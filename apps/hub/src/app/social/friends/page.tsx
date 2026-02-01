@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import { vybService } from '@/lib/vyb/service';
 
 type TabType = 'all' | 'online' | 'requests' | 'suggestions';
 
@@ -25,30 +26,46 @@ export default function FriendsPage() {
   const { loading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [requests, setRequests] = useState<Friend[]>([]);
+  const [suggestions, setSuggestions] = useState<Friend[]>([]);
+  const [loadingFriends, setLoadingFriends] = useState(true);
 
-  // Mock data
-  const mockFriends: Friend[] = [
-    { id: '1', qorId: 'cryptoartist#1234', displayName: 'CryptoArtist', role: 'artist', isOnline: true, mutualFriends: 12, isFriend: true },
-    { id: '2', qorId: 'blockdev#5678', displayName: 'BlockDev', role: 'developer', isOnline: true, mutualFriends: 8, isFriend: true },
-    { id: '3', qorId: 'synthmaster#9012', displayName: 'SynthMaster', role: 'musician', isOnline: false, mutualFriends: 5, isFriend: true, lastSeen: new Date(Date.now() - 3600000) },
-    { id: '4', qorId: 'pixelking#3456', displayName: 'PixelKing', role: 'gamer', isOnline: true, mutualFriends: 15, isFriend: true },
-    { id: '5', qorId: 'nftqueen#7890', displayName: 'NFTQueen', role: 'collector', isOnline: false, mutualFriends: 3, isFriend: true, lastSeen: new Date(Date.now() - 86400000) },
-    { id: '6', qorId: 'cosmicwolf#2345', displayName: 'CosmicWolf', role: 'creator', isOnline: true, mutualFriends: 7, isFriend: true },
-    { id: '7', qorId: 'stargazer#6789', displayName: 'Stargazer', role: 'designer', isOnline: false, mutualFriends: 4, isFriend: true, lastSeen: new Date(Date.now() - 172800000) },
-    { id: '8', qorId: 'moonrider#0123', displayName: 'MoonRider', role: 'gamer', isOnline: true, mutualFriends: 9, isFriend: true },
-  ];
+  useEffect(() => {
+    loadFriendsData();
+  }, []);
 
-  const mockRequests: Friend[] = [
-    { id: '9', qorId: 'newhero#4567', displayName: 'NewHero', role: 'gamer', isOnline: true, mutualFriends: 3, isFriend: false, isPending: true },
-    { id: '10', qorId: 'artlover#8901', displayName: 'ArtLover', role: 'collector', isOnline: false, mutualFriends: 6, isFriend: false, isPending: true },
-  ];
+  const loadFriendsData = async () => {
+    setLoadingFriends(true);
+    try {
+      const [friendsData, requestsData, suggestionsData] = await Promise.all([
+        vybService.getFriends().catch(() => []),
+        vybService.getFriendRequests().catch(() => []),
+        vybService.getFriendSuggestions().catch(() => []),
+      ]);
 
-  const mockSuggestions: Friend[] = [
-    { id: '11', qorId: 'techguru#2345', displayName: 'TechGuru', role: 'developer', isOnline: true, mutualFriends: 15, isFriend: false },
-    { id: '12', qorId: 'soundwave#6789', displayName: 'SoundWave', role: 'musician', isOnline: false, mutualFriends: 8, isFriend: false },
-    { id: '13', qorId: 'pixelart#0123', displayName: 'PixelArt', role: 'artist', isOnline: true, mutualFriends: 12, isFriend: false },
-    { id: '14', qorId: 'gamerpro#4567', displayName: 'GamerPro', role: 'gamer', isOnline: true, mutualFriends: 20, isFriend: false },
-  ];
+      setFriends(friendsData.map(formatFriend));
+      setRequests(requestsData.map((f: any) => ({ ...formatFriend(f), isPending: true })));
+      setSuggestions(suggestionsData.map(formatFriend));
+    } catch (error) {
+      console.warn('Could not load friends data:', error);
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
+  const formatFriend = (f: any): Friend => ({
+    id: f.id,
+    qorId: f.qorId || f.qor_id || '',
+    displayName: f.displayName || f.name || 'Unknown',
+    avatar: f.avatar,
+    role: f.role || 'user',
+    isOnline: f.isOnline || false,
+    mutualFriends: f.mutualFriends || 0,
+    isFriend: f.isFriend ?? true,
+    isPending: f.isPending,
+    lastSeen: f.lastSeen ? new Date(f.lastSeen) : undefined,
+  });
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -71,14 +88,14 @@ export default function FriendsPage() {
     return `${Math.floor(seconds / 86400)}d ago`;
   };
 
-  const filteredFriends = mockFriends.filter(f => 
+  const filteredFriends = friends.filter(f => 
     f.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     f.qorId.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const onlineFriends = filteredFriends.filter(f => f.isOnline);
 
-  if (loading) {
+  if (loading || loadingFriends) {
     return (
       <main className="min-h-screen p-8 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-cyan"></div>
@@ -87,16 +104,16 @@ export default function FriendsPage() {
   }
 
   const tabs = [
-    { id: 'all' as TabType, label: 'All Friends', count: mockFriends.length },
+    { id: 'all' as TabType, label: 'All Friends', count: friends.length },
     { id: 'online' as TabType, label: 'Online', count: onlineFriends.length },
-    { id: 'requests' as TabType, label: 'Requests', count: mockRequests.length },
-    { id: 'suggestions' as TabType, label: 'Suggestions', count: mockSuggestions.length },
+    { id: 'requests' as TabType, label: 'Requests', count: requests.length },
+    { id: 'suggestions' as TabType, label: 'Suggestions', count: suggestions.length },
   ];
 
   const currentList = activeTab === 'all' ? filteredFriends 
     : activeTab === 'online' ? onlineFriends
-    : activeTab === 'requests' ? mockRequests
-    : mockSuggestions;
+    : activeTab === 'requests' ? requests
+    : suggestions;
 
   return (
     <main className="min-h-screen">
@@ -251,11 +268,11 @@ export default function FriendsPage() {
         )}
 
         {/* People You May Know Section */}
-        {activeTab === 'all' && mockSuggestions.length > 0 && (
+        {activeTab === 'all' && suggestions.length > 0 && (
           <div className="mt-8">
             <h2 className="font-grunge-alt text-xl text-neon-purple mb-4">👋 People You May Know</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {mockSuggestions.slice(0, 4).map((suggestion) => (
+              {suggestions.slice(0, 4).map((suggestion) => (
                 <div
                   key={suggestion.id}
                   className="glass-panel rounded-xl p-4 text-center hover:border-neon-purple/30 transition-colors"

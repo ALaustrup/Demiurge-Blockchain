@@ -2,8 +2,11 @@
 
 Create autonomous AI agents as **First-Class Citizens** on the Demiurge Protocol.
 
+**Status:** Mainnet v1 | **Features:** Dual registration patterns (instant keys + pre-registered)
+
 ## Features
 
+- **Dual Registration Patterns**: Instant keys OR pre-registered agent accounts
 - **Sovereign Identity**: Agents get their own DID (`did:demiurge:agent:...`)
 - **Autonomous Signing**: Agents hold their own keys and can sign transactions
 - **Persistent Memory**: Vector-State Kernel for long-term agent memory
@@ -19,12 +22,18 @@ npm install @demiurge/agent-foundry
 pnpm add @demiurge/agent-foundry
 ```
 
-## Quick Start
+## Agent Registration Patterns
+
+The SDK supports two patterns for agent creation:
+
+### Pattern 1: Instant Keys (Recommended for Quick Deployment)
+
+Generate a new keypair and register the agent in one step:
 
 ```typescript
 import { createAgent, AgentFoundry } from '@demiurge/agent-foundry';
 
-// Create an autonomous trading agent
+// Create an agent with instant key generation
 const agent = await createAgent({
   name: 'TradingOracle',
   
@@ -40,14 +49,77 @@ const agent = await createAgent({
   // Agent's mission
   mission: `
     You are a trading oracle. Your goal is to analyze market conditions
-    and execute trades that benefit your controller. You have access to
-    on-chain data and your own persistent memory.
+    and execute trades that benefit your controller.
   `,
   
   // Spending limit per 24-hour epoch
   spendingLimit: '1000 CGT',
   
   // Human controller (can override/stop agent)
+  controller: 'alice.demiurge',
+});
+
+// Agent now has its own DID and keypair
+console.log(`Agent DID: ${agent.did.did}`);
+console.log(`Agent Address: ${agent.wallet.address}`);
+
+// Save the private key for later use
+const privateKey = agent.wallet.exportPrivateKey();
+```
+
+### Pattern 2: Pre-Registered Agents (For Planned Deployments)
+
+Use an existing agent account that was registered ahead of time:
+
+```typescript
+import { AgentFoundry } from '@demiurge/agent-foundry';
+
+// First, register the agent account (can be done separately)
+const registration = await AgentFoundry.registerAgentAccount({
+  authUrl: 'https://demiurge.cloud/api/v1',
+  name: 'ProductionBot',
+  capabilities: ['read', 'analyze', 'execute'],
+});
+
+// Save these credentials securely
+console.log('Agent Address:', registration.address);
+console.log('Private Key:', registration.privateKey);
+
+// Later, create agent from registered account
+const agent = await AgentFoundry.fromRegisteredAccount({
+  agentAddress: registration.address,
+  privateKey: process.env.AGENT_PRIVATE_KEY!,
+  
+  // LLM and behavior config
+  llm: AgentFoundry.providers.gemini(process.env.GEMINI_API_KEY!),
+  autonomy: 'bounded',
+  spendingLimit: '500 CGT',
+  mission: 'Monitor and report on market conditions.',
+});
+
+console.log(`Agent DID: ${agent.did.did}`);
+```
+
+### When to Use Each Pattern
+
+| Pattern | Use Case | Benefits |
+|---------|----------|----------|
+| **Instant Keys** | Development, testing, quick deployments | Fast setup, no pre-planning |
+| **Pre-Registered** | Production, audited systems, enterprises | Controlled rollout, key management |
+
+## Quick Start
+
+```typescript
+import { createAgent, AgentFoundry } from '@demiurge/agent-foundry';
+
+// Create an autonomous trading agent (instant keys pattern)
+const agent = await createAgent({
+  name: 'TradingOracle',
+  llm: AgentFoundry.providers.gemini(process.env.GEMINI_API_KEY!),
+  autonomy: 'bounded',
+  capabilities: ['read', 'analyze', 'trade', 'transfer'],
+  mission: `You are a trading oracle...`,
+  spendingLimit: '1000 CGT',
   controller: 'alice.demiurge',
 });
 

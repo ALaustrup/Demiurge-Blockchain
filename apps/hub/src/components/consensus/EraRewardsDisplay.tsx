@@ -112,18 +112,27 @@ export function EraRewardsDisplay({ address }: EraRewardsDisplayProps) {
   };
 
   const loadHistoricalEras = async (currentEra: number) => {
-    // For now, simulate historical data
-    // In production, this would query historical era data from storage
-    const historical: HistoricalEraData[] = [];
-    for (let i = Math.max(0, currentEra - 9); i <= currentEra; i++) {
-      historical.push({
-        era: i,
-        totalRewards: (1000000 + Math.random() * 200000).toFixed(0),
-        transactionFees: (50000 + Math.random() * 10000).toFixed(0),
-        blockNumber: i * 1000,
-      });
+    try {
+      // TODO: Fetch real historical era data from blockchain when available
+      // For now, only show current era data - no random mock data
+      const historical: HistoricalEraData[] = [];
+      
+      // Only include current era with real data
+      if (currentEra >= 0) {
+        const eraInfo = await demiurgeRpc.getCurrentEra();
+        historical.push({
+          era: eraInfo.era,
+          totalRewards: eraInfo.totalRewards,
+          transactionFees: eraInfo.transactionFees,
+          blockNumber: eraInfo.blockNumber,
+        });
+      }
+      
+      setHistoricalEras(historical);
+    } catch (error) {
+      console.warn('Could not load historical era data:', error);
+      setHistoricalEras([]);
     }
-    setHistoricalEras(historical);
   };
 
   const formatBalance = (balance: string): string => {

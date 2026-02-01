@@ -2,6 +2,8 @@
 
 **Custom blockchain framework - Zero external dependencies**
 
+**Status:** Mainnet v1 with fresh genesis (block #1 reset)
+
 ## Architecture
 
 ```
@@ -14,31 +16,41 @@ framework/
 ├── rpc/            # JSON-RPC 2.0 + WebSocket
 ├── node/           # Full node implementation
 └── modules/        # Runtime modules
-    ├── balances/       # CGT token
+    ├── balances/       # CGT token (1B treasury at Godmode)
     ├── energy/         # Feeless transactions
-    ├── session-keys/   # Temporary auth
-    ├── qor-identity/   # Sovereign identity (DID)
+    ├── session-keys/   # Temporary auth + keypair login
+    ├── qor-identity/   # Sovereign identity (DID) + hybrid auth
     ├── drc369/         # Stateful NFTs
     ├── game-assets/    # Multi-asset system
     ├── yield-nfts/     # Passive income NFTs
     ├── cvp/            # Consensus-Verified Polymorphism
     ├── zk/             # Zero-knowledge proofs
-    └── agentic/        # AI agents as First-Class Citizens
+    └── agentic/        # AI agents (instant keys + pre-registered)
 ```
 
-## Status: Production
+## Status: Mainnet v1
 
-The framework is deployed and running in production at https://demiurge.cloud.
+The framework is deployed and running in production at https://demiurge.cloud with a fresh genesis.
 
-| Component | Status |
-|-----------|--------|
-| Core Runtime | Production |
-| Storage | Production |
-| Consensus | Production |
-| Network | Production |
-| RPC | Production |
-| Node | Production |
-| All Modules | Production |
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Core Runtime | Production | Fresh genesis |
+| Storage | Production | Clean state |
+| Consensus | Production | 2s block time |
+| Network | Production | LibP2P |
+| RPC | Production | JSON-RPC 2.0 |
+| Node | Production | Full node |
+| All Modules | Production | See below |
+
+### Module Status
+
+| Module | Status | Key Features |
+|--------|--------|--------------|
+| Balances | Production | 1B CGT treasury at Godmode |
+| QOR Identity | Production | Hybrid auth (keypair + QOR ID) |
+| Agentic | Production | Dual patterns: instant keys + pre-registered |
+| DRC-369 | Production | Stateful NFTs with physics |
+| CVP | Production | ZK bytecode mutation |
 
 ## Quick Start
 
@@ -72,10 +84,13 @@ cargo test --all --features "demiurge-agentic/std"
 - Sub-2-second finality
 - Slashing for misbehavior
 - Era-based rewards
+- Modular Fluidity (hot-swap mechanisms)
+- Elastic Sharding (auto-scale)
 
-### Identity (QOR ID)
+### Authentication (Hybrid)
+- **Keypair Authentication** - Ed25519 keypairs for direct login
+- **QOR ID Login** - Human-readable identity (username#0001)
 - Decentralized Identifiers (DIDs)
-- Human-readable handles
 - Multi-key support
 - Quantum-safe signatures (Dilithium3)
 
@@ -86,11 +101,19 @@ cargo test --all --features "demiurge-agentic/std"
 - Atomic composability
 
 ### AI Agents (Agentic Layer)
+- **Instant Keys** - Generate agent keypairs on-demand
+- **Pre-Registered** - Use existing agent accounts
 - Agent DID (sovereign identity)
 - Agentic Wallet (self-custodial)
 - The Forge (verifiable compute)
 - Vector-State Kernel (memory)
 - Sentinel Oracle (governance)
+
+### Godmode Administration
+- Treasury address: `0x00000000000000000000000000000000DEMIURGE`
+- Initial treasury: 1,000,000,000 CGT
+- Network governance controls
+- Emergency functions
 
 ### Security
 - CVP (bytecode mutation with ZK proofs)

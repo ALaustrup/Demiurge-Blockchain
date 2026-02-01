@@ -18,15 +18,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log analytics event (in production, send to analytics service)
-    console.log('[Analytics]', {
-      event: body.event,
-      gameId: body.gameId,
-      duration: body.duration,
-      timestamp: body.timestamp || new Date().toISOString(),
-      userAgent: request.headers.get('user-agent'),
-      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
-    });
+    // TODO: Send analytics event to analytics service in production
 
     // TODO: Store in database or send to analytics service
     // For now, just log and return success

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import { vybService } from '@/lib/vyb/service';
 
 type TabType = 'upcoming' | 'attending' | 'past';
 
@@ -28,104 +29,76 @@ export default function EventsPage() {
   const { loading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [pastEvents, setPastEvents] = useState<Event[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
 
   const now = new Date();
 
-  // Mock data
-  const mockEvents: Event[] = [
-    {
-      id: '1',
-      title: 'Genesis NFT Collection Drop',
-      description: 'The first official Demiurge NFT collection. 1000 unique pieces with on-chain perks and governance rights.',
-      icon: '💎',
-      coverGradient: ['#bf00ff', '#00f5ff'],
-      type: 'drop',
-      date: new Date(now.getTime() + 3600000 * 4), // 4 hours from now
-      location: 'Demiurge Marketplace',
-      isVirtual: true,
-      attendeeCount: 847,
-      isAttending: true,
-      hostName: 'Demiurge Official',
-      groupName: 'Demiurge Community'
-    },
-    {
-      id: '2',
-      title: 'Cosmic Drift Weekly Tournament',
-      description: 'Compete against the best players for CGT prizes and exclusive NFT rewards. Top 10 qualify for the monthly championship.',
-      icon: '🏆',
-      coverGradient: ['#ffd700', '#ff8c00'],
-      type: 'tournament',
-      date: new Date(now.getTime() + 86400000), // Tomorrow
-      location: 'Cosmic Drift Arena',
-      isVirtual: true,
-      attendeeCount: 128,
-      maxAttendees: 256,
-      isAttending: true,
-      hostName: 'PixelKing',
-      groupName: 'Cosmic Drift Players'
-    },
-    {
-      id: '3',
-      title: 'Developer AMA: Roadmap 2026',
-      description: 'Join the core team as we discuss upcoming features, partnerships, and the future of the Demiurge ecosystem.',
-      icon: '💬',
-      coverGradient: ['#00ff41', '#008f11'],
-      type: 'ama',
-      date: new Date(now.getTime() + 86400000 * 3), // 3 days
-      location: 'VYB Voice Room',
-      isVirtual: true,
-      attendeeCount: 312,
-      isAttending: false,
-      hostName: 'BlockDev',
-      groupName: 'Demiurge Developers'
-    },
-    {
-      id: '4',
-      title: 'NFT Artists Showcase Night',
-      description: 'A virtual gallery walk featuring the best NFT art from our community. Live minting and collector meetup.',
-      icon: '🎨',
-      coverGradient: ['#ff6b35', '#f7c59f'],
-      type: 'stream',
-      date: new Date(now.getTime() + 86400000 * 5), // 5 days
-      location: 'Virtual Gallery',
-      isVirtual: true,
-      attendeeCount: 156,
-      isAttending: false,
-      hostName: 'CryptoArtist',
-      groupName: 'NFT Artists Collective'
-    },
-    {
-      id: '5',
-      title: 'New Game Launch: Block Legends',
-      description: 'The official launch of Block Legends - a blockchain-powered strategy RPG. Early players receive exclusive founder NFTs.',
-      icon: '🚀',
-      coverGradient: ['#7b2cbf', '#c77dff'],
-      type: 'launch',
-      date: new Date(now.getTime() + 86400000 * 7), // 1 week
-      location: 'Games Hub',
-      isVirtual: true,
-      attendeeCount: 2341,
-      isAttending: true,
-      hostName: 'Demiurge Games',
-    }
-  ];
+  useEffect(() => {
+    loadEvents();
+  }, []);
 
-  const pastEvents: Event[] = [
-    {
-      id: '6',
-      title: 'Testnet Launch Party',
-      description: 'Celebrated the launch of Demiurge testnet with the community.',
-      icon: '🎉',
-      coverGradient: ['#0096c7', '#90e0ef'],
-      type: 'meetup',
-      date: new Date(now.getTime() - 86400000 * 7), // 1 week ago
-      location: 'VYB Main Stage',
-      isVirtual: true,
-      attendeeCount: 542,
-      isAttending: true,
-      hostName: 'Demiurge Official',
+  const loadEvents = async () => {
+    setLoadingEvents(true);
+    try {
+      const [upcomingData, pastData] = await Promise.all([
+        vybService.getEvents('upcoming'),
+        vybService.getEvents('past'),
+      ]);
+      
+      setEvents(upcomingData.map(formatEvent));
+      setPastEvents(pastData.map(formatEvent));
+    } catch (error) {
+      console.warn('Could not load events:', error);
+      setEvents([]);
+      setPastEvents([]);
+    } finally {
+      setLoadingEvents(false);
     }
-  ];
+  };
+
+  const formatEvent = (e: any): Event => ({
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    icon: getEventIcon(e.type),
+    coverGradient: getEventGradient(e.type),
+    type: e.type,
+    date: new Date(e.date),
+    location: e.location,
+    isVirtual: e.isVirtual ?? true,
+    attendeeCount: e.attendeeCount || 0,
+    maxAttendees: e.maxAttendees,
+    isAttending: e.isAttending || false,
+    hostName: e.hostName || 'Unknown',
+    hostAvatar: e.hostAvatar,
+    groupName: e.groupName,
+  });
+
+  const getEventIcon = (type: string): string => {
+    switch (type) {
+      case 'tournament': return '🏆';
+      case 'drop': return '💎';
+      case 'ama': return '💬';
+      case 'meetup': return '🎉';
+      case 'stream': return '🎨';
+      case 'launch': return '🚀';
+      default: return '📅';
+    }
+  };
+
+  const getEventGradient = (type: string): [string, string] => {
+    switch (type) {
+      case 'tournament': return ['#ffd700', '#ff8c00'];
+      case 'drop': return ['#bf00ff', '#00f5ff'];
+      case 'ama': return ['#00ff41', '#008f11'];
+      case 'meetup': return ['#0096c7', '#90e0ef'];
+      case 'stream': return ['#ff6b35', '#f7c59f'];
+      case 'launch': return ['#7b2cbf', '#c77dff'];
+      default: return ['#6b7280', '#9ca3af'];
+    }
+  };
 
   const getTypeLabel = (type: Event['type']) => {
     switch (type) {
@@ -166,12 +139,12 @@ export default function EventsPage() {
     });
   };
 
-  const attendingEvents = mockEvents.filter(e => e.isAttending);
-  const currentList = activeTab === 'upcoming' ? mockEvents 
+  const attendingEvents = events.filter(e => e.isAttending);
+  const currentList = activeTab === 'upcoming' ? events 
     : activeTab === 'attending' ? attendingEvents
     : pastEvents;
 
-  if (loading) {
+  if (loading || loadingEvents) {
     return (
       <main className="min-h-screen p-8 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-cyan"></div>
@@ -180,7 +153,7 @@ export default function EventsPage() {
   }
 
   const tabs = [
-    { id: 'upcoming' as TabType, label: 'Upcoming', icon: '📅', count: mockEvents.length },
+    { id: 'upcoming' as TabType, label: 'Upcoming', icon: '📅', count: events.length },
     { id: 'attending' as TabType, label: 'Attending', icon: '✓', count: attendingEvents.length },
     { id: 'past' as TabType, label: 'Past', icon: '📜', count: pastEvents.length },
   ];

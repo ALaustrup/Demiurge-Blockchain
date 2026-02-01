@@ -131,7 +131,6 @@ export async function POST(request: NextRequest) {
       
       if (txHash) {
         transferStatus = 'completed';
-        console.log(`[Reward] ${qorId} earned ${amountNum} CGT from ${gameId} - ${reason} (tx: ${txHash})`);
       } else {
         // Treasury not available - queue for later or use fallback
         transferStatus = 'queued';

@@ -2,6 +2,8 @@
 
 Official command-line interface for the Demiurge Protocol.
 
+**Features:** Interactive shell mode | Animated splash screen | Dual-mode operation | 30+ commands
+
 ## Installation
 
 ```bash
@@ -11,25 +13,66 @@ npm install -g @demiurge/cli
 npx @demiurge/cli --help
 ```
 
+## Dual-Mode Operation
+
+The CLI supports two modes of operation:
+
+### Interactive Shell Mode (Recommended)
+
+Launch the interactive shell with animated splash screen:
+
+```bash
+# Start interactive shell
+demiurge
+
+# You'll see an animated splash screen, then enter the REPL:
+# 🔥 DEMIURGE PROTOCOL
+# Mainnet v1 | Genesis Block #1
+# 
+# demiurge> chain status
+# demiurge> wallet generate
+# demiurge> exit
+```
+
+**Shell Features:**
+- Animated splash screen on launch
+- Tab completion for commands and parameters
+- Command history (up/down arrows)
+- Session persistence
+- Built-in help (`help` or `?`)
+
+### Command Mode
+
+Use traditional CLI for scripts and automation:
+
+```bash
+# Single commands
+demiurge chain status
+demiurge wallet balance <address>
+
+# Pipe-friendly output
+demiurge --json chain block-number | jq .blockNumber
+
+# Use in scripts
+BLOCK=$(demiurge --quiet chain block-number)
+```
+
 ## Quick Start
 
 ```bash
-# Check chain status
+# Interactive mode
+demiurge
+> chain status
+> wallet generate --output my-wallet.json
+> identity register --interactive
+> exit
+
+# Or command mode
 demiurge chain status
-
-# Get current block
 demiurge chain block-number
-
-# Generate a wallet
 demiurge wallet generate --output my-wallet.json
-
-# Check balance
 demiurge wallet balance <address>
-
-# Register QOR ID
 demiurge identity register --interactive
-
-# List NFTs
 demiurge nft list <owner-address>
 ```
 
@@ -259,6 +302,24 @@ demiurge validator stake \
   --wallet wallet.json
 ```
 
+## Interactive Shell Commands
+
+When in interactive shell mode, additional commands are available:
+
+```bash
+# Shell-specific commands
+help              # Show available commands
+?                 # Alias for help
+clear             # Clear the screen
+history           # Show command history
+exit              # Exit the shell
+quit              # Alias for exit
+
+# Tab completion
+wal<TAB>          # Completes to "wallet"
+wallet gen<TAB>   # Completes to "wallet generate"
+```
+
 ## Output Formats
 
 ### Default (Pretty)
@@ -266,9 +327,10 @@ demiurge validator stake \
 ```
 🔥 Demiurge Protocol CLI
 
-📦 Current Block: 227,242
-⚡ TPS: 450
+📦 Current Block: 1
+⚡ Genesis: Fresh
 🏛️  Validators: 4
+💰 Treasury: 1,000,000,000 CGT
 ```
 
 ### JSON
@@ -279,9 +341,10 @@ demiurge --json chain status
 
 ```json
 {
-  "blockNumber": 227242,
-  "tps": 450,
-  "validators": 4
+  "blockNumber": 1,
+  "genesis": "fresh",
+  "validators": 4,
+  "treasury": "1000000000"
 }
 ```
 

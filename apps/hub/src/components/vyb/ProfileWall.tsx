@@ -49,54 +49,8 @@ export function ProfileWall({
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
-  // Mock data for demonstration
-  const mockWallPosts: WallPost[] = wallPosts.length > 0 ? wallPosts : [
-    {
-      id: '1',
-      authorId: 'user1',
-      authorName: 'CryptoArtist',
-      authorAvatar: undefined,
-      authorQorId: 'cryptoartist#1234',
-      content: "Hey! Just wanted to say your NFT collection is absolutely fire 🔥 Keep up the amazing work!",
-      createdAt: new Date(Date.now() - 3600000),
-      likes: 12,
-      isLiked: false,
-      comments: [
-        {
-          id: 'c1',
-          authorId: profileId,
-          authorName: profileName,
-          authorQorId: 'me#0001',
-          content: "Thanks so much! Means a lot coming from you 💎",
-          createdAt: new Date(Date.now() - 1800000),
-        }
-      ]
-    },
-    {
-      id: '2',
-      authorId: 'user2',
-      authorName: 'BlockDev',
-      authorAvatar: undefined,
-      authorQorId: 'blockdev#5678',
-      content: "GG on hitting 1000 followers! 🎉 We need to collab on something soon.",
-      createdAt: new Date(Date.now() - 86400000),
-      likes: 8,
-      isLiked: true,
-      comments: []
-    },
-    {
-      id: '3',
-      authorId: 'user3',
-      authorName: 'SynthMaster',
-      authorAvatar: undefined,
-      authorQorId: 'synthmaster#9012',
-      content: "Dropping by to say hi! Check out my new track, I think you'd dig it 🎵",
-      createdAt: new Date(Date.now() - 172800000),
-      likes: 5,
-      isLiked: false,
-      comments: []
-    }
-  ];
+  // Use provided wall posts or empty array - no mock data
+  const displayWallPosts: WallPost[] = wallPosts;
 
   const handlePostToWall = async () => {
     if (!newPost.trim()) return;
@@ -148,7 +102,7 @@ export function ProfileWall({
         <h2 className="font-grunge-alt text-2xl text-white flex items-center gap-2">
           📝 {isOwnProfile ? 'My Wall' : `${profileName}'s Wall`}
         </h2>
-        <span className="text-gray-500 text-sm">{mockWallPosts.length} posts</span>
+        <span className="text-gray-500 text-sm">{displayWallPosts.length} posts</span>
       </div>
 
       {/* Write on Wall Box */}
@@ -196,7 +150,7 @@ export function ProfileWall({
 
       {/* Wall Posts */}
       <div className="space-y-4">
-        {mockWallPosts.length === 0 ? (
+        {displayWallPosts.length === 0 ? (
           <div className="glass-panel p-8 rounded-xl text-center">
             <p className="text-4xl mb-3">📭</p>
             <p className="text-gray-400">No wall posts yet.</p>
@@ -205,7 +159,7 @@ export function ProfileWall({
             )}
           </div>
         ) : (
-          mockWallPosts.map((post) => (
+          displayWallPosts.map((post) => (
             <div key={post.id} className="glass-panel rounded-xl overflow-hidden">
               {/* Post Header */}
               <div className="p-4 border-b border-gray-800/50">

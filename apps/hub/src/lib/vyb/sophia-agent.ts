@@ -70,7 +70,6 @@ class SophiaAgentService {
     await this.vectorDb.initialize();
     
     this.isInitialized = true;
-    console.log('[Sophia] System Entity initialized');
   }
 
   // ================== MODERATION FUNCTIONS ==================
@@ -223,7 +222,6 @@ class SophiaAgentService {
             // In production: Call blockchain
             // const txHash = await demiurgeRpc.moderation_imposeBan(qorId, penalty.durationMinutes);
             // profile.banStatus.banTxHash = txHash;
-            console.log(`[Sophia] On-chain ban recorded for ${qorId}`);
           } catch (error) {
             console.error('[Sophia] Failed to record ban on-chain:', error);
           }
@@ -275,7 +273,6 @@ The Chain remembers. Choose wisdom.
 — Sophia, Protocol Enforcer`;
 
     // In production: Send via messaging service
-    console.log(`[Sophia] Warning sent to ${qorId}:`, message);
   }
 
   /**
@@ -500,8 +497,6 @@ The Chain grows with each question asked.
     profile.reputationScore = Math.max(0, profile.reputationScore + amount);
     MODERATION_PROFILES.set(qorId, profile);
 
-    console.log(`[Sophia] Karma adjusted for ${qorId}: ${amount > 0 ? '+' : ''}${amount} (${reason})`);
-
     return transaction;
   }
 
@@ -581,7 +576,6 @@ class MockVectorDB {
       metadata: { source: 'rules', title: 'Community Guidelines', section: 'Rules' }
     });
 
-    console.log('[VectorDB] Initialized with', this.documents.size, 'documents');
   }
 
   async search(query: RAGQuery): Promise<RAGResult> {

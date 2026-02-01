@@ -1,8 +1,24 @@
-# Demiurge Multi-Node Testnet
+# Demiurge Testnet & Mainnet
 
-Multi-validator testnet setup for testing consensus, finality, and network behavior.
+**Mainnet Status**: Live on Mainnet v1 (fresh genesis at block #1)  
+**Testnet Status**: Multi-validator testnet available for development and testing
 
-## Overview
+This directory contains configuration and scripts for the multi-validator testnet setup, used for testing consensus, finality, and network behavior before mainnet deployment.
+
+## Mainnet vs Testnet
+
+- **Mainnet**: Live production network at https://demiurge.cloud
+  - Mainnet v1 with fresh genesis at block #1
+  - Godmode account active with 1B CGT treasury
+  - Hybrid auth (keypair + QOR ID) enabled
+  - Production endpoints: RPC at 51.210.209.112:9933
+
+- **Testnet**: Development/testing network (this directory)
+  - Multi-validator setup for consensus testing
+  - Safe environment for experimentation
+  - Can be reset/redeployed as needed
+
+## Testnet Overview
 
 This testnet runs **4 validator nodes** on a single server to simulate a decentralized network:
 

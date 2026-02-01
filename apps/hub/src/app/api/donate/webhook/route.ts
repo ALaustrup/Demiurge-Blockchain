@@ -31,8 +31,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    console.log(`[Webhook] Received event: ${event.type}`);
-
     // Handle different event types
     switch (event.type) {
       case 'checkout.session.completed':
@@ -64,7 +62,8 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        console.log(`[Webhook] Unhandled event type: ${event.type}`);
+        // Unhandled event type - consider logging to monitoring service
+        break;
     }
 
     return NextResponse.json({ received: true });
@@ -89,13 +88,10 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     return;
   }
 
-  console.log(`[Webhook] Checkout complete for user ${userId}, type: ${donationType}`);
-
   if (donationType === 'one_time') {
     await processOneTimeDonation(session);
   } else if (donationType === 'subscription') {
     // Subscription is handled by subscription.created event
-    console.log('[Webhook] Subscription checkout complete - waiting for subscription.created');
   }
 }
 
@@ -148,7 +144,7 @@ async function processOneTimeDonation(session: Stripe.Checkout.Session) {
           // Transfer CGT from treasury
           const txHash = await treasury.transferCGT(userAddress, cgtReward, `Donation tier ${tierLevel} reward`);
           if (txHash) {
-            console.log(`[Webhook] Transferred ${cgtReward} CGT to ${userAddress} (tx: ${txHash})`);
+            // CGT transfer successful
           } else {
             console.warn(`[Webhook] CGT transfer pending - treasury not available`);
           }
@@ -162,8 +158,6 @@ async function processOneTimeDonation(session: Stripe.Checkout.Session) {
     if (!donorData.badge_nft_uuid || donorData.tier_upgraded) {
       await mintOrUpgradeDonorBadge(userId, tierLevel, donorData);
     }
-
-    console.log(`[Webhook] Processed donation: ${amountCents} cents, tier ${tierLevel}`);
   } catch (error) {
     console.error('[Webhook] Error processing one-time donation:', error);
   }
@@ -225,7 +219,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
             `Subscription tier ${subscriptionTierLevel} bi-weekly reward`
           );
           if (txHash) {
-            console.log(`[Webhook] Subscription CGT: ${subTier.cgtPerCycle} to ${userData.on_chain_address} (tx: ${txHash})`);
+            // Subscription CGT transfer successful
           } else {
             console.warn(`[Webhook] Subscription CGT transfer pending - treasury not available`);
           }
@@ -234,8 +228,6 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
         }
       }
     }
-
-    console.log(`[Webhook] Processed subscription payment for tier ${subscriptionTierLevel}`);
   } catch (error) {
     console.error('[Webhook] Error processing subscription payment:', error);
   }
@@ -272,8 +264,6 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
         attempt_count: invoice.attempt_count,
       }),
     });
-
-    console.log(`[Webhook] Recorded payment failure for user ${userId}`);
   } catch (error) {
     console.error('[Webhook] Error handling payment failure:', error);
   }
@@ -304,8 +294,6 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
         current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
       }),
     });
-
-    console.log(`[Webhook] Subscription created: tier ${subscriptionTierLevel} for user ${userId}`);
   } catch (error) {
     console.error('[Webhook] Error handling subscription created:', error);
   }
@@ -336,8 +324,6 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
         current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
       }),
     });
-
-    console.log(`[Webhook] Subscription updated for user ${userId}: ${sub.status}`);
   } catch (error) {
     console.error('[Webhook] Error handling subscription update:', error);
   }
@@ -365,8 +351,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         grace_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
       }),
     });
-
-    console.log(`[Webhook] Subscription cancelled for user ${userId}`);
   } catch (error) {
     console.error('[Webhook] Error handling subscription cancellation:', error);
   }
@@ -391,8 +375,6 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
         refund_amount_cents: charge.amount_refunded,
       }),
     });
-
-    console.log(`[Webhook] Refund processed for payment ${paymentIntent}`);
   } catch (error) {
     console.error('[Webhook] Error handling refund:', error);
   }
@@ -444,7 +426,6 @@ async function mintOrUpgradeDonorBadge(
           id: Date.now(),
         }),
       });
-      console.log(`[Webhook] Updated badge ${donorData.badge_nft_uuid} to tier ${tierLevel}`);
     } else {
       // Mint new badge
       const userAddress = donorData.on_chain_address;
@@ -465,7 +446,6 @@ async function mintOrUpgradeDonorBadge(
               badge_nft_uuid: result.tokenId,
             }),
           });
-          console.log(`[Webhook] Minted badge ${result.tokenId} for tier ${tierLevel}`);
         }
       }
     }

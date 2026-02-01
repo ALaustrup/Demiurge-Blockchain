@@ -83,7 +83,6 @@ export class GameRewardsManager {
    */
   queueReward(event: RewardEvent): void {
     this.pendingRewards.push(event);
-    console.log(`[GameRewards] Queued: ${event.type} - ${event.amount} CGT`);
   }
   
   /**
@@ -105,8 +104,6 @@ export class GameRewardsManager {
       
       // TODO: Call actual reward RPC endpoint
       // const result = await demiurgeRpc.awardGameReward(this.walletAddress, event);
-      
-      console.log(`[GameRewards] Awarded: ${event.type} - ${event.amount} CGT`);
       
       // Dispatch custom event for UI updates
       if (typeof window !== 'undefined') {

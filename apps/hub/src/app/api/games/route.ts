@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
       games = gameRegistry.getAll();
     }
     
-    console.log(`[API /games] Returning ${games.length} games`);
     return NextResponse.json({ games });
   } catch (error: any) {
     console.error('[API /games] Error:', error);

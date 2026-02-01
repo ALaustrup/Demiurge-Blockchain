@@ -124,7 +124,7 @@ export class BlockchainClient {
       });
 
       provider.on('connected', () => {
-        console.log('[Blockchain] WebSocket connected');
+        // WebSocket connected
       });
 
       // Create API instance
@@ -147,7 +147,6 @@ export class BlockchainClient {
       this.reconnectAttempts = 0;
       this.reconnectDelay = 1000;
       
-      console.log('[Blockchain] Successfully connected to Demiurge blockchain at', this.wsUrl);
     } catch (error: any) {
       // Log connection failures for debugging
       console.warn('[Blockchain] Failed to connect:', error.message || error);

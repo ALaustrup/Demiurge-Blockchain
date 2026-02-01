@@ -138,7 +138,6 @@ export function GameHUD({ address, position = 'top-right', compact = false }: Ga
                 className="w-full text-xs glass-panel py-1 px-2 rounded hover:chroma-glow transition-all"
                 onClick={() => {
                   // TODO: Open spend modal
-                  console.log('Spend clicked');
                 }}
               >
                 💰 Spend
@@ -147,7 +146,6 @@ export function GameHUD({ address, position = 'top-right', compact = false }: Ga
                 className="w-full text-xs glass-panel py-1 px-2 rounded hover:chroma-glow transition-all"
                 onClick={() => {
                   // TODO: Open earn modal
-                  console.log('Earn clicked');
                 }}
               >
                 ⭐ Earn
@@ -156,7 +154,6 @@ export function GameHUD({ address, position = 'top-right', compact = false }: Ga
                 className="w-full text-xs glass-panel py-1 px-2 rounded hover:chroma-glow transition-all"
                 onClick={() => {
                   // TODO: Open assets modal
-                  console.log('Assets clicked');
                 }}
               >
                 🎮 Assets
