@@ -10,6 +10,7 @@
     "copy-wasm": "node scripts/copy-wasm.js"
   },
   "dependencies": {
+    "@demiurge/agent-foundry": "*",
     "@demiurge/qor-sdk": "*",
     "@demiurge/sdk": "*",
     "@demiurge/ui-shared": "*",

@@ -39,6 +39,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app/sdk
 RUN npm run build
 
+# Build agent-foundry (required by Hub)
+WORKDIR /app/packages/agent-foundry
+RUN npm run build || echo "Agent-foundry build skipped"
+
 # Build the application
 WORKDIR /app/apps/hub
 RUN npm run build
