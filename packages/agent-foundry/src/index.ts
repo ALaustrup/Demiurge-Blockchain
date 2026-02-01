@@ -31,22 +31,30 @@
  */
 
 // Main exports
-export { EtherealAgent, createAgent } from './agent';
+import { EtherealAgent, createAgent } from './agent';
+export { EtherealAgent, createAgent };
 
 // Provider exports
-export { 
+import { 
   LLMProvider, 
   createProvider, 
   registerProvider,
   OpenAIProvider,
   GeminiProvider,
 } from './providers';
+export { 
+  LLMProvider, 
+  createProvider, 
+  registerProvider,
+  OpenAIProvider,
+  GeminiProvider,
+};
 
 // Memory exports
 export { MemoryClient } from './memory';
 
 // Tool exports
-export {
+import {
   createReadAssetsTool,
   createTransferCgtTool,
   createAddXpTool,
@@ -57,6 +65,18 @@ export {
   createHttpTool,
   createStandardTools,
 } from './tools';
+
+export {
+  createReadAssetsTool,
+  createTransferCgtTool,
+  createAddXpTool,
+  createRememberTool,
+  createRecallTool,
+  createChainStatusTool,
+  createResolveIdentityTool,
+  createHttpTool,
+  createStandardTools,
+};
 
 // Type exports
 export type {
