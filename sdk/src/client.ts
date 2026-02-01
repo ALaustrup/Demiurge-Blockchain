@@ -211,7 +211,7 @@ export class DemiurgeClient {
         throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
       }
 
-      const json: JsonRpcResponse<T> = await response.json();
+      const json = await response.json() as JsonRpcResponse<T>;
 
       if (json.error) {
         throw new RpcClientError(json.error.code, json.error.message, json.error.data);
