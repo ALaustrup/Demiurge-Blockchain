@@ -9,8 +9,10 @@ import { bytesToHex, hexToBytes } from './utils';
 
 // Placeholder for crypto operations
 // In production, use @noble/ed25519 or similar
-declare const window: { crypto: Crypto } | undefined;
-const crypto = typeof window !== 'undefined' ? window.crypto : (require('crypto').webcrypto as Crypto);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const crypto: any = typeof globalThis !== 'undefined' && (globalThis as any).crypto 
+  ? (globalThis as any).crypto 
+  : require('crypto').webcrypto;
 
 /**
  * Key pair (public/private)
