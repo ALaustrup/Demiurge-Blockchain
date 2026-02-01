@@ -9,7 +9,8 @@ import { bytesToHex, hexToBytes } from './utils';
 
 // Placeholder for crypto operations
 // In production, use @noble/ed25519 or similar
-const crypto = typeof window !== 'undefined' ? window.crypto : require('crypto').webcrypto;
+declare const window: { crypto: Crypto } | undefined;
+const crypto = typeof window !== 'undefined' ? window.crypto : (require('crypto').webcrypto as Crypto);
 
 /**
  * Key pair (public/private)
