@@ -13,6 +13,7 @@ COPY apps/hub/package.json ./apps/hub/
 COPY packages/qor-sdk/package.json ./packages/qor-sdk/
 COPY packages/ui-shared/package.json ./packages/ui-shared/
 COPY packages/wallet-wasm/package.json ./packages/wallet-wasm/
+COPY packages/agent-foundry/package.json ./packages/agent-foundry/
 COPY sdk/package.json ./sdk/
 
 # Install all dependencies including devDependencies (needed for build)
