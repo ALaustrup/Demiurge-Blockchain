@@ -31,8 +31,25 @@
  */
 
 // Main exports
-import { EtherealAgent, createAgent } from './agent';
-export { EtherealAgent, createAgent };
+import { 
+  EtherealAgent, 
+  createAgent,
+  createAgentWithInstantKeys,
+  registerAgent,
+  AgentFactory,
+} from './agent';
+export { 
+  EtherealAgent, 
+  createAgent,
+  createAgentWithInstantKeys,
+  registerAgent,
+  AgentFactory,
+};
+export type { 
+  InstantKeysAgent, 
+  RegisteredAgent, 
+  AgentRegistrationOptions,
+} from './agent';
 
 // Provider exports
 import { 
@@ -129,6 +146,11 @@ export const AgentFoundry = {
   createAgent,
   createProvider,
   registerProvider,
+  
+  /** Dual creation patterns */
+  instant: createAgentWithInstantKeys,
+  register: registerAgent,
+  factory: AgentFactory,
   
   /** Built-in tools */
   tools: {

@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 
 interface BlogPost {
@@ -15,41 +16,32 @@ interface BlogPost {
   slug: string;
 }
 
-// In production, these would come from the blog API or on-chain storage
-const MOCK_POSTS: BlogPost[] = [
-  {
-    id: '1',
-    title: 'Understanding CGT Tokenomics',
-    excerpt: 'A deep dive into how CGT tokens power the Demiurge ecosystem and how you can earn them.',
-    author: 'Demiurge Team',
-    category: 'Tokenomics',
-    readTime: 5,
-    publishedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    slug: 'cgt-tokenomics',
-  },
-  {
-    id: '2',
-    title: 'Building Games with ScatterTXT',
-    excerpt: 'Learn how to create immersive ASCII-rendered games using our on-chain game engine.',
-    author: 'Astra Matrix',
-    category: 'Development',
-    readTime: 10,
-    publishedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    slug: 'scattertxt-guide',
-  },
-  {
-    id: '3',
-    title: 'QOR ID: Your On-Chain Identity',
-    excerpt: 'Everything you need to know about QOR ID and how it secures your digital identity.',
-    author: 'Demiurge Team',
-    category: 'Identity',
-    readTime: 4,
-    publishedAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-    slug: 'qor-id-guide',
-  },
-];
+// Blog posts fetched from API or on-chain storage
+// Empty by default - populated when blog service is available
+const INITIAL_POSTS: BlogPost[] = [];
 
 export function BlogPanel() {
+  const [posts, setPosts] = React.useState<BlogPost[]>(INITIAL_POSTS);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    async function fetchPosts() {
+      try {
+        // Fetch from blog API when available
+        const response = await fetch('https://demiurge.guru/api/posts?limit=3');
+        if (response.ok) {
+          const data = await response.json();
+          setPosts(data.posts || []);
+        }
+      } catch {
+        // Blog service not available - show empty state
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPosts();
+  }, []);
+
   const getCategoryColor = (category: string) => {
     switch (category.toLowerCase()) {
       case 'tokenomics': return 'bg-neon-cyan/20 text-neon-cyan';
@@ -81,7 +73,22 @@ export function BlogPanel() {
       </div>
 
       <div className="space-y-4">
-        {MOCK_POSTS.map((post) => (
+        {loading ? (
+          <div className="text-center py-6 text-gray-500">Loading posts...</div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-6 text-gray-500">
+            <p>No blog posts yet.</p>
+            <a 
+              href="https://demiurge.guru/blog" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-neon-cyan hover:underline text-sm mt-2 inline-block"
+            >
+              Visit the blog →
+            </a>
+          </div>
+        ) : null}
+        {posts.map((post) => (
           <Link
             key={post.id}
             href={`/blog/${post.slug}`}

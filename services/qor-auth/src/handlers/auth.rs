@@ -1,18 +1,20 @@
 //! Authentication handlers.
 
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::StatusCode,
     Json,
 };
 use chrono::{Duration, Utc};
 use serde_json::{json, Value};
 use std::sync::Arc;
+use rand::Rng;
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    ForgotPasswordRequest, LoginRequest, RegisterRequest, ResetPasswordWithBackupRequest,
-    ResetPasswordWithTokenRequest, TokenPair,
+    ChallengeRequest, ChallengeResponse, ForgotPasswordRequest, KeypairLoginRequest,
+    KeypairRegisterRequest, LinkKeypairRequest, LoginRequest, RegisterRequest,
+    ResetPasswordWithBackupRequest, ResetPasswordWithTokenRequest, TokenPair,
 };
 use crate::services::{auth_service::AuthService, session_service::SessionService};
 use crate::state::AppState;
@@ -490,5 +492,329 @@ pub async fn check_username(
     Ok(Json(json!({
         "available": available,
         "username": username_lower,
+    })))
+}
+
+// =============================================================================
+// Keypair-Based Authentication
+// =============================================================================
+
+/// Generate a challenge for keypair authentication
+/// GET /api/v1/auth/challenge?pubkey=0x...
+pub async fn get_challenge(
+    State(state): State<Arc<AppState>>,
+    Query(req): Query<ChallengeRequest>,
+) -> AppResult<Json<ChallengeResponse>> {
+    // Validate pubkey format (hex, 64-128 chars for Ed25519/hybrid keys)
+    if req.pubkey.len() < 64 || req.pubkey.len() > 256 {
+        return Err(AppError::ValidationError(
+            "Invalid public key format".into(),
+        ));
+    }
+
+    // Generate random challenge
+    let random_bytes: [u8; 32] = rand::thread_rng().gen();
+    let random_hex = hex::encode(random_bytes);
+    let timestamp = Utc::now().timestamp();
+    let challenge = format!("demiurge:{}:{}", timestamp, random_hex);
+    let expires_at = Utc::now() + Duration::minutes(5);
+
+    // Store challenge in database (for verification later)
+    sqlx::query(
+        r#"
+        INSERT INTO auth_challenges (pubkey, challenge, expires_at)
+        VALUES ($1, $2, $3)
+        "#,
+    )
+    .bind(&req.pubkey)
+    .bind(&challenge)
+    .bind(expires_at)
+    .execute(&state.db)
+    .await?;
+
+    Ok(Json(ChallengeResponse {
+        challenge,
+        expires_at,
+    }))
+}
+
+/// Verify Ed25519 signature
+fn verify_ed25519_signature(pubkey: &str, message: &str, signature: &str) -> Result<bool, AppError> {
+    use ed25519_dalek::{Signature, VerifyingKey, Verifier};
+
+    // Decode pubkey from hex
+    let pubkey_bytes = hex::decode(pubkey)
+        .map_err(|_| AppError::ValidationError("Invalid public key hex".into()))?;
+    
+    if pubkey_bytes.len() != 32 {
+        return Err(AppError::ValidationError("Public key must be 32 bytes".into()));
+    }
+
+    let pubkey_array: [u8; 32] = pubkey_bytes
+        .try_into()
+        .map_err(|_| AppError::ValidationError("Invalid public key length".into()))?;
+
+    let verifying_key = VerifyingKey::from_bytes(&pubkey_array)
+        .map_err(|_| AppError::ValidationError("Invalid public key".into()))?;
+
+    // Decode signature from hex
+    let sig_bytes = hex::decode(signature)
+        .map_err(|_| AppError::ValidationError("Invalid signature hex".into()))?;
+    
+    if sig_bytes.len() != 64 {
+        return Err(AppError::ValidationError("Signature must be 64 bytes".into()));
+    }
+
+    let sig_array: [u8; 64] = sig_bytes
+        .try_into()
+        .map_err(|_| AppError::ValidationError("Invalid signature length".into()))?;
+
+    let sig = Signature::from_bytes(&sig_array);
+
+    // Verify signature
+    Ok(verifying_key.verify(message.as_bytes(), &sig).is_ok())
+}
+
+/// Login with keypair signature
+/// POST /api/v1/auth/keypair-login
+pub async fn keypair_login(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<KeypairLoginRequest>,
+) -> AppResult<Json<TokenPair>> {
+    // Verify challenge exists and is not expired
+    let challenge_record: Option<(uuid::Uuid, String)> = sqlx::query_as(
+        r#"
+        SELECT id, challenge FROM auth_challenges
+        WHERE pubkey = $1 AND challenge = $2 AND expires_at > NOW() AND used = FALSE
+        LIMIT 1
+        "#,
+    )
+    .bind(&req.pubkey)
+    .bind(&req.challenge)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let (challenge_id, challenge) = challenge_record
+        .ok_or(AppError::ValidationError("Invalid or expired challenge".into()))?;
+
+    // Verify signature
+    let valid = verify_ed25519_signature(&req.pubkey, &challenge, &req.signature)?;
+    if !valid {
+        return Err(AppError::InvalidCredentials);
+    }
+
+    // Mark challenge as used
+    sqlx::query("UPDATE auth_challenges SET used = TRUE WHERE id = $1")
+        .bind(challenge_id)
+        .execute(&state.db)
+        .await?;
+
+    // Find user by pubkey
+    let user: Option<crate::models::User> = sqlx::query_as(
+        "SELECT * FROM users WHERE primary_pubkey = $1",
+    )
+    .bind(&req.pubkey)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let user = user.ok_or(AppError::ValidationError(
+        "No account linked to this public key. Please register first.".into(),
+    ))?;
+
+    // Check account status
+    if user.status != crate::models::UserStatus::Active {
+        return Err(AppError::ValidationError("Account is not active".into()));
+    }
+
+    // Create session
+    let session_service = SessionService::new(
+        state.redis.clone(),
+        state.config.jwt.clone(),
+    );
+
+    let device_id = req.device_id.unwrap_or_else(|| "keypair-client".to_string());
+    let (_session, tokens) = session_service
+        .create_session(
+            user.id,
+            &user.qor_id(),
+            Some(&format!("{:?}", user.role)),
+            &device_id,
+            "0.0.0.0",
+            None,
+            crate::models::Session::default_scopes(),
+        )
+        .await?;
+
+    Ok(Json(tokens))
+}
+
+/// Register with keypair (create new account)
+/// POST /api/v1/auth/keypair-register
+pub async fn keypair_register(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<KeypairRegisterRequest>,
+) -> AppResult<(StatusCode, Json<Value>)> {
+    // Verify challenge
+    let challenge_record: Option<(uuid::Uuid, String)> = sqlx::query_as(
+        r#"
+        SELECT id, challenge FROM auth_challenges
+        WHERE pubkey = $1 AND challenge = $2 AND expires_at > NOW() AND used = FALSE
+        LIMIT 1
+        "#,
+    )
+    .bind(&req.pubkey)
+    .bind(&req.challenge)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let (challenge_id, challenge) = challenge_record
+        .ok_or(AppError::ValidationError("Invalid or expired challenge".into()))?;
+
+    // Verify signature
+    let valid = verify_ed25519_signature(&req.pubkey, &challenge, &req.signature)?;
+    if !valid {
+        return Err(AppError::InvalidCredentials);
+    }
+
+    // Mark challenge as used
+    sqlx::query("UPDATE auth_challenges SET used = TRUE WHERE id = $1")
+        .bind(challenge_id)
+        .execute(&state.db)
+        .await?;
+
+    // Check if pubkey already registered
+    let existing: Option<uuid::Uuid> = sqlx::query_scalar(
+        "SELECT id FROM users WHERE primary_pubkey = $1",
+    )
+    .bind(&req.pubkey)
+    .fetch_optional(&state.db)
+    .await?;
+
+    if existing.is_some() {
+        return Err(AppError::ValidationError(
+            "This public key is already registered".into(),
+        ));
+    }
+
+    // Generate username from pubkey if not provided
+    let username = req.username.unwrap_or_else(|| {
+        format!("key_{}", &req.pubkey[0..8].to_lowercase())
+    });
+    let username_lower = username.to_lowercase();
+
+    // Validate username
+    if !crate::models::QorId::is_valid_username(&username_lower) {
+        return Err(AppError::ValidationError(
+            "Username must be 3-20 characters, alphanumeric and underscores only".into(),
+        ));
+    }
+
+    let auth_service = AuthService::new(state.db.clone());
+
+    // Check username availability
+    if let Some(_) = auth_service.find_by_username(&username_lower).await? {
+        return Err(AppError::ValidationError("Username already taken".into()));
+    }
+
+    // Generate discriminator
+    let discriminator = auth_service.generate_discriminator(&username_lower).await?;
+
+    // Generate a random password hash (keypair-only accounts don't need password)
+    let random_password: [u8; 32] = rand::thread_rng().gen();
+    let password_hash = AuthService::hash_password(&hex::encode(random_password))?;
+
+    // Generate on-chain address from pubkey (simplified - first 20 bytes of pubkey hash)
+    let on_chain_address = format!("0x{}", &req.pubkey[0..40]);
+
+    // Insert user with keypair auth
+    let user_id: uuid::Uuid = sqlx::query_scalar(
+        r#"
+        INSERT INTO users (
+            username, discriminator, password_hash,
+            email_verified, role, status, 
+            primary_pubkey, auth_method, on_chain_address
+        )
+        VALUES ($1, $2, $3, TRUE, 'user', 'active', $4, 'keypair', $5)
+        RETURNING id
+        "#,
+    )
+    .bind(&username_lower)
+    .bind(discriminator)
+    .bind(&password_hash)
+    .bind(&req.pubkey)
+    .bind(&on_chain_address)
+    .fetch_one(&state.db)
+    .await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({
+            "qor_id": format!("{}#{:04}", username_lower, discriminator),
+            "user_id": user_id,
+            "pubkey": req.pubkey,
+            "on_chain_address": on_chain_address,
+            "auth_method": "keypair",
+            "message": "Account created successfully with keypair authentication"
+        })),
+    ))
+}
+
+/// Link keypair to existing account (requires being authenticated)
+/// POST /api/v1/auth/link-keypair
+pub async fn link_keypair(
+    State(state): State<Arc<AppState>>,
+    // TODO: Extract user from JWT middleware
+    Json(req): Json<LinkKeypairRequest>,
+) -> AppResult<Json<Value>> {
+    // Verify challenge
+    let challenge_record: Option<(uuid::Uuid, String)> = sqlx::query_as(
+        r#"
+        SELECT id, challenge FROM auth_challenges
+        WHERE pubkey = $1 AND challenge = $2 AND expires_at > NOW() AND used = FALSE
+        LIMIT 1
+        "#,
+    )
+    .bind(&req.pubkey)
+    .bind(&req.challenge)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let (challenge_id, challenge) = challenge_record
+        .ok_or(AppError::ValidationError("Invalid or expired challenge".into()))?;
+
+    // Verify signature
+    let valid = verify_ed25519_signature(&req.pubkey, &challenge, &req.signature)?;
+    if !valid {
+        return Err(AppError::InvalidCredentials);
+    }
+
+    // Mark challenge as used
+    sqlx::query("UPDATE auth_challenges SET used = TRUE WHERE id = $1")
+        .bind(challenge_id)
+        .execute(&state.db)
+        .await?;
+
+    // Check if pubkey already used by another account
+    let existing: Option<uuid::Uuid> = sqlx::query_scalar(
+        "SELECT id FROM users WHERE primary_pubkey = $1",
+    )
+    .bind(&req.pubkey)
+    .fetch_optional(&state.db)
+    .await?;
+
+    if existing.is_some() {
+        return Err(AppError::ValidationError(
+            "This public key is already linked to another account".into(),
+        ));
+    }
+
+    // TODO: Get current user ID from JWT claims
+    // For now, this is a placeholder - needs auth middleware integration
+    // let user_id = extract_user_id_from_token(...)?;
+
+    Ok(Json(json!({
+        "message": "Keypair linking requires authentication. Use the authenticated endpoint.",
+        "pubkey": req.pubkey,
+        "status": "pending_auth"
     })))
 }

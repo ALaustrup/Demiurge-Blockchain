@@ -21,13 +21,34 @@ interface Stats {
   users_by_role: Array<{ role: string; count: number }>;
 }
 
+interface Transaction {
+  hash: string;
+  from: string;
+  to: string | null;
+  amount: string | null;
+  nonce: number;
+  status: string;
+}
+
+interface MintResult {
+  tx_hash: string;
+  to: string;
+  amount: string;
+  new_balance: string;
+  reason: string;
+  success: boolean;
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [isGod, setIsGod] = useState(false);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [activeTab, setActiveTab] = useState<'users' | 'tokens' | 'stats'>('users');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [activeTab, setActiveTab] = useState<'users' | 'tokens' | 'transactions' | 'stats'>('users');
+  const [mintLoading, setMintLoading] = useState(false);
+  const [mintResult, setMintResult] = useState<MintResult | null>(null);
 
   useEffect(() => {
     async function checkAccess() {
@@ -130,6 +151,68 @@ export default function AdminPage() {
     }
   };
 
+  const loadTransactions = async () => {
+    try {
+      const response = await fetch(
+        (process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud'),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'admin_getRecentTransactions',
+            params: [50],
+          }),
+        }
+      );
+      const data = await response.json();
+      if (data.result) {
+        setTransactions(data.result);
+      }
+    } catch (error) {
+      console.error('Failed to load transactions:', error);
+    }
+  };
+
+  const handleMintCGT = async (toAddress: string, amount: string, reason: string) => {
+    setMintLoading(true);
+    setMintResult(null);
+    
+    try {
+      const token = qorAuth.getToken();
+      const response = await fetch(
+        (process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud'),
+        {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'admin_mintCgt',
+            params: [toAddress, amount, reason, token],
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (data.result) {
+        setMintResult(data.result);
+      } else if (data.error) {
+        alert(`Mint failed: ${data.error.message}`);
+      }
+    } catch (error) {
+      console.error('Failed to mint CGT:', error);
+      alert('Failed to mint CGT');
+    } finally {
+      setMintLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -156,7 +239,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div className="flex gap-4 mb-8">
-          {(['users', 'tokens', 'stats'] as const).map((tab) => (
+          {(['users', 'tokens', 'transactions', 'stats'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -229,49 +312,188 @@ export default function AdminPage() {
 
         {/* Tokens Tab */}
         {activeTab === 'tokens' && (
-          <div className="glass-panel p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4 text-demiurge-cyan">Token Management</h2>
-            <div className="space-y-4">
-              <div className="glass-panel p-4 rounded-lg">
-                <h3 className="text-lg font-bold mb-4">Transfer CGT</h3>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.target as HTMLFormElement);
-                    handleTransferTokens(
-                      formData.get('to_user_id') as string,
-                      formData.get('amount') as string
-                    );
-                  }}
-                  className="space-y-4"
+          <div className="space-y-6">
+            {/* Mint CGT Section */}
+            <div className="glass-panel p-6 rounded-lg">
+              <h2 className="text-2xl font-bold mb-4 text-demiurge-gold">Mint CGT (Godmode)</h2>
+              <p className="text-gray-400 mb-4">
+                Issue CGT directly to an address. Use for error compensation or testing.
+              </p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.target as HTMLFormElement);
+                  handleMintCGT(
+                    formData.get('mint_address') as string,
+                    formData.get('mint_amount') as string,
+                    formData.get('mint_reason') as string
+                  );
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm mb-2">Recipient Address (hex)</label>
+                  <input
+                    type="text"
+                    name="mint_address"
+                    placeholder="0x..."
+                    required
+                    className="w-full glass-panel px-4 py-2 rounded-lg bg-black/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-2">Amount (in smallest unit)</label>
+                  <input
+                    type="text"
+                    name="mint_amount"
+                    placeholder="100000000000000000000"
+                    required
+                    className="w-full glass-panel px-4 py-2 rounded-lg bg-black/20"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">1 CGT = 100 Sparks. Enter raw amount.</p>
+                </div>
+                <div>
+                  <label className="block text-sm mb-2">Reason</label>
+                  <input
+                    type="text"
+                    name="mint_reason"
+                    placeholder="Error compensation for user..."
+                    required
+                    className="w-full glass-panel px-4 py-2 rounded-lg bg-black/20"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={mintLoading}
+                  className="glass-panel px-6 py-2 rounded-lg bg-demiurge-gold/20 border border-demiurge-gold hover:bg-demiurge-gold/30 transition-all disabled:opacity-50"
                 >
-                  <div>
-                    <label className="block text-sm mb-2">To User ID</label>
-                    <input
-                      type="text"
-                      name="to_user_id"
-                      required
-                      className="w-full glass-panel px-4 py-2 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-2">Amount (CGT)</label>
-                    <input
-                      type="text"
-                      name="amount"
-                      required
-                      className="w-full glass-panel px-4 py-2 rounded-lg"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="glass-panel px-6 py-2 rounded-lg hover:chroma-glow transition-all"
-                  >
-                    Transfer
-                  </button>
-                </form>
-              </div>
+                  {mintLoading ? 'Minting...' : 'Mint CGT'}
+                </button>
+              </form>
+              
+              {/* Mint Result */}
+              {mintResult && (
+                <div className={`mt-4 p-4 rounded-lg ${mintResult.success ? 'bg-green-900/20 border border-green-500' : 'bg-red-900/20 border border-red-500'}`}>
+                  <h4 className="font-bold mb-2">{mintResult.success ? 'Mint Successful' : 'Mint Failed'}</h4>
+                  <p className="text-sm text-gray-300">TX Hash: <code className="text-xs">{mintResult.tx_hash}</code></p>
+                  <p className="text-sm text-gray-300">Amount: {mintResult.amount} → New Balance: {mintResult.new_balance}</p>
+                  <p className="text-sm text-gray-300">Reason: {mintResult.reason}</p>
+                </div>
+              )}
             </div>
+
+            {/* Transfer Section */}
+            <div className="glass-panel p-6 rounded-lg">
+              <h2 className="text-2xl font-bold mb-4 text-demiurge-cyan">Transfer CGT</h2>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.target as HTMLFormElement);
+                  handleTransferTokens(
+                    formData.get('to_user_id') as string,
+                    formData.get('amount') as string
+                  );
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm mb-2">To User ID</label>
+                  <input
+                    type="text"
+                    name="to_user_id"
+                    required
+                    className="w-full glass-panel px-4 py-2 rounded-lg bg-black/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-2">Amount (CGT)</label>
+                  <input
+                    type="text"
+                    name="amount"
+                    required
+                    className="w-full glass-panel px-4 py-2 rounded-lg bg-black/20"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="glass-panel px-6 py-2 rounded-lg hover:chroma-glow transition-all"
+                >
+                  Transfer
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Transactions Tab */}
+        {activeTab === 'transactions' && (
+          <div className="glass-panel p-6 rounded-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-demiurge-cyan">Transaction Viewer</h2>
+              <button
+                onClick={loadTransactions}
+                className="glass-panel px-4 py-2 rounded-lg hover:chroma-glow transition-all text-sm"
+              >
+                Refresh
+              </button>
+            </div>
+            
+            {transactions.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <p>No transactions found.</p>
+                <button
+                  onClick={loadTransactions}
+                  className="mt-4 text-demiurge-cyan hover:underline"
+                >
+                  Load Transactions
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-demiurge-cyan/20">
+                      <th className="text-left p-2 text-sm">Hash</th>
+                      <th className="text-left p-2 text-sm">From</th>
+                      <th className="text-left p-2 text-sm">To</th>
+                      <th className="text-left p-2 text-sm">Amount</th>
+                      <th className="text-left p-2 text-sm">Nonce</th>
+                      <th className="text-left p-2 text-sm">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((tx) => (
+                      <tr key={tx.hash} className="border-b border-demiurge-cyan/10 hover:bg-white/5">
+                        <td className="p-2 font-mono text-xs">
+                          {tx.hash.slice(0, 10)}...{tx.hash.slice(-6)}
+                        </td>
+                        <td className="p-2 font-mono text-xs text-gray-400">
+                          {tx.from.slice(0, 10)}...
+                        </td>
+                        <td className="p-2 font-mono text-xs text-gray-400">
+                          {tx.to ? `${tx.to.slice(0, 10)}...` : '-'}
+                        </td>
+                        <td className="p-2 text-sm">
+                          {tx.amount || '-'}
+                        </td>
+                        <td className="p-2 text-sm text-gray-400">
+                          {tx.nonce}
+                        </td>
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            tx.status === 'finalized' ? 'bg-green-900/30 text-green-400' :
+                            tx.status === 'pending' ? 'bg-yellow-900/30 text-yellow-400' :
+                            'bg-gray-900/30 text-gray-400'
+                          }`}>
+                            {tx.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

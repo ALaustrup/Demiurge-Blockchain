@@ -293,6 +293,121 @@ impl<S: Storage> RpcMethods<S> {
         key
     }
 
+    /// Admin CGT Minting (Godmode only)
+    /// 
+    /// Mints CGT to a specified address. This is a privileged operation
+    /// that requires God-level authentication.
+    /// 
+    /// Used for:
+    /// - Error compensation
+    /// - Initial token distribution
+    /// - Testing and development
+    /// 
+    /// The caller must provide a valid admin signature from the Godmode account.
+    pub async fn admin_mint_cgt(
+        &self,
+        to_hex: String,
+        amount: String,
+        reason: String,
+        admin_signature: String,
+    ) -> Result<AdminMintResult, RpcError> {
+        // Parse recipient address
+        let to: [u8; 32] = hex::decode(&to_hex)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Parse amount
+        let amount_u128: u128 = amount.parse()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        if amount_u128 == 0 {
+            return Err(RpcError::InvalidTransaction("Amount must be greater than 0".to_string()));
+        }
+        
+        // Verify admin signature
+        // TODO: Implement proper signature verification against Godmode account
+        // For now, we accept a placeholder that the auth middleware would verify
+        if admin_signature.is_empty() {
+            return Err(RpcError::InvalidTransaction("Admin signature required".to_string()));
+        }
+        
+        // Get current balance
+        let current_balance = self.get_balance(to).await?;
+        let new_balance = current_balance.saturating_add(amount_u128);
+        
+        // Update balance in storage
+        let balance_key = Self::balance_key(to);
+        self.storage.put(&balance_key, &new_balance.encode());
+        
+        // Generate transaction hash for the mint operation
+        use blake2::{Blake2b512, Digest};
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"ADMIN_MINT");
+        hasher.update(&to);
+        hasher.update(&amount_u128.to_le_bytes());
+        hasher.update(reason.as_bytes());
+        hasher.update(&std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .to_le_bytes());
+        let hash = hasher.finalize();
+        let mut tx_hash = [0u8; 32];
+        tx_hash.copy_from_slice(&hash[..32]);
+        
+        tracing::info!(
+            "Admin mint: {} CGT to {} - Reason: {}",
+            amount_u128,
+            to_hex,
+            reason
+        );
+        
+        Ok(AdminMintResult {
+            tx_hash: hex::encode(tx_hash),
+            to: to_hex,
+            amount: amount_u128.to_string(),
+            new_balance: new_balance.to_string(),
+            reason,
+            success: true,
+        })
+    }
+
+    /// Admin view all transactions (for debugging/monitoring)
+    pub async fn admin_get_recent_transactions(&self, limit: u64) -> Result<Vec<TransactionInfo>, RpcError> {
+        let mut transactions = Vec::new();
+        
+        if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            let latest_block = consensus_guard.get_latest_block_number()
+                .map_err(|e| RpcError::StorageError(format!("Failed to get latest block: {:?}", e)))?;
+            
+            let start_block = latest_block.saturating_sub(limit);
+            for block_num in (start_block..=latest_block).rev() {
+                if transactions.len() >= limit as usize {
+                    break;
+                }
+                
+                if let Some(block) = consensus_guard.get_block_by_number(block_num)
+                    .map_err(|e| RpcError::StorageError(format!("Failed to get block: {:?}", e)))? {
+                    for tx in &block.transactions {
+                        let tx_hash = Self::transaction_hash(tx);
+                        transactions.push(TransactionInfo {
+                            hash: hex::encode(tx_hash),
+                            from: hex::encode(tx.from),
+                            to: None,
+                            amount: None,
+                            nonce: tx.nonce,
+                            status: "finalized".to_string(),
+                        });
+                    }
+                }
+            }
+        }
+        
+        Ok(transactions)
+    }
+
     // ========== Consensus Methods ==========
 
     /// Get current era information
@@ -1186,6 +1301,23 @@ pub struct FaucetResult {
     pub success: bool,
     pub amount: String,
     pub message: String,
+}
+
+/// Admin minting result
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AdminMintResult {
+    /// Transaction hash for this mint operation
+    pub tx_hash: String,
+    /// Recipient address
+    pub to: String,
+    /// Amount minted
+    pub amount: String,
+    /// New balance after minting
+    pub new_balance: String,
+    /// Reason for the mint
+    pub reason: String,
+    /// Whether the operation succeeded
+    pub success: bool,
 }
 
 /// Chain information

@@ -112,6 +112,9 @@ async fn main() -> anyhow::Result<()> {
         // Admin endpoints (protected - God-level)
         .nest("/api/v1/admin", admin_routes())
         
+        // Agent management endpoints
+        .nest("/api/v1/agents", agent_routes())
+        
         // Music player endpoints
         .nest("/api/v1/music", music_routes())
         
@@ -148,6 +151,7 @@ async fn main() -> anyhow::Result<()> {
 /// Authentication routes (public)
 fn auth_routes() -> Router<Arc<AppState>> {
     Router::new()
+        // Traditional password auth
         .route("/register", post(handlers::auth::register))
         .route("/login", post(handlers::auth::login))
         .route("/refresh", post(handlers::auth::refresh_token))
@@ -157,6 +161,11 @@ fn auth_routes() -> Router<Arc<AppState>> {
         .route("/reset-password", post(handlers::auth::reset_password))
         .route("/reset-password-backup", post(handlers::auth::reset_password_with_backup))
         .route("/check-username", post(handlers::auth::check_username))
+        // Keypair-based auth (Nostr-style)
+        .route("/challenge", get(handlers::auth::get_challenge))
+        .route("/keypair-login", post(handlers::auth::keypair_login))
+        .route("/keypair-register", post(handlers::auth::keypair_register))
+        .route("/link-keypair", post(handlers::auth::link_keypair))
 }
 
 /// Profile routes (protected)
@@ -192,6 +201,17 @@ fn admin_routes() -> Router<Arc<AppState>> {
         .route("/stats", get(handlers::admin::get_stats))
         .route("/audit", get(handlers::admin::get_audit_log))
         .layer(from_fn(crate::middleware::auth::require_god))
+}
+
+/// Agent management routes (protected)
+fn agent_routes() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/register", post(handlers::agents::register_agent))
+        .route("/", get(handlers::agents::list_agents))
+        .route("/{did}", get(handlers::agents::get_agent))
+        .route("/{did}/capabilities", axum::routing::put(handlers::agents::update_capabilities))
+        .route("/{did}", axum::routing::delete(handlers::agents::deactivate_agent))
+        .layer(from_fn(crate::middleware::auth::require_auth))
 }
 
 /// Music player routes (mixed public/protected)

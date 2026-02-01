@@ -5,6 +5,48 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
+/// Authentication method for the user
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
+#[sqlx(type_name = "VARCHAR")]
+#[serde(rename_all = "lowercase")]
+pub enum AuthMethod {
+    #[default]
+    Password,
+    Keypair,
+    Both,
+}
+
+impl AuthMethod {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AuthMethod::Password => "password",
+            AuthMethod::Keypair => "keypair",
+            AuthMethod::Both => "both",
+        }
+    }
+}
+
+/// Account type (human or agent)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, Default)]
+#[sqlx(type_name = "VARCHAR")]
+#[serde(rename_all = "lowercase")]
+pub enum AccountType {
+    #[default]
+    Human,
+    Agent,
+}
+
+/// Agent autonomy level
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "VARCHAR")]
+#[serde(rename_all = "lowercase")]
+pub enum AgentAutonomy {
+    Supervised, // Requires approval for all actions
+    Bounded,    // Pre-approved actions + spending limit
+    Autonomous, // Full signing authority
+    Sovereign,  // Can spawn sub-agents
+}
+
 /// User entity stored in PostgreSQL
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct User {
@@ -23,6 +65,16 @@ pub struct User {
     pub email_verification_expires_at: Option<DateTime<Utc>>,
     pub login_attempts: i32,
     pub locked_until: Option<DateTime<Utc>>,
+    pub primary_pubkey: Option<String>, // Primary public key for keypair auth
+    pub auth_method: Option<String>, // password, keypair, or both
+    // Agent-specific fields
+    pub account_type: Option<String>, // human or agent
+    pub controller_id: Option<Uuid>, // Human owner of this agent
+    pub agent_did: Option<String>, // did:demiurge:agent:...
+    pub agent_capabilities: Option<serde_json::Value>, // JSON array of capabilities
+    pub agent_autonomy: Option<String>, // supervised, bounded, autonomous, sovereign
+    pub agent_spending_limit: Option<i64>, // CGT spending limit
+    pub agent_model: Option<String>, // AI model identifier
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -98,6 +150,94 @@ pub struct ResetPasswordWithBackupRequest {
 pub struct ResetPasswordWithTokenRequest {
     pub token: String,
     pub new_password: String,
+}
+
+/// Request for a signature challenge (keypair auth step 1)
+#[derive(Debug, Deserialize)]
+pub struct ChallengeRequest {
+    pub pubkey: String,
+}
+
+/// Response containing the challenge to sign
+#[derive(Debug, Serialize)]
+pub struct ChallengeResponse {
+    pub challenge: String,
+    pub expires_at: DateTime<Utc>,
+}
+
+/// Login with keypair signature (keypair auth step 2)
+#[derive(Debug, Deserialize)]
+pub struct KeypairLoginRequest {
+    pub pubkey: String,
+    pub challenge: String,
+    pub signature: String,
+    pub device_id: Option<String>,
+}
+
+/// Register with keypair (creates account from pubkey)
+#[derive(Debug, Deserialize)]
+pub struct KeypairRegisterRequest {
+    pub pubkey: String,
+    pub username: Option<String>, // Optional username, will be auto-generated if not provided
+    pub challenge: String,
+    pub signature: String,
+}
+
+/// Link keypair to existing account
+#[derive(Debug, Deserialize)]
+pub struct LinkKeypairRequest {
+    pub pubkey: String,
+    pub challenge: String,
+    pub signature: String,
+}
+
+// =============================================================================
+// Agent Types
+// =============================================================================
+
+/// Register a new AI agent
+#[derive(Debug, Deserialize)]
+pub struct RegisterAgentRequest {
+    pub name: String,
+    pub capabilities: Vec<String>,
+    pub autonomy: String, // supervised, bounded, autonomous, sovereign
+    pub spending_limit: Option<i64>,
+    pub model: Option<String>,
+}
+
+/// Agent registration response
+#[derive(Debug, Serialize)]
+pub struct AgentRegistrationResponse {
+    pub agent_id: Uuid,
+    pub qor_id: String,
+    pub did: String,
+    pub pubkey: String,
+    pub on_chain_address: String,
+    pub capabilities: Vec<String>,
+    pub autonomy: String,
+}
+
+/// Update agent capabilities
+#[derive(Debug, Deserialize)]
+pub struct UpdateAgentCapabilitiesRequest {
+    pub capabilities: Vec<String>,
+}
+
+/// Agent info response
+#[derive(Debug, Serialize)]
+pub struct AgentInfo {
+    pub id: Uuid,
+    pub qor_id: String,
+    pub did: String,
+    pub pubkey: Option<String>,
+    pub on_chain_address: Option<String>,
+    pub capabilities: Vec<String>,
+    pub autonomy: String,
+    pub spending_limit: Option<i64>,
+    pub model: Option<String>,
+    pub status: String,
+    pub controller_id: Uuid,
+    pub created_at: DateTime<Utc>,
 }
 
 /// Public user profile (safe to expose)

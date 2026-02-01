@@ -111,7 +111,7 @@ export function useEnergy(address?: string) {
       try {
         const energyData = await client.getEnergy(address);
         if (mounted) {
-          setEnergy(energyData);
+          setEnergy(energyData.current);
           setError(null);
         }
       } catch (err) {

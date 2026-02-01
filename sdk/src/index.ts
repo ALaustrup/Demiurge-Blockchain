@@ -12,6 +12,13 @@ export { DemiurgeClient, type DemiurgeClientOptions } from './client';
 export { DRC369, type TokenInfo, type DynamicState } from './drc369';
 export { CVP, type CvpStatus } from './cvp';
 export { Wallet, type KeyPair } from './wallet';
+export { 
+  DemiurgeAuth, 
+  createTestWallet,
+  type AuthSession, 
+  type DemiurgeAuthOptions,
+  type RegistrationResult,
+} from './auth';
 
 // Types
 export * from './types';

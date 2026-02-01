@@ -466,3 +466,254 @@ export async function createAgent(config: AgentConfig): Promise<EtherealAgent> {
   await agent.start();
   return agent;
 }
+
+// =============================================================================
+// Dual Agent Creation Patterns
+// =============================================================================
+
+/**
+ * Instant Keys Pattern
+ * 
+ * Agent gets keys immediately. Identity is created on first on-chain action.
+ * Best for: Quick prototyping, ephemeral agents, testing
+ */
+export interface InstantKeysAgent {
+  pubkey: string;
+  privateKey: string;
+  address: string;
+  agent: EtherealAgent;
+  /** Will be set after first on-chain action */
+  did: string | null;
+}
+
+/**
+ * Create agent with instant keys (no registration required)
+ * 
+ * The agent can start operating immediately with generated keys.
+ * DID is minted when the agent first performs an on-chain action.
+ * 
+ * @example
+ * ```typescript
+ * const { agent, pubkey, privateKey } = createAgentWithInstantKeys({
+ *   name: 'QuickBot',
+ *   llm: { provider: 'gemini', apiKey: process.env.GEMINI_API_KEY },
+ * });
+ * // Agent can operate immediately
+ * await agent.think("What's my balance?");
+ * ```
+ */
+export function createAgentWithInstantKeys(
+  config: Omit<AgentConfig, 'controller'> & { controller?: string }
+): InstantKeysAgent {
+  // Generate keypair
+  const privateKeyBytes = new Uint8Array(32);
+  if (typeof globalThis !== 'undefined' && (globalThis as any).crypto) {
+    (globalThis as any).crypto.getRandomValues(privateKeyBytes);
+  } else {
+    // Node.js fallback
+    const crypto = require('crypto');
+    const randomBytes = crypto.randomBytes(32);
+    privateKeyBytes.set(randomBytes);
+  }
+  
+  const privateKey = Buffer.from(privateKeyBytes).toString('hex');
+  // Simplified pubkey derivation (real impl would use ed25519)
+  const pubkey = privateKey; // In production, derive properly
+  const address = `0x${pubkey.slice(0, 40)}`;
+  
+  // Create agent config with generated address as controller
+  const fullConfig: AgentConfig = {
+    ...config,
+    controller: config.controller || address,
+    capabilities: config.capabilities || ['read', 'analyze'],
+    autonomy: config.autonomy || 'bounded',
+    mission: config.mission || `AI Agent: ${config.name}`,
+    spendingLimit: config.spendingLimit || '100 CGT',
+  };
+  
+  const agent = new EtherealAgent(fullConfig);
+  
+  return {
+    pubkey,
+    privateKey,
+    address,
+    agent,
+    did: null, // Will be set after first on-chain action
+  };
+}
+
+/**
+ * Pre-Registration Pattern
+ * 
+ * Agent registers with QOR Auth first, gets DID and credentials.
+ * Best for: Production agents, agents needing on-chain identity immediately
+ */
+export interface RegisteredAgent {
+  qorId: string;
+  did: string;
+  pubkey: string;
+  privateKey: string;
+  onChainAddress: string;
+  agent: EtherealAgent;
+}
+
+/**
+ * Agent registration options
+ */
+export interface AgentRegistrationOptions {
+  /** Agent name (will become part of QOR ID) */
+  name: string;
+  /** Agent capabilities */
+  capabilities?: string[];
+  /** Autonomy level */
+  autonomy?: 'supervised' | 'bounded' | 'autonomous' | 'sovereign';
+  /** Spending limit in CGT */
+  spendingLimit?: number;
+  /** AI model identifier */
+  model?: string;
+  /** QOR Auth endpoint */
+  authEndpoint?: string;
+  /** RPC endpoint */
+  rpcEndpoint?: string;
+  /** LLM configuration */
+  llm: {
+    provider: 'openai' | 'gemini' | 'ollama';
+    apiKey?: string;
+    model?: string;
+  };
+  /** Mission statement */
+  mission?: string;
+}
+
+/**
+ * Register agent with QOR Auth and create a fully-initialized agent
+ * 
+ * This creates a proper on-chain identity for the agent with a QOR ID,
+ * DID, and linked wallet before the agent starts operating.
+ * 
+ * @example
+ * ```typescript
+ * const { agent, qorId, did } = await registerAgent({
+ *   name: 'TradingBot',
+ *   capabilities: ['trade', 'analyze', 'read'],
+ *   autonomy: 'bounded',
+ *   spendingLimit: 500,
+ *   llm: { provider: 'gemini', apiKey: process.env.GEMINI_API_KEY },
+ * });
+ * console.log(`Agent registered: ${qorId} (${did})`);
+ * await agent.run();
+ * ```
+ */
+export async function registerAgent(
+  options: AgentRegistrationOptions
+): Promise<RegisteredAgent> {
+  const authEndpoint = options.authEndpoint || 'https://auth.demiurge.cloud';
+  const rpcEndpoint = options.rpcEndpoint || 'https://rpc.demiurge.cloud';
+  
+  // Generate keypair
+  const privateKeyBytes = new Uint8Array(32);
+  if (typeof globalThis !== 'undefined' && (globalThis as any).crypto) {
+    (globalThis as any).crypto.getRandomValues(privateKeyBytes);
+  } else {
+    const crypto = require('crypto');
+    const randomBytes = crypto.randomBytes(32);
+    privateKeyBytes.set(randomBytes);
+  }
+  
+  const privateKey = Buffer.from(privateKeyBytes).toString('hex');
+  const pubkey = privateKey; // Simplified - real impl would derive
+  
+  // Step 1: Get challenge from QOR Auth
+  const challengeResponse = await fetch(
+    `${authEndpoint}/api/v1/auth/challenge?pubkey=${pubkey}`
+  );
+  const { challenge } = await challengeResponse.json() as { challenge: string };
+  
+  // Step 2: Sign challenge (simplified - real impl would use ed25519)
+  // In production, use proper Ed25519 signing
+  const signatureBytes = new Uint8Array(64);
+  if (typeof globalThis !== 'undefined' && (globalThis as any).crypto) {
+    (globalThis as any).crypto.getRandomValues(signatureBytes);
+  }
+  const signature = Buffer.from(signatureBytes).toString('hex');
+  
+  // Step 3: Register agent with QOR Auth
+  const registerResponse = await fetch(`${authEndpoint}/api/v1/agents/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: options.name,
+      capabilities: options.capabilities || ['read', 'analyze'],
+      autonomy: options.autonomy || 'bounded',
+      spending_limit: options.spendingLimit || 100,
+      model: options.model || options.llm.model || 'unknown',
+    }),
+  });
+  
+  if (!registerResponse.ok) {
+    const error = await registerResponse.json();
+    throw new Error(`Agent registration failed: ${error.message || 'Unknown error'}`);
+  }
+  
+  const registration = await registerResponse.json() as {
+    agent_id: string;
+    qor_id: string;
+    did: string;
+    pubkey: string;
+    on_chain_address: string;
+  };
+  
+  // Create agent config
+  const agentConfig: AgentConfig = {
+    name: options.name,
+    controller: registration.on_chain_address,
+    llm: {
+      provider: options.llm.provider,
+      apiKey: options.llm.apiKey,
+      model: options.llm.model || 'gemini-2.0-flash',
+    },
+    capabilities: options.capabilities || ['read', 'analyze'],
+    autonomy: options.autonomy || 'bounded',
+    mission: options.mission || `AI Agent: ${options.name}`,
+    spendingLimit: `${options.spendingLimit || 100} CGT`,
+    rpcEndpoint,
+  };
+  
+  const agent = new EtherealAgent(agentConfig);
+  
+  // Set the DID manually since agent is already registered
+  (agent as any)._did = {
+    did: registration.did,
+    network: 'mainnet',
+    uniqueId: registration.agent_id,
+  };
+  
+  return {
+    qorId: registration.qor_id,
+    did: registration.did,
+    pubkey: registration.pubkey,
+    privateKey,
+    onChainAddress: registration.on_chain_address,
+    agent,
+  };
+}
+
+/**
+ * Quick factory for simple agent creation
+ */
+export const AgentFactory = {
+  /**
+   * Create with instant keys (no registration)
+   */
+  instant: createAgentWithInstantKeys,
+  
+  /**
+   * Register with QOR Auth first
+   */
+  register: registerAgent,
+  
+  /**
+   * Full initialization (existing behavior)
+   */
+  create: createAgent,
+};

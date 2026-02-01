@@ -11,36 +11,30 @@ interface Update {
   priority: 'low' | 'medium' | 'high';
 }
 
-// In production, these would come from an on-chain announcements pallet
-const MOCK_UPDATES: Update[] = [
-  {
-    id: '1',
-    type: 'announcement',
-    title: 'Dashboard Launched!',
-    content: 'The new user dashboard is now live. Earn Sparks by completing daily tasks.',
-    timestamp: new Date().toISOString(),
-    priority: 'high',
-  },
-  {
-    id: '2',
-    type: 'feature',
-    title: 'ScatterTXT Engine Available',
-    content: 'Build 3D games with ASCII rendering. Check out the new ScatterTXT page.',
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-    priority: 'medium',
-  },
-  {
-    id: '3',
-    type: 'event',
-    title: 'Weekend CGT Boost',
-    content: 'Earn 2x CGT from all games this weekend. Play more, earn more!',
-    timestamp: new Date(Date.now() - 172800000).toISOString(),
-    priority: 'medium',
-  },
-];
+// Updates fetched from on-chain announcements or API
+const INITIAL_UPDATES: Update[] = [];
 
 export function UpdatesPanel() {
-  const [updates, setUpdates] = useState<Update[]>(MOCK_UPDATES);
+  const [updates, setUpdates] = useState<Update[]>(INITIAL_UPDATES);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUpdates() {
+      try {
+        // Fetch from announcements API or on-chain when available
+        const response = await fetch('/api/announcements');
+        if (response.ok) {
+          const data = await response.json();
+          setUpdates(data.updates || []);
+        }
+      } catch {
+        // API not available - show empty state
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchUpdates();
+  }, []);
 
   const getTypeIcon = (type: Update['type']) => {
     switch (type) {
@@ -96,6 +90,14 @@ export function UpdatesPanel() {
       </div>
 
       <div className="space-y-3">
+        {loading ? (
+          <div className="text-center py-4 text-gray-500 text-sm">Loading updates...</div>
+        ) : updates.length === 0 ? (
+          <div className="text-center py-4 text-gray-500 text-sm">
+            <p>No announcements yet.</p>
+            <p className="text-xs mt-1">Check back later for updates.</p>
+          </div>
+        ) : null}
         {updates.map((update) => (
           <div 
             key={update.id}

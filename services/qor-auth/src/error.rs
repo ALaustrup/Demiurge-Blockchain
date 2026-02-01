@@ -41,6 +41,9 @@ pub enum AppError {
     #[error("Validation error: {0}")]
     ValidationError(String),
 
+    #[error("Not found: {0}")]
+    NotFound(String),
+
     #[error("ZK proof verification failed: {0}")]
     ZkVerificationFailed(String),
 
@@ -86,6 +89,9 @@ impl IntoResponse for AppError {
             }
             AppError::ValidationError(msg) => {
                 (StatusCode::BAD_REQUEST, "VALIDATION_ERROR", msg)
+            }
+            AppError::NotFound(msg) => {
+                (StatusCode::NOT_FOUND, "NOT_FOUND", msg)
             }
             AppError::ZkVerificationFailed(msg) => {
                 (StatusCode::BAD_REQUEST, "ZK_VERIFICATION_FAILED", msg)

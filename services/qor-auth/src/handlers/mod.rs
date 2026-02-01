@@ -6,3 +6,4 @@ pub mod profile;
 pub mod zk;
 pub mod admin;
 pub mod music;
+pub mod agents;
