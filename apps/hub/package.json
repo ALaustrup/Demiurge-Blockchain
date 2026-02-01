@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@demiurge/agent-foundry": "*",
+    "@demiurge/drc369-sdk": "*",
     "@demiurge/qor-sdk": "*",
     "@demiurge/sdk": "*",
     "@demiurge/ui-shared": "*",

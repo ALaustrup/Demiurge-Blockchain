@@ -14,6 +14,7 @@ COPY packages/qor-sdk/package.json ./packages/qor-sdk/
 COPY packages/ui-shared/package.json ./packages/ui-shared/
 COPY packages/wallet-wasm/package.json ./packages/wallet-wasm/
 COPY packages/agent-foundry/package.json ./packages/agent-foundry/
+COPY packages/drc369-sdk/package.json ./packages/drc369-sdk/
 COPY sdk/package.json ./sdk/
 
 # Install all dependencies including devDependencies (needed for build)
@@ -43,6 +44,10 @@ RUN npm run build
 # Build agent-foundry (required by Hub)
 WORKDIR /app/packages/agent-foundry
 RUN npm run build || echo "Agent-foundry build skipped"
+
+# Build drc369-sdk (required by Hub)
+WORKDIR /app/packages/drc369-sdk
+RUN npm run build || echo "DRC369-sdk build skipped"
 
 # Build the application
 WORKDIR /app/apps/hub
