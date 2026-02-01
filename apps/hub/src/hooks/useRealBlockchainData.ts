@@ -8,7 +8,7 @@ import { DemiurgeClient } from '@demiurge/sdk';
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud';
 
-const client = new DemiurgeClient({ rpcUrl: RPC_URL });
+const client = new DemiurgeClient({ endpoint: RPC_URL });
 
 export function useBlockNumber() {
   const [blockNumber, setBlockNumber] = useState<number>(0);

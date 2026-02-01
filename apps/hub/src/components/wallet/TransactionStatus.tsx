@@ -28,7 +28,7 @@ export function TransactionStatus({ txHash, transactionHash, onConfirmed, onFina
     const checkStatus = async () => {
       try {
         const client = new DemiurgeClient({
-          rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud',
+          endpoint: process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud',
         });
 
         // TODO: Implement transaction status query
