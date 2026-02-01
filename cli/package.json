@@ -42,10 +42,10 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@demiurge/sdk": "workspace:*",
-    "@demiurge/qor-sdk": "workspace:*",
-    "@demiurge/drc369-sdk": "workspace:*",
-    "@demiurge/agent-foundry": "workspace:*",
+    "@demiurge/sdk": "*",
+    "@demiurge/qor-sdk": "*",
+    "@demiurge/drc369-sdk": "*",
+    "@demiurge/agent-foundry": "*",
     "commander": "^11.1.0",
     "chalk": "^4.1.2",
     "ora": "^5.4.1",
