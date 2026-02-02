@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
 import { Rajdhani, Barlow, JetBrains_Mono } from 'next/font/google'
+import { QueryProvider } from '@/providers/QueryProvider'
+import { ToastProvider } from '@/providers/ToastProvider'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { BlockchainProvider } from '@/contexts/BlockchainContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { MusicProvider } from '@/contexts/MusicContext'
@@ -9,7 +12,6 @@ import { ContextMenuProvider } from '@/contexts/ContextMenuContext'
 import { StarfieldBackground, HeaderBar } from '@/components/Launcher'
 import { MusicPlayer } from '@/components/music/MusicPlayer'
 import { AuthGate } from '@/components/auth/AuthGate'
-import { ToastProvider } from '@/components/notifications'
 import './globals.css'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -66,36 +68,45 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className={`${barlow.className} font-body antialiased`}>
-        <AuthProvider>
-          <ToastProvider>
-            {/* AuthGate: Users MUST authenticate before accessing ANY chain features */}
-            <AuthGate>
-              <BlockchainProvider>
-                <VYBProvider>
-                  <VoiceProvider>
-                    <MusicProvider>
-                      <ContextMenuProvider>
-                        {/* Persistent 3D Starfield Background */}
-                        <StarfieldBackground />
-                        
-                        {/* Header Navigation */}
-                        <HeaderBar />
-                        
-                        {/* Main Content - pt-20 ensures content appears below fixed navbar */}
-                        <main className="relative z-10 min-h-screen pt-20">
-                          {children}
-                        </main>
-                        
-                        {/* Global Music Player */}
-                        <MusicPlayer />
-                      </ContextMenuProvider>
-                    </MusicProvider>
-                  </VoiceProvider>
-                </VYBProvider>
-              </BlockchainProvider>
-            </AuthGate>
-          </ToastProvider>
-        </AuthProvider>
+        {/* React Query for data fetching */}
+        <QueryProvider>
+          {/* Toast notifications */}
+          <ToastProvider />
+          
+          {/* Global error boundary */}
+          <ErrorBoundary>
+            <AuthProvider>
+              {/* AuthGate: Users MUST authenticate before accessing ANY chain features */}
+              <AuthGate>
+                <BlockchainProvider>
+                  <VYBProvider>
+                    <VoiceProvider>
+                      <MusicProvider>
+                        <ContextMenuProvider>
+                          {/* Persistent 3D Starfield Background */}
+                          <StarfieldBackground />
+                          
+                          {/* Header Navigation */}
+                          <HeaderBar />
+                          
+                          {/* Main Content - pt-20 ensures content appears below fixed navbar */}
+                          <main className="relative z-10 min-h-screen pt-20">
+                            <ErrorBoundary>
+                              {children}
+                            </ErrorBoundary>
+                          </main>
+                          
+                          {/* Global Music Player */}
+                          <MusicPlayer />
+                        </ContextMenuProvider>
+                      </MusicProvider>
+                    </VoiceProvider>
+                  </VYBProvider>
+                </BlockchainProvider>
+              </AuthGate>
+            </AuthProvider>
+          </ErrorBoundary>
+        </QueryProvider>
       </body>
     </html>
   )
