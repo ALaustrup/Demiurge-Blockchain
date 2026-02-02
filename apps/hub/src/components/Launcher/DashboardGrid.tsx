@@ -414,10 +414,10 @@ export function DashboardGrid() {
     {
       icon: '🎮',
       title: 'Games',
-      value: '3', // Current available games
-      subtitle: 'AVAILABLE TITLES',
+      value: 'Soon',
+      subtitle: 'COMING SOON',
       href: '/games',
-      status: 'online' as const,
+      status: 'syncing' as const,
     },
     {
       icon: '🎵',

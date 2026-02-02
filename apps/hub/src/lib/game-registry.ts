@@ -151,85 +151,32 @@ class GameRegistry {
 // Export singleton instance
 export const gameRegistry = new GameRegistry();
 
-// Initialize registry with default games
+// Initialize registry - games will be added when they are ready
 function initializeRegistry() {
-  // Register Pixel Starship Genesis (Galaga Creator)
-  gameRegistry.register({
-    id: 'galaga-creator',
-    title: 'Pixel Starship Genesis',
-    description: 'Infinite procedural gameplay with enemy swarms. Earn CGT by defeating enemies, collect coins, and unlock powerful ship skins! Supports DRC-369 NFT ship skins.',
-    thumbnail: '/games/galaga-creator/assets/player_ship.webp',
-    entryPoint: 'index.html',
-    version: '1.0.0',
-    author: 'Astra Matrix',
-    category: 'drc369',
-    engine: 'phaser',
-    engineVersion: '3.70.0',
-    tags: ['action', 'arcade', 'shooter', 'space', 'cgt-earning', 'nft-support'],
-    rewards: [
-      { type: 'cgt', description: 'Earn CGT by defeating enemies and bosses' },
-      { type: 'nft', description: 'Collect DRC-369 ship skins' },
-      { type: 'xp', description: 'Gain XP to level up your QOR ID' },
-    ],
-    minLevel: 1,
-    cgtPool: 0,
-    activeUsers: 0,
-    // CGT earning rates
-    cgtEarning: {
-      enemyKill: { amount: 1, chance: 0.1 },
-      bossDefeat: { amount: 10, chance: 1.0 },
-      coinCollect: { amount: 50, chance: 1.0 },
-    },
-    // DRC-369 NFT support
-    nftSupport: {
-      enabled: true,
-      assetTypes: ['ship_skin'],
-      exclusiveAssets: [
-        {
-          uuid: 'galaga-exclusive-skin-001',
-          name: 'Chronos Glaive Ship',
-          description: 'Exclusive ship skin for Pixel Starship Genesis owners',
-        },
-      ],
-    },
-  });
-
-  // Register Cyber Forge Miner (KillBot Clicker)
-  gameRegistry.register({
-    id: 'killBot-clicker',
-    title: 'Cyber Forge Miner',
-    description: 'Interactive pattern-matching data breach mini-game. Mine CGT through computational work. Connect your QOR ID to disburse mined currencies.',
-    thumbnail: '/games/killBot-clicker/assets/mining_core.webp',
-    entryPoint: 'index.html',
-    version: '1.0.0',
-    author: 'Astra Matrix',
-    category: 'miner',
-    engine: 'phaser',
-    engineVersion: '3.70.0',
-    tags: ['clicker', 'mining', 'puzzle', 'cyber', 'cgt-earning'],
-    rewards: [
-      { type: 'cgt', description: 'Mine CGT through computational work' },
-      { type: 'sparks', description: 'Earn Sparks for high combos' },
-      { type: 'xp', description: 'Gain XP from mining sessions' },
-    ],
-    minLevel: 1,
-    cgtPool: 0,
-    activeUsers: 0,
-    // CGT earning rates
-    cgtEarning: {
-      workSubmit: { amount: 0.5, chance: 1.0 },
-      patternMatch: { amount: 2.0, chance: 1.0 },
-      sessionComplete: { amount: 10.0, chance: 1.0 },
-    },
-    // DRC-369 NFT support
-    nftSupport: {
-      enabled: false,
-      assetTypes: [],
-    },
-  });
-
-  // Note: ScatterTXT engine has its own dedicated page at /scattertxt
-  // It's not registered as a game since it's an engine, not a game
+  // Registry is empty - games will be registered when added to the platform
+  // New games with DRC-369 NFT integration can be registered using gameRegistry.register()
+  //
+  // Example registration for a DRC-369 enabled game:
+  // gameRegistry.register({
+  //   id: 'game-id',
+  //   title: 'Game Title',
+  //   description: 'Game description',
+  //   thumbnail: '/games/game-id/thumb.png',
+  //   entryPoint: 'index.html',
+  //   version: '1.0.0',
+  //   author: 'Developer Name',
+  //   category: 'drc369',
+  //   engine: 'phaser', // or 'unity-webgl', 'custom', etc.
+  //   tags: ['action', 'nft-support'],
+  //   rewards: [
+  //     { type: 'nft', description: 'Earn account-bound DRC-369 NFTs' },
+  //     { type: 'cgt', description: 'Earn CGT rewards' },
+  //   ],
+  //   nftSupport: {
+  //     enabled: true,
+  //     assetTypes: ['achievement', 'reward'],
+  //   },
+  // });
 }
 
 // Initialize on module load

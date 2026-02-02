@@ -202,19 +202,40 @@ export default function GamesPage() {
           </div>
         ) : filteredGames.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-gray-400 text-xl mb-4">
-              {searchQuery || selectedTag ? 'No games match your filters' : 'No games available'}
-            </div>
-            {(searchQuery || selectedTag) && (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedTag(null);
-                }}
-                className="glass-panel px-6 py-2 rounded hover:chroma-glow transition-all"
-              >
-                Clear Filters
-              </button>
+            {searchQuery || selectedTag ? (
+              <>
+                <div className="text-gray-400 text-xl mb-4">No games match your filters</div>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedTag(null);
+                  }}
+                  className="glass-panel px-6 py-2 rounded hover:chroma-glow transition-all"
+                >
+                  Clear Filters
+                </button>
+              </>
+            ) : (
+              <div className="glass-panel p-12 rounded-2xl max-w-2xl mx-auto">
+                <div className="text-6xl mb-6">🎮</div>
+                <h2 className="text-3xl font-bold gradient-text mb-4">Games Coming Soon</h2>
+                <p className="text-gray-400 text-lg mb-6">
+                  We're preparing exciting games with DRC-369 NFT integration.
+                  <br />
+                  Play to earn account-bound NFTs and CGT rewards!
+                </p>
+                <div className="flex flex-wrap justify-center gap-4 text-sm">
+                  <div className="glass-panel px-4 py-2 rounded-lg border border-purple-500/30">
+                    <span className="text-purple-400">🎁 NFT Rewards</span>
+                  </div>
+                  <div className="glass-panel px-4 py-2 rounded-lg border border-yellow-500/30">
+                    <span className="text-yellow-400">💰 CGT Earning</span>
+                  </div>
+                  <div className="glass-panel px-4 py-2 rounded-lg border border-cyan-500/30">
+                    <span className="text-cyan-400">⚡ On-Chain Progress</span>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         ) : (
