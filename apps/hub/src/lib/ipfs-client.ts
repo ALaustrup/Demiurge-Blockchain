@@ -11,6 +11,7 @@ export interface IPFSUploadResult {
   uri?: string;
   size?: number;
   error?: string;
+  gatewayUrl?: string; // Direct HTTP URL for the uploaded file
 }
 
 export interface NFTMetadata {
@@ -184,12 +185,25 @@ class IPFSClient {
       body: formData,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'API upload failed');
+    const data = await response.json();
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'API upload failed');
     }
 
-    return await response.json();
+    // If gateway URL is provided, use it directly
+    if (data.gateway) {
+      return {
+        success: true,
+        cid: data.cid,
+        uri: data.uri,
+        size: data.size,
+        // Store gateway URL for direct access
+        gatewayUrl: data.gateway,
+      };
+    }
+
+    return data;
   }
 
   /**
@@ -248,6 +262,13 @@ class IPFSClient {
    * Convert IPFS URI to HTTP gateway URL
    */
   toGatewayUrl(ipfsUri: string, gateway: keyof typeof IPFS_GATEWAYS = 'public'): string {
+    // Handle local:// URIs (fallback storage)
+    if (ipfsUri.startsWith('local://')) {
+      const hash = ipfsUri.replace('local://', '');
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://demiurge.cloud';
+      return `${baseUrl}/api/media/${hash}`;
+    }
+    
     if (!ipfsUri.startsWith('ipfs://')) {
       return ipfsUri; // Already a regular URL
     }

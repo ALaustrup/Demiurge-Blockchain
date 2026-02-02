@@ -305,8 +305,12 @@ class VYBService {
   async uploadMediaToIPFS(file: File, albumArtwork?: File): Promise<MediaUploadResult> {
     if (!this.currentUser) throw new Error('Not logged in');
 
+    console.log('[VYB Service] Starting upload for:', file.name, 'Size:', file.size);
+
     // Upload main media file
     const mediaResult = await ipfsClient.uploadFile(file, file.name);
+    console.log('[VYB Service] Media upload result:', mediaResult);
+    
     if (!mediaResult.success || !mediaResult.uri) {
       throw new Error(mediaResult.error || 'Failed to upload media');
     }
@@ -316,15 +320,18 @@ class VYBService {
 
     // Upload album artwork if provided (for audio files)
     if (albumArtwork) {
+      console.log('[VYB Service] Uploading album artwork...');
       const artworkResult = await ipfsClient.uploadFile(albumArtwork, `artwork_${file.name}.jpg`);
       if (artworkResult.success && artworkResult.uri) {
         artworkIpfsUri = artworkResult.uri;
-        artworkUrl = ipfsToHttp(artworkResult.uri);
+        // Use gateway URL if available, otherwise convert URI
+        artworkUrl = artworkResult.gatewayUrl || ipfsToHttp(artworkResult.uri);
       }
     }
 
-    // Convert IPFS URI to HTTP URL for display
-    const url = ipfsToHttp(mediaResult.uri);
+    // Use gateway URL if available (for local storage fallback), otherwise convert URI
+    const url = mediaResult.gatewayUrl || ipfsToHttp(mediaResult.uri);
+    console.log('[VYB Service] Final media URL:', url);
 
     // Create gallery item
     const galleryItem: GalleryItem = {
