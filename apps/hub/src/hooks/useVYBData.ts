@@ -67,6 +67,7 @@ export function useCreatePost() {
       if (previousFeed && newPost.text) {
         const optimisticPost: FeedItem = {
           id: `temp_${Date.now()}`,
+          type: 'post',
           author: {
             qorId: vybService.getCurrentUser() || 'unknown',
             displayName: 'You',
@@ -83,8 +84,13 @@ export function useCreatePost() {
             })),
           },
           timestamp: new Date(),
-          stats: { likes: 0, comments: 0, shares: 0 },
+          likes: 0,
+          comments: 0,
+          tips: 0,
+          tipsAmount: 0,
           isLiked: false,
+          isTipped: false,
+          visibility: 'public',
         };
 
         queryClient.setQueryData<FeedItem[]>(
@@ -135,10 +141,7 @@ export function useLikePost() {
               ? {
                   ...post,
                   isLiked: !post.isLiked,
-                  stats: {
-                    ...post.stats,
-                    likes: post.isLiked ? post.stats.likes - 1 : post.stats.likes + 1,
-                  },
+                  likes: post.isLiked ? post.likes - 1 : post.likes + 1,
                 }
               : post
           )
