@@ -14,7 +14,6 @@ import {
   ServiceMarketplace,
   TopFriends,
 } from '@/components/vyb';
-import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
 import { vybService } from '@/lib/vyb/service';
 
 type TabType = 'feed' | 'messages' | 'gallery' | 'services' | 'notifications';
@@ -36,7 +35,6 @@ export default function SocialPage() {
   const { user } = useAuth();
   const { profile, unreadMessageCount, unreadNotificationCount } = useVYB();
   const [activeTab, setActiveTab] = useState<TabType>('feed');
-  const [showWelcome, setShowWelcome] = useState(false);
   const [onlineFriends, setOnlineFriends] = useState<OnlineFriend[]>([]);
   const [myGroups, setMyGroups] = useState<UserGroup[]>([]);
   const [weeklyStats, setWeeklyStats] = useState({ cgt: 0, friends: 0, likes: 0, tips: 0 });
@@ -45,14 +43,6 @@ export default function SocialPage() {
   const [loadingSidebar, setLoadingSidebar] = useState(true);
 
   // NOTE: No redirect needed - AuthGate ensures users are authenticated before reaching this page
-
-  // Show welcome modal for users - modal will auto-close if already claimed (on-chain check)
-  useEffect(() => {
-    if (user) {
-      // Trigger welcome modal - it will auto-close if user already claimed their bonus
-      setShowWelcome(true);
-    }
-  }, [user]);
 
   // Load sidebar data
   useEffect(() => {
@@ -110,10 +100,6 @@ export default function SocialPage() {
     }
     if (days === 1) return `Tomorrow ${eventDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
     return eventDate.toLocaleDateString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
-  };
-
-  const handleWelcomeClose = () => {
-    setShowWelcome(false);
   };
 
   // NOTE: No loading/auth checks needed - AuthGate handles authentication before this page loads
@@ -438,14 +424,6 @@ export default function SocialPage() {
           </div>
         )}
       </div>
-
-      {/* Welcome Modal for new users */}
-      <WelcomeModal
-        isOpen={showWelcome}
-        onClose={handleWelcomeClose}
-        walletAddress={user?.on_chain_address || (user?.id ? user.id.replace(/-/g, '').padEnd(64, '0') : undefined)}
-        qorId={user?.qor_id}
-      />
     </main>
   );
 }

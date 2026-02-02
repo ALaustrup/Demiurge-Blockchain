@@ -7,6 +7,7 @@ import { useChainStore, selectBlockHeight, selectTps, selectValidators, selectCo
 import { useAuth } from '@/contexts/AuthContext';
 import { HolographicCard, DataDisplay } from './HolographicCard';
 import { WalletConnector } from './WalletConnector';
+import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DEMIURGE COMMAND TERMINAL - Dark-Mode Ethereal Glassmorphism Dashboard
@@ -389,6 +390,8 @@ function WalletPanel() {
 
 export function DashboardGrid() {
   const connect = useChainStore((state) => state.connect);
+  const { user } = useAuth();
+  const [showWelcome, setShowWelcome] = useState(false);
 
   // Connect to blockchain on mount
   useEffect(() => {
@@ -397,6 +400,13 @@ export function DashboardGrid() {
       useChainStore.getState().disconnect();
     };
   }, [connect]);
+
+  // Show welcome modal for new users - modal checks on-chain if already claimed
+  useEffect(() => {
+    if (user) {
+      setShowWelcome(true);
+    }
+  }, [user]);
 
   // System modules - showing real-time data where possible
   // TODO: Fetch actual counts from RPC/API when available
@@ -556,6 +566,14 @@ export function DashboardGrid() {
           </p>
         </motion.div>
       </div>
+
+      {/* Demiurge Welcome Modal - shows starter package offer for new users */}
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={() => setShowWelcome(false)}
+        walletAddress={user?.on_chain_address || (user?.id ? user.id.replace(/-/g, '').padEnd(64, '0') : undefined)}
+        qorId={user?.qor_id}
+      />
     </div>
   );
 }
