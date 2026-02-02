@@ -79,6 +79,7 @@ export function useCreatePost() {
               id: `temp_media_${i}`,
               type: 'image' as const,
               url,
+              isMinted: false,
             })),
           },
           timestamp: new Date(),
