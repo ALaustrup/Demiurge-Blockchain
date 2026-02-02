@@ -231,6 +231,18 @@ export class DemiurgeRpcClient {
   }
 
   /**
+   * Check if user has already claimed their starter bonus
+   */
+  async hasClaimedStarter(address: string): Promise<boolean> {
+    try {
+      return await this.request('balances_hasClaimedStarter', [address]);
+    } catch {
+      // If RPC fails, assume not claimed to allow retry
+      return false;
+    }
+  }
+
+  /**
    * Get energy for an account
    */
   async getEnergy(address: string): Promise<EnergyInfo> {

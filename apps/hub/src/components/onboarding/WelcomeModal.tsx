@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { demiurgeRpc } from '@/lib/demiurge-rpc';
 
 interface WelcomeModalProps {
@@ -11,12 +12,37 @@ interface WelcomeModalProps {
 }
 
 export function WelcomeModal({ isOpen, onClose, walletAddress, qorId }: WelcomeModalProps) {
-  const [step, setStep] = useState<'welcome' | 'claiming' | 'success' | 'error'>('welcome');
+  const [step, setStep] = useState<'checking' | 'welcome' | 'claiming' | 'success' | 'error'>('checking');
   const [claimResult, setClaimResult] = useState<{
     success: boolean;
     amount: string;
     message: string;
   } | null>(null);
+
+  // Check on-chain if user has already claimed their starter bonus
+  useEffect(() => {
+    if (!isOpen || !walletAddress) return;
+
+    const checkClaimStatus = async () => {
+      try {
+        const cleanAddress = walletAddress.startsWith('0x') ? walletAddress.slice(2) : walletAddress;
+        const hasClaimed = await demiurgeRpc.hasClaimedStarter(cleanAddress);
+        
+        if (hasClaimed) {
+          // User already claimed - close the modal
+          onClose();
+        } else {
+          setStep('welcome');
+        }
+      } catch (error) {
+        // If check fails, show the welcome screen anyway
+        console.warn('Failed to check claim status:', error);
+        setStep('welcome');
+      }
+    };
+
+    checkClaimStatus();
+  }, [isOpen, walletAddress, onClose]);
 
   const handleClaimStarter = async () => {
     if (!walletAddress) {
@@ -47,11 +73,28 @@ export function WelcomeModal({ isOpen, onClose, walletAddress, qorId }: WelcomeM
     }
   };
 
+  // Handle navigation - close modal first to prevent re-showing
+  const handleNavigate = () => {
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="glass-panel liquid-border w-full max-w-lg mx-4 p-8 rounded-2xl">
+        {/* Checking Step */}
+        {step === 'checking' && (
+          <div className="text-center space-y-6">
+            <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-neon-cyan to-neon-purple flex items-center justify-center animate-pulse">
+              <svg className="w-12 h-12 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <p className="text-gray-400 font-body">Checking your account...</p>
+          </div>
+        )}
+
         {/* Welcome Step */}
         {step === 'welcome' && (
           <div className="text-center space-y-6">
@@ -167,18 +210,30 @@ export function WelcomeModal({ isOpen, onClose, walletAddress, qorId }: WelcomeM
             <div className="space-y-3">
               <h3 className="font-grunge-alt text-neon-cyan">What's Next?</h3>
               <div className="grid grid-cols-3 gap-3">
-                <a href="/games" className="glass-panel p-4 rounded-lg hover:border-neon-cyan/50 transition-colors">
+                <Link 
+                  href="/games" 
+                  onClick={handleNavigate}
+                  className="glass-panel p-4 rounded-lg hover:border-neon-cyan/50 transition-colors"
+                >
                   <div className="text-2xl mb-2">🎮</div>
                   <p className="text-xs font-body text-gray-300">Play Games</p>
-                </a>
-                <a href="/staking" className="glass-panel p-4 rounded-lg hover:border-neon-cyan/50 transition-colors">
+                </Link>
+                <Link 
+                  href="/staking" 
+                  onClick={handleNavigate}
+                  className="glass-panel p-4 rounded-lg hover:border-neon-cyan/50 transition-colors"
+                >
                   <div className="text-2xl mb-2">📈</div>
                   <p className="text-xs font-body text-gray-300">Stake CGT</p>
-                </a>
-                <a href="/social" className="glass-panel p-4 rounded-lg hover:border-neon-cyan/50 transition-colors">
+                </Link>
+                <Link 
+                  href="/social" 
+                  onClick={handleNavigate}
+                  className="glass-panel p-4 rounded-lg hover:border-neon-cyan/50 transition-colors"
+                >
                   <div className="text-2xl mb-2">💬</div>
                   <p className="text-xs font-body text-gray-300">Join VYB</p>
-                </a>
+                </Link>
               </div>
             </div>
 

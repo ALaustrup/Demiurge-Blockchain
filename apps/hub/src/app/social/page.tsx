@@ -46,16 +46,13 @@ export default function SocialPage() {
 
   // NOTE: No redirect needed - AuthGate ensures users are authenticated before reaching this page
 
-  // Check if user is new and should see welcome modal
+  // Show welcome modal for users - modal will auto-close if already claimed (on-chain check)
   useEffect(() => {
-    if (profile && profile.stats.cgtEarned === 0 && profile.stats.posts === 0) {
-      // New user - show welcome
-      const hasSeenWelcome = localStorage.getItem('vyb-welcome-seen');
-      if (!hasSeenWelcome) {
-        setShowWelcome(true);
-      }
+    if (user) {
+      // Trigger welcome modal - it will auto-close if user already claimed their bonus
+      setShowWelcome(true);
     }
-  }, [profile]);
+  }, [user]);
 
   // Load sidebar data
   useEffect(() => {
@@ -116,7 +113,6 @@ export default function SocialPage() {
   };
 
   const handleWelcomeClose = () => {
-    localStorage.setItem('vyb-welcome-seen', 'true');
     setShowWelcome(false);
   };
 

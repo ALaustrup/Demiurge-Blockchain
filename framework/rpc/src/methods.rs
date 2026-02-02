@@ -286,6 +286,12 @@ impl<S: Storage> RpcMethods<S> {
         })
     }
 
+    /// Check if account has already claimed starter bonus
+    pub async fn balances_has_claimed_starter(&self, account: [u8; 32]) -> Result<bool, RpcError> {
+        let claim_key = Self::faucet_claim_key(account);
+        Ok(self.storage.get(&claim_key).is_some())
+    }
+
     /// Generate storage key for faucet claims
     fn faucet_claim_key(account: [u8; 32]) -> Vec<u8> {
         let mut key = b"Faucet:Claimed:".to_vec();

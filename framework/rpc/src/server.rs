@@ -149,6 +149,17 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register balances_claimStarter: {}", e)))?;
 
+        // balances_hasClaimedStarter - Check if user already claimed starter bonus
+        module.register_async_method("balances_hasClaimedStarter", |params, ctx| async move {
+            let address_str: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address") })?;
+            let address = hex::decode(address_str)
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address hex") })?
+                .try_into()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Address must be 32 bytes") })?;
+            ctx.balances_has_claimed_starter(address).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register balances_hasClaimedStarter: {}", e)))?;
+
         Ok(())
     }
 
