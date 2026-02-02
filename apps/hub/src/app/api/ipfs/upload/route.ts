@@ -25,10 +25,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check file size (50MB limit)
-    if (file.size > 50 * 1024 * 1024) {
+    // Check file size (1.5GB limit for music/video files)
+    const maxSizeBytes = 1.5 * 1024 * 1024 * 1024; // 1.5 GB
+    if (file.size > maxSizeBytes) {
       return NextResponse.json(
-        { success: false, error: 'File too large (max 50MB)' },
+        { success: false, error: 'File too large (max 1.5GB)' },
         { status: 400 }
       );
     }

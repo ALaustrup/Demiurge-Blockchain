@@ -6,6 +6,21 @@ const nextConfig = {
   transpilePackages: ['@demiurge/qor-sdk', '@demiurge/ui-shared', '@demiurge/wallet-wasm'],
   // Server Actions are enabled by default in Next.js 15
   // No need for experimental.serverActions
+  
+  // Allow large file uploads (1.5GB for media)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '1.6gb',
+    },
+  },
+  
+  // Increase API body size limit
+  api: {
+    bodyParser: {
+      sizeLimit: '1.6gb',
+    },
+    responseLimit: false,
+  },
   webpack: (config, { isServer }) => {
     // Handle WASM files
     if (!isServer) {

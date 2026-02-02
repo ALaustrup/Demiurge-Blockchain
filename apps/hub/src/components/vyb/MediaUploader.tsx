@@ -31,7 +31,7 @@ interface MediaUploaderProps {
 
 // ============ Constants ============
 
-const MAX_FILE_SIZE_MB = 50;
+const MAX_FILE_SIZE_MB = 1500; // 1.5 GB max for music/video files
 const ALBUM_ART_SIZE = 3000; // 3000x3000 pixels
 const ACCEPTED_TYPES = {
   image: 'image/*',
