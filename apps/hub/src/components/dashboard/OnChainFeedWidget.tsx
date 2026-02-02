@@ -185,8 +185,10 @@ export function OnChainFeedWidget() {
           </div>
           <div className="h-6 w-px bg-white/10" />
           <div className="text-center">
-            <div className="text-xs text-gray-400">TPS</div>
-            <div className="font-mono text-neon-green text-sm">~25</div>
+            <div className="text-xs text-gray-400">Status</div>
+            <div className="font-mono text-neon-green text-sm">
+              {blockHeight ? 'Live' : 'Connecting...'}
+            </div>
           </div>
         </div>
 

@@ -1,14 +1,17 @@
 #!/bin/bash
-# Test RPC endpoint on the server
+# Test RPC endpoint
 
-# Create proper JSON file
-cat > /tmp/rpc-test.json << 'ENDJSON'
-{"jsonrpc":"2.0","method":"chain_getHealth","params":[],"id":1}
-ENDJSON
+# Create a valid JSON-RPC request
+cat > /tmp/rpc_test.json << 'EOF'
+{"jsonrpc":"2.0","id":1,"method":"chain_getHealth","params":[]}
+EOF
 
-echo "Testing JSON content:"
-cat /tmp/rpc-test.json
+echo "Request body:"
+cat /tmp/rpc_test.json
 echo ""
-echo "Making RPC request..."
-curl -s -X POST -H 'Content-Type: application/json' -d @/tmp/rpc-test.json http://localhost:9944
+
+echo "Testing RPC..."
+curl -s http://localhost:9944 -X POST -H "Content-Type: application/json" -d @/tmp/rpc_test.json
+
 echo ""
+echo "Done."

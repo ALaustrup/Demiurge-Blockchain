@@ -92,9 +92,9 @@ export function WalletWidget() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-grunge text-neon-cyan">💎 Wallet</h3>
           <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-yellow-400'}`} />
+            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`} />
             <span className="text-xs text-gray-500">
-              {isConnected ? 'Live' : 'Mock'}
+              {isConnected ? 'Live' : 'Connecting...'}
             </span>
           </div>
         </div>
