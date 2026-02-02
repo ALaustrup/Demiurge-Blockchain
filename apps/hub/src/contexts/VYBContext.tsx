@@ -241,33 +241,53 @@ export function VYBProvider({ children }: { children: React.ReactNode }) {
 
   // Upload media and optionally mint as NFT
   const uploadAndMintMedia = useCallback(async (media: MediaFile): Promise<{ url: string; nftId?: string }> => {
-    // Upload the main media file
-    const uploadResult = await vybService.uploadMediaToIPFS(media.file, media.albumArtwork);
-    
-    let nftId: string | undefined;
-
-    // If user opted to mint as NFT
-    if (media.mintAsNFT && uploadResult.url) {
-      const mintResult = await vybService.mintMediaAsNFT({
-        mediaUrl: uploadResult.url,
-        artworkUrl: uploadResult.artworkUrl,
-        name: media.nftName || media.name,
-        description: media.nftDescription || '',
-        royaltyPercent: media.nftRoyalty || 5,
-        mediaType: media.type,
-      });
-
-      if (mintResult.success) {
-        nftId = mintResult.nftId;
+    try {
+      console.log('[VYB] Starting upload for:', media.name, 'Type:', media.type);
+      
+      // Upload the main media file
+      const uploadResult = await vybService.uploadMediaToIPFS(media.file, media.albumArtwork);
+      
+      console.log('[VYB] Upload result:', uploadResult);
+      
+      if (!uploadResult.url) {
+        throw new Error('Upload succeeded but no URL returned');
       }
-    }
+      
+      let nftId: string | undefined;
 
-    // Add to gallery
-    if (uploadResult.galleryItem) {
-      setGallery(prev => [uploadResult.galleryItem!, ...prev]);
-    }
+      // If user opted to mint as NFT
+      if (media.mintAsNFT && uploadResult.url) {
+        console.log('[VYB] Minting NFT for:', media.nftName || media.name);
+        
+        const mintResult = await vybService.mintMediaAsNFT({
+          mediaUrl: uploadResult.url,
+          artworkUrl: uploadResult.artworkUrl,
+          name: media.nftName || media.name,
+          description: media.nftDescription || '',
+          royaltyPercent: media.nftRoyalty || 5,
+          mediaType: media.type,
+        });
 
-    return { url: uploadResult.url, nftId };
+        console.log('[VYB] Mint result:', mintResult);
+
+        if (mintResult.success) {
+          nftId = mintResult.nftId;
+        } else {
+          // Log but don't fail the whole upload if minting fails
+          console.warn('[VYB] NFT minting failed, but upload succeeded');
+        }
+      }
+
+      // Add to gallery
+      if (uploadResult.galleryItem) {
+        setGallery(prev => [uploadResult.galleryItem!, ...prev]);
+      }
+
+      return { url: uploadResult.url, nftId };
+    } catch (error: any) {
+      console.error('[VYB] uploadAndMintMedia failed:', error);
+      throw new Error(error.message || 'Media upload failed');
+    }
   }, []);
 
   const value: VYBContextType = {

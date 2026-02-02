@@ -12,6 +12,7 @@ export function Feed() {
   const [isPosting, setIsPosting] = useState(false);
   const [feedType, setFeedType] = useState<'global' | 'following'>('global');
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleMediaChange = useCallback((media: MediaFile[]) => {
     setMediaFiles(media);
@@ -22,6 +23,7 @@ export function Feed() {
     
     setIsPosting(true);
     setUploadProgress(null);
+    setUploadError(null);
 
     try {
       // Upload media files and optionally mint as NFTs
@@ -29,11 +31,23 @@ export function Feed() {
       
       for (let i = 0; i < mediaFiles.length; i++) {
         const media = mediaFiles[i];
-        setUploadProgress(`Uploading ${i + 1}/${mediaFiles.length}: ${media.name}`);
+        setUploadProgress(`Uploading ${i + 1}/${mediaFiles.length}: ${media.name}...`);
         
-        const result = await uploadAndMintMedia(media);
-        if (result.url) {
-          uploadedMedia.push(result.url);
+        try {
+          const result = await uploadAndMintMedia(media);
+          if (result.url) {
+            uploadedMedia.push(result.url);
+          } else {
+            throw new Error(`Upload returned no URL for ${media.name}`);
+          }
+        } catch (uploadErr: any) {
+          console.error(`Failed to upload ${media.name}:`, uploadErr);
+          throw new Error(`Failed to upload ${media.name}: ${uploadErr.message || 'Unknown error'}`);
+        }
+        
+        // If minting NFT, update progress
+        if (media.mintAsNFT) {
+          setUploadProgress(`Minting NFT: ${media.nftName || media.name}...`);
         }
       }
 
@@ -49,9 +63,11 @@ export function Feed() {
       setNewPostText('');
       setMediaFiles([]);
       setUploadProgress(null);
-    } catch (error) {
+      setUploadError(null);
+    } catch (error: any) {
       console.error('Failed to create post:', error);
       setUploadProgress(null);
+      setUploadError(error.message || 'Failed to create post. Please try again.');
     } finally {
       setIsPosting(false);
     }
@@ -87,6 +103,21 @@ export function Feed() {
             <div className="flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-neon-cyan border-t-transparent"></div>
               <span className="text-sm text-neon-cyan">{uploadProgress}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Error */}
+        {uploadError && (
+          <div className="mt-3 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-red-400">{uploadError}</span>
+              <button 
+                onClick={() => setUploadError(null)}
+                className="text-red-400 hover:text-red-300 text-lg"
+              >
+                ×
+              </button>
             </div>
           </div>
         )}
