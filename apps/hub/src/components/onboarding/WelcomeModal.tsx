@@ -21,13 +21,20 @@ export function WelcomeModal({ isOpen, onClose, walletAddress, qorId }: WelcomeM
   const handleClaimStarter = async () => {
     if (!walletAddress) {
       setStep('error');
+      setClaimResult({
+        success: false,
+        amount: '0',
+        message: 'No wallet address available. Please try again later.',
+      });
       return;
     }
 
     setStep('claiming');
 
     try {
-      const result = await demiurgeRpc.claimStarterBonus(walletAddress);
+      // Strip 0x prefix if present - RPC expects raw hex
+      const cleanAddress = walletAddress.startsWith('0x') ? walletAddress.slice(2) : walletAddress;
+      const result = await demiurgeRpc.claimStarterBonus(cleanAddress);
       setClaimResult(result);
       setStep(result.success ? 'success' : 'error');
     } catch (error: any) {
