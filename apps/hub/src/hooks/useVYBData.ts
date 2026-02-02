@@ -167,8 +167,12 @@ export function useUpdateVYBProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Partial<VYBProfile>) => vybService.updateProfile(data),
-    onSuccess: (_, variables) => {
+    mutationFn: (data: Partial<VYBProfile>) => {
+      const qorId = vybService.getCurrentUser();
+      if (!qorId) throw new Error('Not logged in');
+      return vybService.updateProfile(qorId, data);
+    },
+    onSuccess: () => {
       toast.success('Profile updated!');
       // Invalidate the profile query
       const qorId = vybService.getCurrentUser();
