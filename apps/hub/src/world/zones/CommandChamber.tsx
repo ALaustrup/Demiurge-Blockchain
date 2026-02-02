@@ -281,7 +281,8 @@ function ZoneIndicator({ position, label, color, onClick }: ZoneIndicatorProps) 
 function CommandChamberContent() {
   const { user } = useAuth();
   const chainInfo = useChainInfo();
-  const balance = useBalance(user?.wallet_address);
+  const walletAddress = user?.on_chain?.address || user?.on_chain_address;
+  const balance = useBalance(walletAddress);
   const navigateToZone = useWorldStore((state) => state.setZone);
   
   // Format values
