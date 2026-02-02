@@ -50,7 +50,7 @@ Card.displayName = 'Card';
 // Card Header
 // ============================================================================
 
-interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {
+interface CardHeaderProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   title?: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
