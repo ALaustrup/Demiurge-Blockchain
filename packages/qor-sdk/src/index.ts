@@ -268,12 +268,33 @@ export class QorAuthClient {
   }
 
   async getProfile(): Promise<User> {
+    // First, get core user data from JWT token (always reliable)
+    const tokenData = this.getTokenData();
+    
     try {
       const response = await this.client.get<User>('/profile');
-      return response.data;
+      const profileData = response.data;
+      
+      // Merge profile data with token data, preferring token for core fields
+      // This ensures we always have the correct qor_id even if profile API returns placeholder
+      return {
+        ...profileData,
+        id: tokenData?.user_id || profileData.id,
+        qor_id: tokenData?.qor_id || profileData.qor_id,
+        role: (tokenData?.role as User['role']) || profileData.role || 'user',
+      };
     } catch (error: any) {
-      // Handle network errors gracefully
+      // Handle network errors gracefully - fall back to token data
       if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        // If we have token data, use it instead of throwing
+        if (tokenData) {
+          return {
+            id: tokenData.user_id,
+            qor_id: tokenData.qor_id,
+            email: '',
+            role: (tokenData.role as User['role']) || 'user',
+          };
+        }
         throw new Error('QOR Auth service is not available. Please ensure the service is running on port 8080.');
       }
       throw error;
