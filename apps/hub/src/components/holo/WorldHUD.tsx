@@ -116,7 +116,8 @@ function UserIdentity() {
 
 function WalletHUD() {
   const { user } = useAuth();
-  const balance = useBalance(user?.wallet_address);
+  const walletAddress = user?.on_chain?.address || user?.on_chain_address;
+  const balance = useBalance(walletAddress);
   const chainInfo = useChainInfo();
   
   const cgtBalance = balance.data ? (Number(balance.data) / 1e18).toFixed(2) : '0.00';
