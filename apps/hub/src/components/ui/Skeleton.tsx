@@ -6,17 +6,17 @@
  * Provides visual feedback while content is loading
  */
 
+import React from 'react';
 import { cn } from '@/lib/utils';
 
-interface SkeletonProps {
-  className?: string;
+interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   animate?: boolean;
 }
 
 /**
  * Base skeleton element
  */
-export function Skeleton({ className, animate = true }: SkeletonProps) {
+export function Skeleton({ className, animate = true, ...props }: SkeletonProps) {
   return (
     <div
       className={cn(
@@ -25,6 +25,7 @@ export function Skeleton({ className, animate = true }: SkeletonProps) {
         className
       )}
       aria-hidden="true"
+      {...props}
     />
   );
 }
