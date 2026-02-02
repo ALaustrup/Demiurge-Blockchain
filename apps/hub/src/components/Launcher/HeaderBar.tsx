@@ -41,11 +41,13 @@ export function HeaderBar() {
   ];
 
   const dropdownItems = [
+    { label: 'Agents', href: '/agents', icon: '🤖' },
+    { label: 'Bounties', href: '/bounties', icon: '🎯' },
+    { label: 'Developers', href: '/developers', icon: '💻' },
     { label: 'Explorer', href: '/explorer', icon: '🔍' },
     { label: 'Staking', href: '/staking', icon: '⚡' },
     { label: 'Validators', href: '/validators', icon: '🏛️' },
     { label: 'Analytics', href: '/analytics', icon: '📊' },
-    { label: 'Development', href: '/development', icon: '💻' },
     { label: 'Support Us', href: '/donate', icon: '💎' },
     { label: 'Settings', href: '/settings', icon: '⚙️' },
   ];

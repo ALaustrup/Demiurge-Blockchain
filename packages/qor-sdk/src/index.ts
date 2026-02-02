@@ -77,6 +77,9 @@ export interface RegisterResponse {
 export class QorAuthClient {
   private client: AxiosInstance;
   private token: string | null = null;
+  private refreshTokenValue: string | null = null;
+  private refreshPromise: Promise<void> | null = null;
+  private tokenExpiryMs: number = 0;
 
   constructor(baseURL: string = DEFAULT_API_URL) {
     this.client = axios.create({
@@ -86,20 +89,82 @@ export class QorAuthClient {
       },
     });
 
-    // Add request interceptor to include token
-    this.client.interceptors.request.use((config) => {
-      if (this.token) {
+    // Load stored tokens on init
+    this._loadStoredTokens();
+
+    // Add request interceptor to include token and auto-refresh
+    this.client.interceptors.request.use(async (config) => {
+      // Skip auth for auth endpoints
+      const isAuthEndpoint = config.url?.includes('/auth/');
+      
+      if (!isAuthEndpoint && this.token) {
+        // Check if token is about to expire (within 5 minutes)
+        const fiveMinutes = 5 * 60 * 1000;
+        if (this.tokenExpiryMs && Date.now() > this.tokenExpiryMs - fiveMinutes) {
+          // Token expiring soon, try to refresh
+          await this._autoRefresh();
+        }
         config.headers.Authorization = `Bearer ${this.token}`;
       }
       return config;
     });
   }
 
-  setToken(token: string) {
-    this.token = token;
-    // Store in localStorage for persistence
+  private _loadStoredTokens(): void {
     if (typeof globalThis !== 'undefined' && 'window' in globalThis && 'localStorage' in (globalThis as any).window) {
-      (globalThis as any).window.localStorage.setItem('qor_token', token);
+      const localStorage = (globalThis as any).window.localStorage;
+      this.token = localStorage.getItem('qor_token');
+      this.refreshTokenValue = localStorage.getItem('qor_refresh_token');
+      const expiryStr = localStorage.getItem('qor_token_expiry');
+      this.tokenExpiryMs = expiryStr ? parseInt(expiryStr, 10) : 0;
+    }
+  }
+
+  private async _autoRefresh(): Promise<void> {
+    // Prevent multiple simultaneous refreshes
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    if (!this.refreshTokenValue) {
+      return;
+    }
+
+    this.refreshPromise = (async () => {
+      try {
+        console.log('[QOR Auth] Auto-refreshing token...');
+        await this.refreshToken(this.refreshTokenValue!);
+        console.log('[QOR Auth] Token refreshed successfully');
+      } catch (error) {
+        console.warn('[QOR Auth] Auto-refresh failed:', error);
+        // Don't clear tokens here - let the 401 handler do it
+      } finally {
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
+  }
+
+  setToken(token: string, refreshToken?: string, expiresIn?: number) {
+    this.token = token;
+    
+    // Calculate and store expiry time (default 1 hour if not provided)
+    const expiryMs = Date.now() + ((expiresIn || 3600) * 1000);
+    this.tokenExpiryMs = expiryMs;
+    
+    if (refreshToken) {
+      this.refreshTokenValue = refreshToken;
+    }
+    
+    // Store in localStorage for persistence across page refreshes
+    if (typeof globalThis !== 'undefined' && 'window' in globalThis && 'localStorage' in (globalThis as any).window) {
+      const localStorage = (globalThis as any).window.localStorage;
+      localStorage.setItem('qor_token', token);
+      localStorage.setItem('qor_token_expiry', expiryMs.toString());
+      if (refreshToken) {
+        localStorage.setItem('qor_refresh_token', refreshToken);
+      }
     }
   }
 
@@ -113,8 +178,14 @@ export class QorAuthClient {
 
   clearToken() {
     this.token = null;
+    this.refreshTokenValue = null;
+    this.tokenExpiryMs = 0;
+    
     if (typeof globalThis !== 'undefined' && 'window' in globalThis && 'localStorage' in (globalThis as any).window) {
-      (globalThis as any).window.localStorage.removeItem('qor_token');
+      const localStorage = (globalThis as any).window.localStorage;
+      localStorage.removeItem('qor_token');
+      localStorage.removeItem('qor_refresh_token');
+      localStorage.removeItem('qor_token_expiry');
     }
   }
 
@@ -154,10 +225,11 @@ export class QorAuthClient {
       password,
     });
     
-    const { access_token, refresh_token } = response.data;
+    const { access_token, refresh_token, expires_in } = response.data;
     
     if (access_token) {
-      this.setToken(access_token);
+      // Store token with refresh token and expiry for session persistence
+      this.setToken(access_token, refresh_token, expires_in || 3600);
     }
     
     // Fetch user profile to complete the login response
@@ -306,10 +378,11 @@ export class QorAuthClient {
       refresh_token: refreshToken,
     });
     
-    const { access_token, refresh_token: newRefreshToken } = response.data;
+    const { access_token, refresh_token: newRefreshToken, expires_in } = response.data;
     
     if (access_token) {
-      this.setToken(access_token);
+      // Store new token with updated refresh token and expiry
+      this.setToken(access_token, newRefreshToken, expires_in || 3600);
     }
     
     // Fetch updated user profile
@@ -360,7 +433,50 @@ export class QorAuthClient {
   }
 
   isAuthenticated(): boolean {
-    return this.getToken() !== null;
+    const token = this.getToken();
+    if (!token) return false;
+    
+    // Check if token is expired
+    if (this.tokenExpiryMs && Date.now() > this.tokenExpiryMs) {
+      // Token expired - try to refresh if we have a refresh token
+      if (this.refreshTokenValue) {
+        // Don't await - just return true and let the interceptor handle refresh
+        return true;
+      }
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * Check if token will expire within the given timeframe
+   */
+  isTokenExpiringSoon(withinMs: number = 5 * 60 * 1000): boolean {
+    if (!this.tokenExpiryMs) return false;
+    return Date.now() > this.tokenExpiryMs - withinMs;
+  }
+
+  /**
+   * Get the stored refresh token
+   */
+  getRefreshToken(): string | null {
+    return this.refreshTokenValue;
+  }
+
+  /**
+   * Manually trigger token refresh
+   */
+  async manualRefresh(): Promise<boolean> {
+    if (!this.refreshTokenValue) return false;
+    
+    try {
+      await this.refreshToken(this.refreshTokenValue);
+      return true;
+    } catch (error) {
+      console.error('[QOR Auth] Manual refresh failed:', error);
+      return false;
+    }
   }
 
   /**

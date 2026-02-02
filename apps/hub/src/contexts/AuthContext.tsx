@@ -23,20 +23,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       const token = qorAuth.getToken();
+      const refreshToken = qorAuth.getRefreshToken();
+      
       if (token) {
         try {
+          // Check if token is expiring soon
+          if (qorAuth.isTokenExpiringSoon()) {
+            console.log('[Auth] Token expiring soon, attempting refresh...');
+            if (refreshToken) {
+              try {
+                await qorAuth.refreshToken(refreshToken);
+                console.log('[Auth] Token refreshed successfully');
+              } catch (refreshError) {
+                console.warn('[Auth] Token refresh failed:', refreshError);
+              }
+            }
+          }
+          
           const profile = await qorAuth.getProfile();
           setUser(profile);
         } catch (error: any) {
-          // Token expired or invalid - clear it only for explicit 401
+          // Token expired or invalid - try refresh first
           if (error.response?.status === 401) {
-            console.warn('Token expired, clearing auth state');
-            qorAuth.clearToken();
-            setUser(null);
+            if (refreshToken) {
+              try {
+                console.log('[Auth] 401 received, attempting token refresh...');
+                await qorAuth.refreshToken(refreshToken);
+                const profile = await qorAuth.getProfile();
+                setUser(profile);
+                console.log('[Auth] Session restored via refresh token');
+              } catch (refreshError) {
+                console.warn('[Auth] Token refresh failed, clearing session');
+                qorAuth.clearToken();
+                setUser(null);
+              }
+            } else {
+              console.warn('[Auth] Token expired and no refresh token available');
+              qorAuth.clearToken();
+              setUser(null);
+            }
           } else if (error.code === 'ERR_NETWORK' || error.message?.includes('Network')) {
-            // Network errors - keep user state, they might be offline
-            console.warn('Network error during auth check, preserving session');
-            // Try to restore user from localStorage if we have cached data
+            // Network errors - keep user state from cache, they might be offline
+            console.warn('[Auth] Network error, preserving session from cache');
             const cachedUser = localStorage.getItem('demiurge_user');
             if (cachedUser) {
               try {
@@ -46,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             }
           } else {
-            console.warn('Auth check failed:', error.message);
+            console.warn('[Auth] Auth check failed:', error.message);
           }
         }
       }
