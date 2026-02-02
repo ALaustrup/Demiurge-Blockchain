@@ -70,6 +70,8 @@ export function useCreatePost() {
           author: {
             qorId: vybService.getCurrentUser() || 'unknown',
             displayName: 'You',
+            isVerified: false,
+            role: 'user',
           },
           content: {
             text: newPost.text,
