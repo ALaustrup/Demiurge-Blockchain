@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { MusicProvider } from '@/contexts/MusicContext'
 import { VYBProvider } from '@/contexts/VYBContext'
 import { VoiceProvider } from '@/contexts/VoiceContext'
+import { ContextMenuProvider } from '@/contexts/ContextMenuContext'
 import { StarfieldBackground, HeaderBar } from '@/components/Launcher'
 import { MusicPlayer } from '@/components/music/MusicPlayer'
 import { AuthGate } from '@/components/auth/AuthGate'
@@ -73,19 +74,21 @@ export default function RootLayout({
                 <VYBProvider>
                   <VoiceProvider>
                     <MusicProvider>
-                      {/* Persistent 3D Starfield Background */}
-                      <StarfieldBackground />
-                      
-                      {/* Header Navigation */}
-                      <HeaderBar />
-                      
-                      {/* Main Content - pt-20 ensures content appears below fixed navbar */}
-                      <main className="relative z-10 min-h-screen pt-20">
-                        {children}
-                      </main>
-                      
-                      {/* Global Music Player */}
-                      <MusicPlayer />
+                      <ContextMenuProvider>
+                        {/* Persistent 3D Starfield Background */}
+                        <StarfieldBackground />
+                        
+                        {/* Header Navigation */}
+                        <HeaderBar />
+                        
+                        {/* Main Content - pt-20 ensures content appears below fixed navbar */}
+                        <main className="relative z-10 min-h-screen pt-20">
+                          {children}
+                        </main>
+                        
+                        {/* Global Music Player */}
+                        <MusicPlayer />
+                      </ContextMenuProvider>
                     </MusicProvider>
                   </VoiceProvider>
                 </VYBProvider>

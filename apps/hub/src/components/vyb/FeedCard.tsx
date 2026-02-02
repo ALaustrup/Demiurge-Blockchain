@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useVYB } from '@/contexts/VYBContext';
-import type { FeedItem } from '@/lib/vyb/types';
+import { useGlobalContextMenu } from '@/contexts/ContextMenuContext';
+import { buildMediaContextMenuItems } from '@/hooks/useContextMenu';
+import type { FeedItem, MediaItem } from '@/lib/vyb/types';
 import { DonorUsername } from './DonorUsername';
+import { AudioPlayer } from './AudioPlayer';
 
 interface FeedCardProps {
   item: FeedItem;
@@ -11,8 +14,41 @@ interface FeedCardProps {
 
 export function FeedCard({ item }: FeedCardProps) {
   const { likePost, tipPost } = useVYB();
+  const { showContextMenu } = useGlobalContextMenu();
   const [showTipModal, setShowTipModal] = useState(false);
   const [tipAmount, setTipAmount] = useState('');
+
+  // Build and show context menu for media
+  const handleMediaContextMenu = useCallback((e: React.MouseEvent, media: MediaItem) => {
+    const menuItems = buildMediaContextMenuItems({
+      mediaUrl: media.url,
+      mediaType: media.type,
+      isMinted: media.isMinted,
+      nftId: media.nftId,
+      onDownload: () => {
+        // Open media in new tab for download
+        window.open(media.url, '_blank');
+      },
+      onViewOnChain: media.isMinted ? () => {
+        // Navigate to on-chain data
+        window.open(`/explorer/nft/${media.nftId}`, '_blank');
+      } : undefined,
+      onShare: () => {
+        // Copy URL to clipboard
+        navigator.clipboard.writeText(media.url);
+        // TODO: Show toast notification
+      },
+      onReport: () => {
+        // TODO: Implement report modal
+        console.log('Report media:', media.id);
+      },
+      onViewFullSize: media.type === 'image' ? () => {
+        window.open(media.url, '_blank');
+      } : undefined,
+    });
+
+    showContextMenu(e, menuItems);
+  }, [showContextMenu]);
 
   const handleTip = async () => {
     const amount = parseFloat(tipAmount);
@@ -169,23 +205,57 @@ export function FeedCard({ item }: FeedCardProps) {
 
         {/* Media */}
         {item.content.media && item.content.media.length > 0 && (
-          <div className="mt-3 grid gap-2" style={{
-            gridTemplateColumns: item.content.media.length === 1 ? '1fr' : 'repeat(2, 1fr)'
-          }}>
-            {item.content.media.map((media) => (
-              <div 
-                key={media.id} 
-                className="relative rounded-lg overflow-hidden bg-blockchain-light aspect-video"
-              >
-                {media.type === 'image' && (
-                  <img src={media.url} alt="" className="w-full h-full object-cover" />
-                )}
-                {media.isMinted && (
-                  <div className="absolute top-2 right-2 bg-purple-500/80 px-2 py-1 rounded text-xs">
-                    NFT
+          <div className="mt-3 space-y-2">
+            {/* Images and Videos Grid */}
+            {item.content.media.filter(m => m.type === 'image' || m.type === 'video').length > 0 && (
+              <div className="grid gap-2" style={{
+                gridTemplateColumns: item.content.media.filter(m => m.type !== 'audio').length === 1 ? '1fr' : 'repeat(2, 1fr)'
+              }}>
+                {item.content.media.filter(m => m.type === 'image' || m.type === 'video').map((media) => (
+                  <div 
+                    key={media.id} 
+                    className="relative rounded-lg overflow-hidden bg-blockchain-light aspect-video cursor-pointer"
+                    onContextMenu={(e) => handleMediaContextMenu(e, media)}
+                  >
+                    {media.type === 'image' && (
+                      <img 
+                        src={media.url} 
+                        alt="" 
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                      />
+                    )}
+                    {media.type === 'video' && (
+                      <video 
+                        src={media.url}
+                        controls
+                        poster={media.thumbnailUrl}
+                        className="w-full h-full object-contain bg-black"
+                        preload="metadata"
+                        onContextMenu={(e) => handleMediaContextMenu(e, media)}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    )}
+                    {media.isMinted && (
+                      <div className="absolute top-2 right-2 bg-purple-500/80 px-2 py-1 rounded text-xs z-10">
+                        NFT
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
+            )}
+
+            {/* Audio Players */}
+            {item.content.media.filter(m => m.type === 'audio').map((media) => (
+              <AudioPlayer
+                key={media.id}
+                src={media.url}
+                artworkUrl={media.thumbnailUrl}
+                isMinted={media.isMinted}
+                onContextMenu={(e) => handleMediaContextMenu(e, media)}
+              />
             ))}
           </div>
         )}

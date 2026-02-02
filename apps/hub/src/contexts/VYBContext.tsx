@@ -11,6 +11,7 @@ import type {
   GalleryItem,
   ProfileTheme,
 } from '@/lib/vyb/types';
+import type { MediaFile } from '@/components/vyb/MediaUploader';
 
 interface VYBContextType {
   // Profile
@@ -45,6 +46,9 @@ interface VYBContextType {
   refreshGallery: () => Promise<void>;
   uploadMedia: (file: File) => Promise<GalleryItem>;
   mintMedia: (mediaId: string, options: { name: string; description: string; royaltyPercent: number }) => Promise<{ success: boolean; nftId?: string }>;
+
+  // Media upload with optional NFT minting
+  uploadAndMintMedia: (media: MediaFile) => Promise<{ url: string; nftId?: string }>;
 }
 
 const VYBContext = createContext<VYBContextType | undefined>(undefined);
@@ -235,6 +239,37 @@ export function VYBProvider({ children }: { children: React.ReactNode }) {
     return result;
   }, []);
 
+  // Upload media and optionally mint as NFT
+  const uploadAndMintMedia = useCallback(async (media: MediaFile): Promise<{ url: string; nftId?: string }> => {
+    // Upload the main media file
+    const uploadResult = await vybService.uploadMediaToIPFS(media.file, media.albumArtwork);
+    
+    let nftId: string | undefined;
+
+    // If user opted to mint as NFT
+    if (media.mintAsNFT && uploadResult.url) {
+      const mintResult = await vybService.mintMediaAsNFT({
+        mediaUrl: uploadResult.url,
+        artworkUrl: uploadResult.artworkUrl,
+        name: media.nftName || media.name,
+        description: media.nftDescription || '',
+        royaltyPercent: media.nftRoyalty || 5,
+        mediaType: media.type,
+      });
+
+      if (mintResult.success) {
+        nftId = mintResult.nftId;
+      }
+    }
+
+    // Add to gallery
+    if (uploadResult.galleryItem) {
+      setGallery(prev => [uploadResult.galleryItem!, ...prev]);
+    }
+
+    return { url: uploadResult.url, nftId };
+  }, []);
+
   const value: VYBContextType = {
     profile,
     isLoadingProfile,
@@ -259,6 +294,7 @@ export function VYBProvider({ children }: { children: React.ReactNode }) {
     refreshGallery,
     uploadMedia,
     mintMedia,
+    uploadAndMintMedia,
   };
 
   return (

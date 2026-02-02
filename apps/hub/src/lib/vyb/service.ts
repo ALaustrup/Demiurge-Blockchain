@@ -4,6 +4,7 @@
  */
 
 import { demiurgeRpc } from '../demiurge-rpc';
+import { ipfsClient, ipfsToHttp } from '../ipfs-client';
 import type {
   VYBProfile,
   FeedItem,
@@ -13,7 +14,27 @@ import type {
   ServiceListing,
   Notification,
   ProfileTheme,
+  MediaItem,
 } from './types';
+
+// ============ Media Upload Types ============
+
+interface MediaUploadResult {
+  url: string;
+  ipfsUri: string;
+  artworkUrl?: string;
+  artworkIpfsUri?: string;
+  galleryItem?: GalleryItem;
+}
+
+interface MintMediaOptions {
+  mediaUrl: string;
+  artworkUrl?: string;
+  name: string;
+  description: string;
+  royaltyPercent: number;
+  mediaType: 'image' | 'video' | 'audio';
+}
 
 // Default profile theme
 const DEFAULT_THEME: ProfileTheme = {
@@ -276,6 +297,123 @@ class VYBService {
       nftId: `nft_${Date.now()}`,
       txHash: `0x${Math.random().toString(16).slice(2)}`,
     };
+  }
+
+  /**
+   * Upload media file to IPFS with optional album artwork
+   */
+  async uploadMediaToIPFS(file: File, albumArtwork?: File): Promise<MediaUploadResult> {
+    if (!this.currentUser) throw new Error('Not logged in');
+
+    // Upload main media file
+    const mediaResult = await ipfsClient.uploadFile(file, file.name);
+    if (!mediaResult.success || !mediaResult.uri) {
+      throw new Error(mediaResult.error || 'Failed to upload media');
+    }
+
+    let artworkUrl: string | undefined;
+    let artworkIpfsUri: string | undefined;
+
+    // Upload album artwork if provided (for audio files)
+    if (albumArtwork) {
+      const artworkResult = await ipfsClient.uploadFile(albumArtwork, `artwork_${file.name}.jpg`);
+      if (artworkResult.success && artworkResult.uri) {
+        artworkIpfsUri = artworkResult.uri;
+        artworkUrl = ipfsToHttp(artworkResult.uri);
+      }
+    }
+
+    // Convert IPFS URI to HTTP URL for display
+    const url = ipfsToHttp(mediaResult.uri);
+
+    // Create gallery item
+    const galleryItem: GalleryItem = {
+      id: `media_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      ownerId: this.currentUser,
+      type: file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image',
+      url,
+      thumbnailUrl: artworkUrl, // Use artwork as thumbnail for audio
+      title: file.name,
+      tags: [],
+      uploadedAt: new Date(),
+      expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 months
+      isMinted: false,
+      isPublic: true,
+      views: 0,
+      likes: 0,
+    };
+
+    return {
+      url,
+      ipfsUri: mediaResult.uri,
+      artworkUrl,
+      artworkIpfsUri,
+      galleryItem,
+    };
+  }
+
+  /**
+   * Mint media as DRC-369 NFT
+   */
+  async mintMediaAsNFT(options: MintMediaOptions): Promise<{ success: boolean; nftId?: string; txHash?: string }> {
+    if (!this.currentUser) throw new Error('Not logged in');
+
+    try {
+      // Build NFT metadata
+      const attributes: Array<{ trait_type: string; value: string | number }> = [
+        { trait_type: 'Media Type', value: options.mediaType },
+        { trait_type: 'Source', value: 'VYB Social' },
+        { trait_type: 'Created', value: new Date().toISOString() },
+      ];
+
+      // Upload metadata to IPFS
+      const metadata = {
+        name: options.name,
+        description: options.description || `${options.mediaType} shared on VYB`,
+        image: options.artworkUrl || options.mediaUrl, // Use artwork if available, otherwise media URL
+        external_url: `https://demiurge.cloud/nft`,
+        attributes,
+        drc369: {
+          version: '1.0' as const,
+          creator: this.currentUser,
+          royalty_bps: options.royaltyPercent * 100, // Convert percent to basis points
+        },
+        // Additional media reference for non-image types
+        ...(options.mediaType !== 'image' && {
+          animation_url: options.mediaUrl,
+        }),
+      };
+
+      const metadataResult = await ipfsClient.uploadMetadata(metadata);
+      if (!metadataResult.success || !metadataResult.uri) {
+        throw new Error(metadataResult.error || 'Failed to upload NFT metadata');
+      }
+
+      // Call the blockchain RPC to mint
+      const mintResult = await demiurgeRpc.mintNFT(
+        this.currentUser, // creator
+        metadataResult.uri, // metadata URI
+        options.royaltyPercent * 100, // royalty in basis points
+        '' // signature (handled by backend)
+      );
+
+      if (!mintResult.success) {
+        throw new Error(mintResult.error || 'NFT minting failed');
+      }
+
+      return {
+        success: true,
+        nftId: mintResult.tokenId,
+        txHash: mintResult.txHash,
+      };
+    } catch (error) {
+      console.error('Failed to mint NFT:', error);
+      return {
+        success: false,
+        nftId: undefined,
+        txHash: undefined,
+      };
+    }
   }
 
   // ============ Notification Methods ============

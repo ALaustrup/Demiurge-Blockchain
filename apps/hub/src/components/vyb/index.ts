@@ -9,6 +9,10 @@ export { Messages } from './Messages';
 export { NotificationsPanel } from './NotificationsPanel';
 export { ServiceMarketplace } from './ServiceMarketplace';
 
+// Media Components
+export { MediaUploader, type MediaFile } from './MediaUploader';
+export { AudioPlayer } from './AudioPlayer';
+
 // Enhanced Social Network Components
 export { ProfileWall } from './ProfileWall';
 export { TopFriends } from './TopFriends';
