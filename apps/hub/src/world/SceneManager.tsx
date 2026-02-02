@@ -71,14 +71,14 @@ function PostProcessing() {
       />
       
       {/* Chromatic aberration for holographic feel */}
-      {quality !== 'medium' && (
+      {quality !== 'medium' ? (
         <ChromaticAberration
           blendFunction={BlendFunction.NORMAL}
           offset={new Vector2(0.0005, 0.0005)}
           radialModulation={false}
           modulationOffset={0}
         />
-      )}
+      ) : null}
       
       {/* Vignette for focus */}
       <Vignette
@@ -88,13 +88,13 @@ function PostProcessing() {
       />
       
       {/* Depth of field - ultra quality only */}
-      {quality === 'ultra' && (
+      {quality === 'ultra' ? (
         <DepthOfField
           focusDistance={0.01}
           focalLength={0.02}
           bokehScale={2}
         />
-      )}
+      ) : null}
     </EffectComposer>
   );
 }
