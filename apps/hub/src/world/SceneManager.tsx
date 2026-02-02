@@ -54,49 +54,104 @@ function LoadingFallback() {
 // Post Processing
 // ============================================================================
 
-function PostProcessing() {
-  const quality = useWorldStore((state) => state.quality);
-  
-  // Disable effects on low quality
-  if (quality === 'low') return null;
-  
+function PostProcessingLow() {
   return (
-    <EffectComposer multisampling={quality === 'ultra' ? 8 : 4}>
-      {/* Bloom for glow effects */}
+    <EffectComposer multisampling={0}>
+      <Bloom
+        intensity={0.4}
+        luminanceThreshold={0.3}
+        luminanceSmoothing={0.9}
+      />
+    </EffectComposer>
+  );
+}
+
+function PostProcessingMedium() {
+  return (
+    <EffectComposer multisampling={4}>
+      <Bloom
+        intensity={0.6}
+        luminanceThreshold={0.2}
+        luminanceSmoothing={0.9}
+        mipmapBlur
+      />
+      <Vignette
+        offset={0.3}
+        darkness={0.6}
+        blendFunction={BlendFunction.NORMAL}
+      />
+    </EffectComposer>
+  );
+}
+
+function PostProcessingHigh() {
+  return (
+    <EffectComposer multisampling={4}>
       <Bloom
         intensity={0.8}
         luminanceThreshold={0.2}
         luminanceSmoothing={0.9}
         mipmapBlur
       />
-      
-      {/* Chromatic aberration for holographic feel */}
-      {quality !== 'medium' ? (
-        <ChromaticAberration
-          blendFunction={BlendFunction.NORMAL}
-          offset={new Vector2(0.0005, 0.0005)}
-          radialModulation={false}
-          modulationOffset={0}
-        />
-      ) : null}
-      
-      {/* Vignette for focus */}
+      <ChromaticAberration
+        blendFunction={BlendFunction.NORMAL}
+        offset={new Vector2(0.0005, 0.0005)}
+        radialModulation={false}
+        modulationOffset={0}
+      />
       <Vignette
         offset={0.3}
         darkness={0.6}
         blendFunction={BlendFunction.NORMAL}
       />
-      
-      {/* Depth of field - ultra quality only */}
-      {quality === 'ultra' ? (
-        <DepthOfField
-          focusDistance={0.01}
-          focalLength={0.02}
-          bokehScale={2}
-        />
-      ) : null}
     </EffectComposer>
   );
+}
+
+function PostProcessingUltra() {
+  return (
+    <EffectComposer multisampling={8}>
+      <Bloom
+        intensity={0.8}
+        luminanceThreshold={0.2}
+        luminanceSmoothing={0.9}
+        mipmapBlur
+      />
+      <ChromaticAberration
+        blendFunction={BlendFunction.NORMAL}
+        offset={new Vector2(0.0005, 0.0005)}
+        radialModulation={false}
+        modulationOffset={0}
+      />
+      <Vignette
+        offset={0.3}
+        darkness={0.6}
+        blendFunction={BlendFunction.NORMAL}
+      />
+      <DepthOfField
+        focusDistance={0.01}
+        focalLength={0.02}
+        bokehScale={2}
+      />
+    </EffectComposer>
+  );
+}
+
+function PostProcessing() {
+  const quality = useWorldStore((state) => state.quality);
+  
+  switch (quality) {
+    case 'low':
+      return <PostProcessingLow />;
+    case 'medium':
+      return <PostProcessingMedium />;
+    case 'high':
+      return <PostProcessingHigh />;
+    case 'ultra':
+      return <PostProcessingUltra />;
+    default:
+      return <PostProcessingMedium />;
+  }
 }
 
 // ============================================================================
