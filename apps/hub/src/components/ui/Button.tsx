@@ -9,7 +9,6 @@
  */
 
 import { forwardRef, ButtonHTMLAttributes, ReactNode } from 'react';
-import { motion } from 'framer-motion';
 import { Spinner } from './Spinner';
 import { cn } from '@/lib/utils';
 
@@ -27,24 +26,28 @@ const variants = {
   primary: `
     bg-gradient-to-r from-neon-cyan to-neon-cyan-dim text-void-deep font-semibold
     hover:shadow-neon-cyan hover:-translate-y-0.5
-    active:translate-y-0
+    active:translate-y-0 active:scale-[0.98]
   `,
   secondary: `
     bg-gradient-to-r from-neon-cyan/20 to-neon-purple/20
     border border-neon-cyan/30 text-neon-cyan
     hover:border-neon-cyan/60 hover:shadow-neon-cyan
+    active:scale-[0.98]
   `,
   ghost: `
     bg-transparent text-text-secondary
     hover:bg-white/5 hover:text-text-primary
+    active:scale-[0.98]
   `,
   danger: `
     bg-red-500/10 border border-red-500/30 text-red-400
     hover:bg-red-500/20 hover:border-red-500/50
+    active:scale-[0.98]
   `,
   outline: `
     bg-transparent border border-white/10 text-text-secondary
     hover:bg-white/5 hover:border-white/20 hover:text-text-primary
+    active:scale-[0.98]
   `,
 };
 
@@ -67,6 +70,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       fullWidth = false,
       disabled,
       className,
+      type = 'button',
       ...props
     },
     ref
@@ -74,16 +78,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const isDisabled = disabled || isLoading;
 
     return (
-      <motion.button
+      <button
         ref={ref}
-        whileTap={{ scale: isDisabled ? 1 : 0.98 }}
+        type={type}
         disabled={isDisabled}
         className={cn(
           // Base styles
           'inline-flex items-center justify-center font-display tracking-wider uppercase',
-          'transition-all duration-300 ease-out',
+          'transition-all duration-200 ease-out',
           'focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-void',
-          'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+          'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:transform-none',
           // Variant styles
           variants[variant],
           // Size styles
@@ -107,7 +111,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             {rightIcon && <span className="flex-shrink-0">{rightIcon}</span>}
           </>
         )}
-      </motion.button>
+      </button>
     );
   }
 );
