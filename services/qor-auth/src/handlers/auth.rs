@@ -495,6 +495,41 @@ pub async fn check_username(
     })))
 }
 
+/// Check email availability
+#[derive(serde::Deserialize)]
+pub struct CheckEmailRequest {
+    email: String,
+}
+
+pub async fn check_email(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CheckEmailRequest>,
+) -> AppResult<Json<Value>> {
+    // Validate email format
+    if !req.email.contains('@') || !req.email.contains('.') {
+        return Ok(Json(json!({
+            "available": false,
+            "reason": "invalid_format"
+        })));
+    }
+
+    // Check if email exists in database
+    let email_lower = req.email.to_lowercase();
+    let exists: Option<i64> = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM users WHERE LOWER(email) = $1"
+    )
+    .bind(&email_lower)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let available = exists.map(|count| count == 0).unwrap_or(true);
+
+    Ok(Json(json!({
+        "available": available,
+        "email": email_lower,
+    })))
+}
+
 // =============================================================================
 // Keypair-Based Authentication
 // =============================================================================

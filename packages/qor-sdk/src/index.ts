@@ -416,6 +416,21 @@ export class QorAuthClient {
     }
   }
 
+  async checkEmail(email: string): Promise<{ available: boolean; email: string; reason?: string }> {
+    try {
+      const response = await this.client.post<{ available: boolean; email: string; reason?: string }>('/auth/check-email', {
+        email,
+      });
+      return response.data;
+    } catch (error: any) {
+      // If service is not available, assume email is available (for offline mode)
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        return { available: true, email: email.toLowerCase() };
+      }
+      throw error;
+    }
+  }
+
   /**
    * Upload avatar image and mint as DRC-369 NFT
    * 

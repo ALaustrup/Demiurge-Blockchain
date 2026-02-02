@@ -132,8 +132,32 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
     }
   };
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // If email provided, check if it's already registered
+    if (email.trim()) {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await qorAuth.checkEmail(email.trim());
+        
+        if (!result.available) {
+          if (result.reason === 'invalid_format') {
+            setError('Please enter a valid email address');
+          } else {
+            setError('This email is already registered. Please use a different email or login instead.');
+          }
+          setIsLoading(false);
+          return;
+        }
+      } catch (err) {
+        // If check fails, proceed anyway - the register endpoint will catch it
+        console.warn('Email check failed, proceeding:', err);
+      }
+      setIsLoading(false);
+    }
+    
     // Email is optional - can skip to password
     setStep('register-pin');
     setError(null);

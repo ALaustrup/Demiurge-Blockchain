@@ -161,6 +161,7 @@ fn auth_routes() -> Router<Arc<AppState>> {
         .route("/reset-password", post(handlers::auth::reset_password))
         .route("/reset-password-backup", post(handlers::auth::reset_password_with_backup))
         .route("/check-username", post(handlers::auth::check_username))
+        .route("/check-email", post(handlers::auth::check_email))
         // Keypair-based auth (Nostr-style)
         .route("/challenge", get(handlers::auth::get_challenge))
         .route("/keypair-login", post(handlers::auth::keypair_login))
