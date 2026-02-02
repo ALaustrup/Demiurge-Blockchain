@@ -65,32 +65,70 @@ async function linkAddressToQorId(address: string): Promise<void> {
  * @returns Deterministic blockchain address (SS58 format)
  */
 export function generateAddressFromQorId(qorId: string): string {
-  const keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
-  
-  // Create a deterministic seed from QOR ID
-  // Use double-slash prefix for derivation path (required by Polkadot keyring)
-  // Hash the QOR ID to create a valid derivation path
-  const sanitizedId = qorId.replace(/[^a-zA-Z0-9]/g, '_');
-  const derivationPath = `//${sanitizedId}`;
-  
   try {
-    // Generate keypair from derivation path
-    const pair = keyring.addFromUri(derivationPath, { name: qorId }, 'sr25519');
-    return pair.address;
-  } catch (error) {
-    // Fallback: use a mnemonic-based approach if derivation fails
-    console.warn('Derivation path failed, using fallback:', error);
-    // Create a deterministic 32-byte seed from QOR ID
-    const encoder = new TextEncoder();
-    const data = encoder.encode(`DEMIURGE_QOR_ID:${qorId}`);
-    // Simple hash-like function for seed generation
-    const seed = new Uint8Array(32);
-    for (let i = 0; i < data.length; i++) {
-      seed[i % 32] ^= data[i];
+    const keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
+    
+    // Create a deterministic seed from QOR ID
+    // Use double-slash prefix for derivation path (required by Polkadot keyring)
+    // Hash the QOR ID to create a valid derivation path
+    const sanitizedId = qorId.replace(/[^a-zA-Z0-9]/g, '_');
+    const derivationPath = `//${sanitizedId}`;
+    
+    try {
+      // Generate keypair from derivation path
+      const pair = keyring.addFromUri(derivationPath, { name: qorId }, 'sr25519');
+      return pair.address;
+    } catch (error) {
+      // Fallback: use a mnemonic-based approach if derivation fails
+      console.warn('Derivation path failed, using fallback:', error);
+      // Create a deterministic 32-byte seed from QOR ID
+      const encoder = new TextEncoder();
+      const data = encoder.encode(`DEMIURGE_QOR_ID:${qorId}`);
+      // Simple hash-like function for seed generation
+      const seed = new Uint8Array(32);
+      for (let i = 0; i < data.length; i++) {
+        seed[i % 32] ^= data[i];
+      }
+      const pair = keyring.addFromSeed(seed, { name: qorId }, 'sr25519');
+      return pair.address;
     }
-    const pair = keyring.addFromSeed(seed, { name: qorId }, 'sr25519');
-    return pair.address;
+  } catch (keyringError) {
+    // Ultimate fallback if Polkadot keyring fails entirely
+    console.error('Keyring initialization failed, using simple hash fallback:', keyringError);
+    return generateSimpleAddress(qorId);
   }
+}
+
+/**
+ * Generate a simple deterministic address without Polkadot keyring
+ * Used as fallback when Polkadot packages fail to load
+ */
+function generateSimpleAddress(qorId: string): string {
+  // Create a deterministic hex string from QOR ID
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`DEMIURGE_QOR_ID:${qorId}`);
+  
+  // Simple hash function (FNV-1a variant)
+  let hash1 = 2166136261;
+  let hash2 = 3671253287;
+  
+  for (let i = 0; i < data.length; i++) {
+    hash1 ^= data[i];
+    hash1 = Math.imul(hash1, 16777619);
+    hash2 ^= data[data.length - 1 - i];
+    hash2 = Math.imul(hash2, 16777619);
+  }
+  
+  // Create a 48-character SS58-like address
+  const hex1 = (hash1 >>> 0).toString(16).padStart(8, '0');
+  const hex2 = (hash2 >>> 0).toString(16).padStart(8, '0');
+  const hex3 = ((hash1 ^ hash2) >>> 0).toString(16).padStart(8, '0');
+  const hex4 = ((hash1 + hash2) >>> 0).toString(16).padStart(8, '0');
+  const hex5 = ((hash1 * hash2) >>> 0).toString(16).padStart(8, '0');
+  const hex6 = (Math.abs(hash1 - hash2) >>> 0).toString(16).padStart(8, '0');
+  
+  // Format as SS58-like address (starts with 5 for generic substrate)
+  return `5${hex1}${hex2}${hex3}${hex4}${hex5}${hex6}`.slice(0, 48);
 }
 
 /**
