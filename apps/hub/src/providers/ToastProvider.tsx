@@ -139,7 +139,7 @@ export const toast = {
   /**
    * Custom toast with full control
    */
-  custom: (content: React.ReactNode, options?: ToastOptions) => {
+  custom: (content: React.ReactElement, options?: ToastOptions) => {
     return sonnerToast.custom(() => content, {
       duration: options?.duration,
     });
