@@ -1,7 +1,7 @@
 //! Profile management handlers.
 
 use axum::{
-    extract::{Multipart, Path, State},
+    extract::{Extension, Multipart, Path, State},
     http::StatusCode,
     Json,
 };
@@ -16,25 +16,51 @@ use base64::Engine;
 
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
+use crate::models::user::User;
 use sqlx;
 
 /// Get current user's profile
+/// Extracts user_id from auth middleware and fetches real profile data
 pub async fn get_profile(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
+    Extension(user_id): Extension<Uuid>,
 ) -> AppResult<Json<Value>> {
-    // TODO: Extract user from auth middleware
-    // TODO: Fetch profile from database
-    // TODO: Fetch on-chain balance
-
+    // user_id is extracted from JWT by auth middleware
+    // Fetch user data from database
+    let user: User = sqlx::query_as(
+        r#"
+        SELECT id, email, username, discriminator, password_hash, email_verified,
+               avatar_url, role, status, on_chain_address, login_attempts, locked_until,
+               created_at, updated_at, backup_code, email_verification_token,
+               email_verification_expires_at, primary_pubkey, auth_method,
+               account_type, controller_id, agent_did, agent_capabilities,
+               agent_autonomy, agent_spending_limit, agent_model
+        FROM users WHERE id = $1
+        "#
+    )
+    .bind(user_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| AppError::NotFound("User not found".into()))?;
+    
+    // Format QOR ID: username#discriminator
+    let qor_id = format!("{}#{:04}", user.username, user.discriminator);
+    
     Ok(Json(json!({
-        "qor_id": "placeholder#0001",
-        "display_name": "Placeholder",
-        "avatar_url": null,
-        "created_at": "2026-01-12T00:00:00Z",
+        "id": user.id.to_string(),
+        "qor_id": qor_id,
+        "email": user.email,
+        "display_name": user.username, // Use username as display name for now
+        "avatar_url": user.avatar_url,
+        "role": user.role,
+        "status": user.status,
+        "created_at": user.created_at,
         "on_chain": {
-            "address": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-            "cgt_balance": "0.00000000"
-        }
+            "address": user.on_chain_address,
+            "cgt_balance": "0.00" // TODO: Fetch from blockchain RPC
+        },
+        "account_type": user.account_type,
+        "auth_method": user.auth_method
     })))
 }
 

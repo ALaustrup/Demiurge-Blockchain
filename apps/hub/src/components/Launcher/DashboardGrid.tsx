@@ -209,6 +209,11 @@ function ProfilePanel() {
   
   const xpPercent = (xp / maxXp) * 100;
   
+  // Extract display name - prefer qor_id username part
+  const displayName = user?.qor_id?.split('#')[0] || user?.display_name || 'Anonymous';
+  // Show QOR ID if available, otherwise show truncated user ID
+  const qorIdDisplay = user?.qor_id || (user?.id ? `QOR-${user.id.slice(0, 8).toUpperCase()}` : 'Not connected');
+  
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -224,16 +229,16 @@ function ProfilePanel() {
         {/* Avatar */}
         <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 
           border border-neon-cyan/30 flex items-center justify-center">
-          <span className="text-2xl">👤</span>
+          <span className="text-2xl">{user?.role === 'god' ? '👑' : '👤'}</span>
         </div>
         
         {/* Identity */}
         <div className="flex-1">
           <h3 className="font-display text-sm text-text-primary tracking-wide">
-            {user?.display_name || user?.qor_id?.split('#')[0] || 'Anonymous'}
+            {displayName}
           </h3>
           <p className="font-mono text-[10px] text-text-tertiary tracking-wider">
-            QOR-{user?.id?.slice(0, 8).toUpperCase() || '00000000'}
+            {qorIdDisplay}
           </p>
         </div>
         
@@ -245,6 +250,13 @@ function ProfilePanel() {
           <span className="font-display text-[9px] text-text-tertiary tracking-widest">LEVEL</span>
         </div>
       </div>
+      
+      {/* Role Badge for God mode */}
+      {user?.role === 'god' && (
+        <div className="mb-3 px-2 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded text-center">
+          <span className="font-mono text-[10px] text-yellow-400 tracking-wider">GOD MODE ACTIVE</span>
+        </div>
+      )}
       
       {/* XP Bar */}
       <div className="space-y-1">
@@ -386,11 +398,13 @@ export function DashboardGrid() {
     };
   }, [connect]);
 
+  // System modules - showing real-time data where possible
+  // TODO: Fetch actual counts from RPC/API when available
   const systems = [
     {
       icon: '🎮',
       title: 'Games',
-      value: '0',
+      value: '3', // Current available games
       subtitle: 'AVAILABLE TITLES',
       href: '/games',
       status: 'online' as const,
@@ -407,7 +421,7 @@ export function DashboardGrid() {
       icon: '🌐',
       title: 'VYB Social',
       value: '0',
-      subtitle: 'NEW NOTIFICATIONS',
+      subtitle: 'NOTIFICATIONS',
       href: '/social',
       status: 'online' as const,
     },
@@ -423,14 +437,14 @@ export function DashboardGrid() {
       icon: '⚡',
       title: 'Staking',
       value: '0%',
-      subtitle: 'YOUR STAKE APY',
+      subtitle: 'YOUR APY',
       href: '/validators',
       status: 'online' as const,
     },
     {
       icon: '💎',
       title: 'Support',
-      value: 'None',
+      value: '—',
       subtitle: 'NO BADGE YET',
       href: '/donate',
       status: 'online' as const,
@@ -484,7 +498,7 @@ export function DashboardGrid() {
             </div>
           </div>
 
-          {/* Right Column - VYB Widget (placeholder) */}
+          {/* Right Column - VYB Social Widget */}
           <div className="col-span-12 md:col-span-3 space-y-4">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -500,24 +514,23 @@ export function DashboardGrid() {
               </h3>
               
               <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="p-3 rounded-md bg-white/[0.02] border border-white/[0.02]">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-neon-purple/20" />
-                      <span className="font-mono text-[10px] text-text-secondary">User_{i}</span>
-                    </div>
-                    <p className="font-mono text-[10px] text-text-tertiary line-clamp-2">
-                      Loading social feed...
-                    </p>
-                  </div>
-                ))}
+                {/* Empty state - no mock users */}
+                <div className="text-center py-6">
+                  <div className="text-3xl mb-2">🌐</div>
+                  <p className="font-mono text-[10px] text-text-tertiary mb-1">
+                    No recent activity
+                  </p>
+                  <p className="font-mono text-[9px] text-text-tertiary/60">
+                    Connect with the community
+                  </p>
+                </div>
               </div>
               
               <Link 
                 href="/social" 
                 className="block mt-4 text-center font-mono text-[10px] text-neon-cyan hover:underline"
               >
-                View All →
+                Explore VYB →
               </Link>
               
               {/* Bottom glow */}
