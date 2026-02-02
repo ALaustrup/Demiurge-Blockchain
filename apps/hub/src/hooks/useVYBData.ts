@@ -6,9 +6,10 @@
  * React Query hooks for VYB social platform data
  */
 
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys, invalidateFeed } from '@/lib/query-client';
-import { vybService, FeedItem, VYBProfile, GalleryItem } from '@/lib/vyb/service';
+import { vybService } from '@/lib/vyb/service';
+import type { FeedItem, VYBProfile, GalleryItem } from '@/lib/vyb/types';
 import { toast } from '@/providers/ToastProvider';
 
 /**
@@ -29,24 +30,9 @@ export function useVYBProfile(qorId: string | undefined) {
 export function useVYBFeed(type: 'global' | 'following' = 'global') {
   return useQuery({
     queryKey: queryKeys.vyb.feed(type),
-    queryFn: () => vybService.getFeed(type),
+    queryFn: () => vybService.getFeed({ type }),
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Poll every minute
-  });
-}
-
-/**
- * Hook for infinite scrolling feed
- */
-export function useInfiniteVYBFeed(type: 'global' | 'following' = 'global') {
-  return useInfiniteQuery({
-    queryKey: [...queryKeys.vyb.feed(type), 'infinite'],
-    queryFn: ({ pageParam = 0 }) => vybService.getFeedPaginated(type, pageParam, 20),
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage.length === 20 ? allPages.length * 20 : undefined;
-    },
-    initialPageParam: 0,
-    staleTime: 30000,
   });
 }
 

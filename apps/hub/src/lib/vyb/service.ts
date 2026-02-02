@@ -56,6 +56,10 @@ class VYBService {
     this.currentUser = qorId;
   }
 
+  getCurrentUser(): string | null {
+    return this.currentUser;
+  }
+
   // ============ Profile Methods ============
 
   async getProfile(qorId: string): Promise<VYBProfile | null> {

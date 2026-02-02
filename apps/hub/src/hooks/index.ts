@@ -31,7 +31,6 @@ export {
 export {
   useVYBProfile,
   useVYBFeed,
-  useInfiniteVYBFeed,
   useVYBGallery,
   useCreatePost,
   useLikePost,
