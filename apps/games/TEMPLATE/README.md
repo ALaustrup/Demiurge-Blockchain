@@ -1,55 +1,104 @@
-# Game Template
+# Demiurge Game Template
 
-This is a template for creating games that integrate with the Demiurge ecosystem.
+This template provides everything you need to create a DRC-369 NFT-enabled game for the Demiurge platform.
 
 ## Quick Start
 
-1. Copy this template directory to create your new game
-2. Copy `BlockchainManager.js` into your game's root directory
-3. Follow the integration guide: `docs/ROSEBUD_AI_INTEGRATION.md`
+1. **Copy this folder** to `apps/games/YOUR_GAME_NAME/`
 
-## BlockchainManager.js
+2. **Edit `assets/data/nft_assets.json`**:
+   - Set your `gameId`
+   - Define `assetClasses` (skins, effects, etc.)
+   - Configure `nftUnlocks` (what NFTs unlock)
+   - Create `mintableAchievements` (NFTs players can earn)
 
-The `BlockchainManager.js` file provides a clean wrapper around the Demiurge HUD API. It:
-- Manages wallet connection state
-- Provides methods for CGT balance, spending, XP updates, and NFT checking
-- Includes mock mode for development/testing
-- Handles errors gracefully
+3. **Add your game code** and integrate with `DemiurgeIntegration.js`:
 
-See `docs/ROSEBUD_AI_INTEGRATION.md` for full documentation and usage examples.
+```javascript
+// Initialize
+const demiurge = new DemiurgeIntegration('your-game-id', {
+  mockMode: true, // Set false when deploying
+  onAssetsLoaded: (assets) => {
+    // Apply unlocked skins/effects
+    const skin = demiurge.getAsset('player_skin');
+    player.setSkin(skin);
+  },
+  onAchievementMinted: (achievement) => {
+    showPopup(`🏆 ${achievement.name} unlocked!`);
+  }
+});
+
+await demiurge.initialize();
+
+// In your game logic:
+async function onGameWin(score) {
+  // Award achievement (mints soulbound NFT)
+  await demiurge.awardAchievement('first_play', { score });
+  
+  // Update high score
+  await demiurge.updateGameState('high_score', score);
+  
+  // Add XP
+  await demiurge.addXP(Math.floor(score / 100));
+}
+```
 
 ## Files
 
-- `BlockchainManager.js` - Blockchain integration wrapper class
-- `metadata.json` - Game metadata (required for registration)
+| File | Purpose |
+|------|---------|
+| `DemiurgeIntegration.js` | Main integration library |
+| `BlockchainManager.js` | Legacy wallet/balance API |
+| `assets/data/nft_assets.json` | NFT unlock configuration |
 
-## Integration Steps
+## Key Features
 
-1. **Include BlockchainManager.js** in your game's HTML:
-   ```html
-   <script src="BlockchainManager.js"></script>
-   ```
+### 1. Asset Unlocking
+```javascript
+const skin = demiurge.getAsset('player_skin'); // Returns unlocked or default
+```
 
-2. **Initialize in your game code**:
-   ```javascript
-   const blockchain = new BlockchainManager({
-     mockMode: false, // Set to true for local testing
-     onConnectionChange: (connected) => {
-       console.log('Wallet connected:', connected);
-     }
-   });
-   ```
+### 2. Achievement Minting
+```javascript
+await demiurge.awardAchievement('high_scorer', { score: 15000 });
+```
 
-3. **Connect on game start**:
-   ```javascript
-   await blockchain.connectDemiurgeWallet();
-   const balance = await blockchain.getBalanceInCGT();
-   ```
+### 3. Cross-Game Interoperability
+```javascript
+// Read another game's data
+const otherScore = await demiurge.getOtherGameState('cosmic-runner', 'high_score');
+if (otherScore > 50000) {
+  unlockSpecialContent();
+}
+```
 
-4. **Use throughout your game**:
-   - `blockchain.getBalanceInCGT()` - Display balance
-   - `blockchain.spendCGT(amount, reason)` - Make purchases
-   - `blockchain.updateAccountXP(xp, source)` - Award XP
-   - `blockchain.ownsAsset(uuid)` - Check NFT ownership
+### 4. Dynamic State
+```javascript
+// Read
+const xp = await demiurge.getNFTState('stats/xp');
 
-For detailed examples, see `docs/ROSEBUD_AI_INTEGRATION.md`.
+// Write
+await demiurge.incrementStat('stats/games_played');
+await demiurge.updateGameState('high_score', 75000);
+```
+
+## Testing
+
+Set `mockMode: true` to test without blockchain connection:
+
+```javascript
+const demiurge = new DemiurgeIntegration('your-game-id', {
+  mockMode: true
+});
+```
+
+Mock mode simulates:
+- Wallet connection
+- NFT ownership
+- Achievement minting
+- State updates
+
+## See Also
+
+- [DRC369_INTEGRATION_GUIDE.md](../DRC369_INTEGRATION_GUIDE.md) - Full documentation
+- [Demiurge SDK](../../../sdk/) - TypeScript SDK for advanced use cases
