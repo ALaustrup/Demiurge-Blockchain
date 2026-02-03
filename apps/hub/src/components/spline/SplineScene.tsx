@@ -261,15 +261,15 @@ export const SplineScene = forwardRef<SplineSceneRef, SplineSceneProps>(
 
       emitEvent: (eventName: string, objectName?: string) => {
         if (objectName) {
-          splineRef.current?.emitEventReverse(eventName, objectName);
+          (splineRef.current as any)?.emitEventReverse(eventName, objectName);
         } else {
-          splineRef.current?.emitEvent(eventName);
+          (splineRef.current as any)?.emitEvent(eventName);
         }
         log('Emit event', eventName, objectName);
       },
 
       emitEventByName: (objectName: string, eventName: string) => {
-        splineRef.current?.emitEventReverse(eventName, objectName);
+        (splineRef.current as any)?.emitEventReverse(eventName, objectName);
         log('Emit event by name', objectName, eventName);
       },
 
