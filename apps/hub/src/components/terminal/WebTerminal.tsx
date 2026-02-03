@@ -572,8 +572,8 @@ Examples:
         }
         
         try {
-          // Call the mint API
-          const response = await fetch('/api/nft/mint', {
+          // Call the chain-mint API for on-chain minting
+          const response = await fetch('/api/nft/chain-mint', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -585,41 +585,29 @@ Examples:
           const result = await response.json();
           
           if (!response.ok) {
-            // Fallback: simulate minting
-            const tokenId = `drc369_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-            
             return [{
-              type: 'success',
-              content: `✅ NFT Minted Successfully!\n
-Token ID:    ${tokenId}
-Name:        ${nftData.name}
-Owner:       ${nftData.owner}
-Soulbound:   ${nftData.soulbound ? 'Yes' : 'No'}
-Dynamic:     ${nftData.dynamic ? 'Yes' : 'No'}
-${nftData.collection ? `Collection:  ${nftData.collection}` : ''}
-${Object.keys(nftData.metadata).length > 0 ? `\nMetadata:\n${JSON.stringify(nftData.metadata, null, 2)}` : ''}
-
-Note: Full on-chain minting requires RPC method drc369_mint`,
+              type: 'error',
+              content: `❌ Mint failed: ${result.error || 'Unknown error'}`,
             }];
           }
           
           return [{
             type: 'success',
-            content: `✅ NFT Minted Successfully!\n\nToken ID: ${result.tokenId}\nTx Hash:  ${result.txHash || 'pending'}`,
+            content: `✅ NFT Minted On-Chain!\n
+Token ID:    ${result.tokenId}
+Tx Hash:     ${result.txHash}
+Block:       ${result.blockNumber || 'pending'}
+Name:        ${result.nft.name}
+Owner:       ${result.nft.owner}
+Soulbound:   ${result.nft.soulbound ? 'Yes' : 'No'}
+On-Chain:    ✓ Confirmed
+${Object.keys(nftData.metadata).length > 0 ? `\nMetadata:\n${JSON.stringify(nftData.metadata, null, 2)}` : ''}`,
           }];
         } catch (error) {
-          // Simulate successful mint for demo
-          const tokenId = `drc369_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-          
+          const message = error instanceof Error ? error.message : 'Network error';
           return [{
-            type: 'success',
-            content: `✅ NFT Minted Successfully!\n
-Token ID:    ${tokenId}
-Name:        ${nftData.name}
-Owner:       ${nftData.owner}
-Soulbound:   ${nftData.soulbound ? 'Yes' : 'No'}
-Dynamic:     ${nftData.dynamic ? 'Yes' : 'No'}
-${Object.keys(nftData.metadata).length > 0 ? `\nCustom Metadata:\n${JSON.stringify(nftData.metadata, null, 2)}` : ''}`,
+            type: 'error',
+            content: `❌ Mint failed: ${message}\n\nPlease check your connection and try again.`,
           }];
         }
       }
@@ -703,23 +691,24 @@ Examples:
             body: JSON.stringify({ tokenId, updates }),
           });
           
+          const result = await response.json();
+          
           if (!response.ok) {
-            // Simulate update
             return [{
-              type: 'success',
-              content: `✅ NFT Updated!\n\nToken ID: ${tokenId}\nUpdates Applied:\n${JSON.stringify(updates, null, 2)}`,
+              type: 'error',
+              content: `❌ Update failed: ${result.error || 'Unknown error'}`,
             }];
           }
           
-          const result = await response.json();
-          return [{
-            type: 'success',
-            content: `✅ NFT Updated!\n\nToken ID: ${tokenId}\nTx Hash: ${result.txHash || 'pending'}`,
-          }];
-        } catch {
           return [{
             type: 'success',
             content: `✅ NFT Updated!\n\nToken ID: ${tokenId}\nUpdates Applied:\n${JSON.stringify(updates, null, 2)}`,
+          }];
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Network error';
+          return [{
+            type: 'error',
+            content: `❌ Update failed: ${message}`,
           }];
         }
       }
