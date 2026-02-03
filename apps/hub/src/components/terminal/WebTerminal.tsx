@@ -11,7 +11,6 @@
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DemiurgeClient } from '@demiurge/sdk';
-import { Drc369Client } from '@demiurge/drc369-sdk';
 
 // ============================================================================
 // Types
@@ -94,13 +93,11 @@ const WELCOME_MESSAGE = `
 
 class CommandExecutor {
   private client: DemiurgeClient;
-  private nftClient: Drc369Client;
   private rpcUrl: string;
 
   constructor(rpcUrl: string = RPC_URL) {
     this.rpcUrl = rpcUrl;
     this.client = new DemiurgeClient({ rpcUrl });
-    this.nftClient = new Drc369Client({ rpcUrl });
   }
 
   async execute(input: string): Promise<CommandResult[]> {
@@ -310,16 +307,33 @@ class CommandExecutor {
         }
         
         try {
-          const token = await this.nftClient.getToken(tokenId);
+          // Query NFT via RPC
+          const response = await fetch(this.rpcUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'drc369_getToken',
+              params: [tokenId],
+            }),
+          });
+          const data = await response.json();
+          
+          if (data.error) {
+            return [{ type: 'error', content: `NFT not found: ${tokenId}` }];
+          }
+          
+          const token = data.result;
           
           if (isJson) {
             return [{ type: 'output', content: JSON.stringify(token, null, 2) }];
           }
           
           let output = `🖼️  NFT Information:\n\n`;
-          output += `  Token ID:   ${token.id}\n`;
+          output += `  Token ID:   ${token.id || tokenId}\n`;
           output += `  Name:       ${token.name || 'Unnamed'}\n`;
-          output += `  Owner:      ${token.owner}\n`;
+          output += `  Owner:      ${token.owner || 'Unknown'}\n`;
           output += `  Collection: ${token.collection || 'None'}\n`;
           
           if (token.dynamicState) {
@@ -331,8 +345,8 @@ class CommandExecutor {
           return [{ type: 'success', content: output }];
         } catch {
           return [{
-            type: 'error',
-            content: `NFT not found: ${tokenId}`,
+            type: 'info',
+            content: `🖼️  NFT Lookup:\n\n  Token ID: ${tokenId}\n\nNote: NFT query requires DRC-369 RPC methods`,
           }];
         }
       }
@@ -344,7 +358,24 @@ class CommandExecutor {
         }
         
         try {
-          const tokens = await this.nftClient.getTokensByOwner(owner);
+          // Query NFTs via RPC
+          const response = await fetch(this.rpcUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'drc369_getTokensByOwner',
+              params: [owner],
+            }),
+          });
+          const data = await response.json();
+          
+          if (data.error || !data.result) {
+            return [{ type: 'info', content: `No NFTs found for ${owner}\n\nNote: NFT query requires DRC-369 RPC methods` }];
+          }
+          
+          const tokens = data.result;
           
           if (tokens.length === 0) {
             return [{ type: 'info', content: `No NFTs found for ${owner}` }];
@@ -372,8 +403,8 @@ class CommandExecutor {
           return [{ type: 'table', content: table }];
         } catch {
           return [{
-            type: 'error',
-            content: `Failed to fetch NFTs for ${owner}`,
+            type: 'info',
+            content: `🖼️  NFT List for ${owner}:\n\nNote: NFT query requires DRC-369 RPC methods`,
           }];
         }
       }
