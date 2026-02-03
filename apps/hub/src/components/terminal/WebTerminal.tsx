@@ -32,7 +32,9 @@ interface CommandResult {
 // Constants
 // ============================================================================
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud';
+// Use local proxy to avoid CORS issues
+const RPC_URL = '/api/rpc';
+const RPC_DISPLAY_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud';
 
 const HELP_TEXT = `
 ╔══════════════════════════════════════════════════════════════════════════╗
@@ -83,7 +85,7 @@ const WELCOME_MESSAGE = `
 ║              On-Chain CLI Terminal v1.0.0 - Web Interface                ║
 ║                                                                          ║
 ║   Type 'help' for available commands                                     ║
-║   Connected to: ${RPC_URL.padEnd(52)}║
+║   Connected to: ${RPC_DISPLAY_URL.padEnd(52)}║
 ╚══════════════════════════════════════════════════════════════════════════╝
 `;
 
@@ -94,9 +96,11 @@ const WELCOME_MESSAGE = `
 class CommandExecutor {
   private client: DemiurgeClient;
   private rpcUrl: string;
+  private displayUrl: string;
 
-  constructor(rpcUrl: string = RPC_URL) {
+  constructor(rpcUrl: string = RPC_URL, displayUrl: string = RPC_DISPLAY_URL) {
     this.rpcUrl = rpcUrl;
+    this.displayUrl = displayUrl;
     this.client = new DemiurgeClient({ endpoint: rpcUrl });
   }
 
@@ -158,7 +162,7 @@ class CommandExecutor {
             type: 'output',
             content: JSON.stringify({
               blockHeight: blockNumber,
-              rpcEndpoint: this.rpcUrl,
+              rpcEndpoint: this.displayUrl,
               network: 'Demiurge Mainnet',
               status: 'Online',
             }, null, 2),
@@ -172,7 +176,7 @@ class CommandExecutor {
 │ Metric                         │ Value                                      │
 ├────────────────────────────────┼────────────────────────────────────────────┤
 │ Block Height                   │ ${String(blockNumber).padEnd(42)}│
-│ RPC Endpoint                   │ ${this.rpcUrl.padEnd(42)}│
+│ RPC Endpoint                   │ ${this.displayUrl.padEnd(42)}│
 │ Network                        │ Demiurge Mainnet                           │
 │ Status                         │ ● Online                                   │
 └────────────────────────────────┴────────────────────────────────────────────┘
@@ -685,7 +689,7 @@ export function WebTerminal({ isOpen, onClose }: WebTerminalProps) {
                 </span>
               </div>
               <div className="flex items-center gap-4 text-xs text-text-tertiary font-mono">
-                <span>RPC: {RPC_URL}</span>
+                <span>RPC: {RPC_DISPLAY_URL}</span>
                 <span className="text-green-400">● Connected</span>
               </div>
             </div>
