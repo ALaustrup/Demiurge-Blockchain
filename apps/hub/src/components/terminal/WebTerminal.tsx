@@ -11,7 +11,7 @@
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DemiurgeClient } from '@demiurge/sdk';
-import { DRC369Client } from '@demiurge/drc369-sdk';
+import { Drc369Client } from '@demiurge/drc369-sdk';
 
 // ============================================================================
 // Types
@@ -94,13 +94,13 @@ const WELCOME_MESSAGE = `
 
 class CommandExecutor {
   private client: DemiurgeClient;
-  private nftClient: DRC369Client;
+  private nftClient: Drc369Client;
   private rpcUrl: string;
 
   constructor(rpcUrl: string = RPC_URL) {
     this.rpcUrl = rpcUrl;
     this.client = new DemiurgeClient({ rpcUrl });
-    this.nftClient = new DRC369Client({ rpcUrl });
+    this.nftClient = new Drc369Client({ rpcUrl });
   }
 
   async execute(input: string): Promise<CommandResult[]> {
