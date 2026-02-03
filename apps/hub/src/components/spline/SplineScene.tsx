@@ -310,27 +310,27 @@ export const SplineScene = forwardRef<SplineSceneRef, SplineSceneProps>(
         <Spline
           scene={scene}
           onLoad={handleLoad}
-          onMouseHover={(e) => {
+          onSplineMouseHover={(e: any) => {
             handleEvent('mouseHover', e);
             onMouseHover?.(e as SplineMouseEvent);
           }}
-          onMouseDown={(e) => {
+          onSplineMouseDown={(e: any) => {
             handleEvent('mouseDown', e);
             onMouseDown?.(e as SplineMouseEvent);
           }}
-          onMouseUp={(e) => {
+          onSplineMouseUp={(e: any) => {
             handleEvent('mouseUp', e);
             onMouseUp?.(e as SplineMouseEvent);
           }}
-          onKeyDown={(e) => {
+          onSplineKeyDown={(e: any) => {
             handleEvent('keyDown', e);
             onKeyDown?.(e as SplineKeyEvent);
           }}
-          onKeyUp={(e) => {
+          onSplineKeyUp={(e: any) => {
             handleEvent('keyUp', e);
             onKeyUp?.(e as SplineKeyEvent);
           }}
-          onScroll={(e) => {
+          onSplineScroll={(e: any) => {
             handleEvent('scroll', e);
             onScroll?.(e as SplineScrollEvent);
           }}
