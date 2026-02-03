@@ -51,6 +51,9 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         // Register session keys methods
         Self::register_session_keys_methods(&mut module)?;
         
+        // Register DRC-369 NFT methods
+        Self::register_drc369_methods(&mut module)?;
+        
         // Configure server to support both HTTP and WebSocket
         // ServerBuilder::default() should support both, but we ensure HTTP is enabled
         // This allows curl (HTTP POST) for testing AND WebSocket for UI clients
@@ -236,6 +239,66 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
             ctx.session_keys_get_active_keys(address).await
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register sessionKeys_getActiveKeys: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// Register DRC-369 NFT RPC methods
+    fn register_drc369_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
+        // drc369_ownerOf
+        module.register_async_method("drc369_ownerOf", |params, ctx| async move {
+            let token_id: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid token_id") })?;
+            ctx.drc369_owner_of(token_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_ownerOf: {}", e)))?;
+
+        // drc369_balanceOf
+        module.register_async_method("drc369_balanceOf", |params, ctx| async move {
+            let owner: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid owner") })?;
+            ctx.drc369_balance_of(owner).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_balanceOf: {}", e)))?;
+
+        // drc369_tokenURI
+        module.register_async_method("drc369_tokenURI", |params, ctx| async move {
+            let token_id: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid token_id") })?;
+            ctx.drc369_token_uri(token_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_tokenURI: {}", e)))?;
+
+        // drc369_isSoulbound
+        module.register_async_method("drc369_isSoulbound", |params, ctx| async move {
+            let token_id: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid token_id") })?;
+            ctx.drc369_is_soulbound(token_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_isSoulbound: {}", e)))?;
+
+        // drc369_getDynamicState
+        module.register_async_method("drc369_getDynamicState", |params, ctx| async move {
+            let (token_id, state_key): (String, String) = params.parse().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid params") })?;
+            ctx.drc369_get_dynamic_state(token_id, state_key).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_getDynamicState: {}", e)))?;
+
+        // drc369_getTokenInfo
+        module.register_async_method("drc369_getTokenInfo", |params, ctx| async move {
+            let token_id: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid token_id") })?;
+            ctx.drc369_get_token_info(token_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_getTokenInfo: {}", e)))?;
+
+        // drc369_totalSupply
+        module.register_async_method("drc369_totalSupply", |_params, ctx| async move {
+            ctx.drc369_total_supply().await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_totalSupply: {}", e)))?;
+
+        // drc369_getStateBatch
+        module.register_async_method("drc369_getStateBatch", |params, ctx| async move {
+            let (token_id, paths): (String, Vec<String>) = params.parse().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid params") })?;
+            ctx.drc369_get_state_batch(token_id, paths).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_getStateBatch: {}", e)))?;
 
         Ok(())
     }
