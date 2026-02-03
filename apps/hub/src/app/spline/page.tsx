@@ -19,8 +19,8 @@ import type { Application } from '@splinetool/runtime';
 // Replace this with your Spline scene URL from Export > Code > React
 const SCENE_URL = process.env.NEXT_PUBLIC_SPLINE_SCENE_URL || '';
 
-// Example Spline community scene (for testing)
-const DEMO_SCENE = 'https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode';
+// No demo scene - user must provide their own
+const DEMO_SCENE = '';
 
 // ============================================================================
 // Page Component
@@ -28,8 +28,9 @@ const DEMO_SCENE = 'https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode
 
 export default function SplineDemoPage() {
   const splineRef = useRef<SplineSceneRef>(null);
-  const [sceneUrl, setSceneUrl] = useState(SCENE_URL || DEMO_SCENE);
-  const [inputUrl, setInputUrl] = useState(sceneUrl);
+  const initialUrl = SCENE_URL || DEMO_SCENE || '';
+  const [sceneUrl, setSceneUrl] = useState(initialUrl);
+  const [inputUrl, setInputUrl] = useState('');
   const [splineApp, setSplineApp] = useState<Application | null>(null);
   const [objects, setObjects] = useState<string[]>([]);
   const [variables, setVariables] = useState<Record<string, any>>({});
@@ -143,12 +144,23 @@ export default function SplineDemoPage() {
               className="w-full h-full"
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-text-secondary">No scene loaded</p>
-                <p className="text-sm text-text-tertiary mt-2">
-                  Paste a Spline scene URL above to get started
+            <div className="absolute inset-0 flex items-center justify-center bg-architect-bg">
+              <div className="text-center max-w-md">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-neon-cyan/10 flex items-center justify-center">
+                  <svg className="w-10 h-10 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                </div>
+                <h2 className="font-display text-xl text-text-primary mb-2">No Scene Loaded</h2>
+                <p className="text-sm text-text-tertiary mb-6">
+                  Export your Spline scene as React code and paste the URL above
                 </p>
+                <div className="text-left bg-white/5 border border-white/10 rounded-lg p-4">
+                  <p className="text-xs text-text-secondary font-mono mb-2">Example URL format:</p>
+                  <code className="text-xs text-neon-cyan break-all">
+                    https://prod.spline.design/xxxxx/scene.splinecode
+                  </code>
+                </div>
               </div>
             </div>
           )}
