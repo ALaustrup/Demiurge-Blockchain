@@ -84,8 +84,8 @@ export function useSplineBlockchain({
   variableNames = {},
   onUpdate,
 }: UseSplineBlockchainOptions) {
-  const lastUpdateRef = useRef<number>(0);
-  const animationFrameRef = useRef<number>();
+  const lastUpdateRef = useRef(0);
+  const animationFrameRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
 
   // Merge variable names with defaults
   const varNames = { ...DEFAULT_VARIABLE_NAMES, ...variableNames };
