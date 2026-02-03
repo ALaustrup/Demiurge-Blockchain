@@ -42,7 +42,7 @@
 //! - **Maintenance**: Data cleanup, state pruning
 //! - **Governance**: Proposal analysis and voting
 
-use alloc::{string::String, vec::Vec, vec};
+use alloc::{format, string::{String, ToString}, vec::Vec, vec};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
@@ -884,11 +884,19 @@ pub enum HealthStatus {
 // HELPERS
 // ============================================================================
 
+#[cfg(feature = "std")]
 fn current_timestamp() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs()
+}
+
+#[cfg(not(feature = "std"))]
+fn current_timestamp() -> u64 {
+    // In no_std environment, timestamp must be provided externally
+    // This is a placeholder that should be replaced by on-chain block timestamp
+    0
 }
 
 // ============================================================================

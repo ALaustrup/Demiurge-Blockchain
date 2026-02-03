@@ -4,7 +4,8 @@
 //! Provides episodic, semantic, and procedural memory storage
 //! with vector similarity search.
 
-use alloc::{string::String, vec::Vec, vec};
+use alloc::{format, string::{String, ToString}, vec::Vec, vec};
+use core::cmp::Ordering;
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
@@ -345,7 +346,7 @@ impl VectorStateKernel {
             .collect();
         
         // Sort by score descending
-        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal));
         
         // Take top N, record access, and clone
         let top_ids: Vec<[u8; 32]> = scored.iter().take(limit).map(|(id, _)| *id).collect();
@@ -385,7 +386,7 @@ impl VectorStateKernel {
                 if mem.archived { return None; }
                 Some((*id, mem.effective_importance()))
             })
-            .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+            .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal))
             .map(|(id, _)| id);
         
         if let Some(id) = to_archive {

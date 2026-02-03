@@ -11,6 +11,13 @@ description = "Full node implementation for Demiurge blockchain"
 name = "demiurge-node"
 path = "src/main.rs"
 
+[features]
+default = []
+# Enable post-quantum cryptography (CRYSTALS-Dilithium)
+pqc = ["demiurge-primitives/pqc", "demiurge-consensus/pqc"]
+# Enable all optional features
+full = ["pqc"]
+
 [dependencies]
 # Core framework
 demiurge-core = { path = "../core" }
@@ -19,6 +26,7 @@ demiurge-consensus = { path = "../consensus" }
 demiurge-network = { path = "../network" }
 demiurge-modules = { path = "../modules" }
 demiurge-rpc = { path = "../rpc" }
+demiurge-primitives = { path = "../primitives" }
 
 # CLI
 clap = { version = "4.5", features = ["derive"] }

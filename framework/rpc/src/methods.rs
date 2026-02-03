@@ -680,22 +680,60 @@ impl<S: Storage> RpcMethods<S> {
     pub async fn drc369_get_state_tree(&self, token_id: String, path_prefix: String) -> Result<Drc369StateTree, RpcError> {
         let token_id_u256 = self.parse_token_id(&token_id)?;
         
-        // Scan storage for matching keys
-        // In production, we'd have a more efficient index
-        let prefix = format!("DRC369:State:{}:", hex::encode(token_id_u256));
-        let path_bytes = path_prefix.as_bytes();
+        // Build the full storage key prefix for this token's state
+        // Format: "DRC369:State:{token_id}:{path_prefix}"
+        let mut prefix_key = b"DRC369:State:".to_vec();
+        prefix_key.extend_from_slice(&token_id_u256);
+        prefix_key.push(b':');
+        prefix_key.extend_from_slice(path_prefix.as_bytes());
         
+        // Use storage prefix iteration to find all matching entries
         let mut entries: Vec<Drc369StateEntry> = Vec::new();
         
-        // For now, return empty - full implementation requires storage iteration
-        // which we'll add with the indexer
-        // TODO: Implement storage prefix scan
+        // The Storage trait's prefix_iter returns (key, value) pairs in order
+        for (key, value) in self.storage.prefix_iter(&prefix_key) {
+            // Extract the path from the full key
+            // Key format: "DRC369:State:{token_id}:{path}"
+            let base_prefix = format!("DRC369:State:{}:", hex::encode(token_id_u256));
+            let base_prefix_bytes = base_prefix.as_bytes();
+            
+            if key.len() > base_prefix_bytes.len() {
+                let path = String::from_utf8_lossy(&key[base_prefix_bytes.len()..]).to_string();
+                
+                // Determine value type and convert to string
+                let (value_str, value_type) = match String::from_utf8(value.clone()) {
+                    Ok(s) => {
+                        // Try to parse as JSON to determine type
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&s) {
+                            match json {
+                                serde_json::Value::Number(_) => (s, "number".to_string()),
+                                serde_json::Value::Bool(_) => (s, "boolean".to_string()),
+                                serde_json::Value::Object(_) => (s, "object".to_string()),
+                                serde_json::Value::Array(_) => (s, "array".to_string()),
+                                _ => (s, "string".to_string()),
+                            }
+                        } else {
+                            (s, "string".to_string())
+                        }
+                    },
+                    Err(_) => (hex::encode(&value), "bytes".to_string()),
+                };
+                
+                entries.push(Drc369StateEntry {
+                    path,
+                    value: value_str,
+                    value_type,
+                });
+            }
+        }
+        
+        let total_count = entries.len();
         
         Ok(Drc369StateTree {
             token_id,
             path_prefix,
             entries,
-            total_count: 0,
+            total_count,
         })
     }
     

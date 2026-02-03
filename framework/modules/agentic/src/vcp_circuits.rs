@@ -47,6 +47,7 @@ use plonky2::plonk::config::PoseidonGoldilocksConfig;
 #[cfg(feature = "zk-vcp")]
 use plonky2::plonk::proof::ProofWithPublicInputs;
 
+use alloc::vec::Vec;
 use sha2::{Sha256, Digest};
 use crate::error::AgenticError;
 use crate::forge::{ModelAttestation, SentinelAttestation, VerifiableComputeProof};

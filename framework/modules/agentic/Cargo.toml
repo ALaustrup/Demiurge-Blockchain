@@ -35,11 +35,12 @@ tokio = { version = "1.35", features = ["full"], optional = true }
 ndarray = { version = "0.15", optional = true }
 
 [features]
-default = []
+default = ["std"]
 std = ["tokio"]
+pqc = ["demiurge-primitives/pqc"]
 vector-state = ["ndarray"]
 zk-vcp = ["plonky2", "plonky2_field"]
-full = ["std", "vector-state", "zk-vcp"]
+full = ["std", "pqc", "vector-state", "zk-vcp"]
 
 [dev-dependencies]
 tokio = { version = "1.35", features = ["full", "test-util"] }

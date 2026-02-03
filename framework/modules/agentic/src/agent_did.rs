@@ -10,7 +10,7 @@
 //!                    └── "agent" namespace distinguishes from human DIDs
 //! ```
 
-use alloc::{string::String, vec::Vec, vec};
+use alloc::{format, string::{String, ToString}, vec::Vec, vec};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
