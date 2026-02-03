@@ -88,10 +88,7 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
 
     try {
       const response = await qorAuth.login(currentUsername, currentPassword);
-      
-      if (response.token) {
-        document.cookie = `qor_token=${response.token}; path=/; max-age=86400; SameSite=Lax`;
-      }
+      // Cookie is now set automatically by qor-sdk's setToken()
       
       try {
         await refreshUser();

@@ -160,10 +160,19 @@ export class QorAuthClient {
     // Store in localStorage for persistence across page refreshes
     if (typeof globalThis !== 'undefined' && 'window' in globalThis && 'localStorage' in (globalThis as any).window) {
       const localStorage = (globalThis as any).window.localStorage;
+      const document = (globalThis as any).window.document;
+      
       localStorage.setItem('qor_token', token);
       localStorage.setItem('qor_token_expiry', expiryMs.toString());
       if (refreshToken) {
         localStorage.setItem('qor_refresh_token', refreshToken);
+      }
+      
+      // Sync token to cookie for middleware/SSR access
+      // Use refresh token expiry (7 days) or token expiry, whichever is longer
+      const cookieMaxAge = refreshToken ? 604800 : Math.ceil((expiresIn || 3600));
+      if (document) {
+        document.cookie = `qor_token=${token}; path=/; max-age=${cookieMaxAge}; SameSite=Lax`;
       }
     }
   }
@@ -183,9 +192,16 @@ export class QorAuthClient {
     
     if (typeof globalThis !== 'undefined' && 'window' in globalThis && 'localStorage' in (globalThis as any).window) {
       const localStorage = (globalThis as any).window.localStorage;
+      const document = (globalThis as any).window.document;
+      
       localStorage.removeItem('qor_token');
       localStorage.removeItem('qor_refresh_token');
       localStorage.removeItem('qor_token_expiry');
+      
+      // Clear cookie by setting expired date
+      if (document) {
+        document.cookie = 'qor_token=; path=/; max-age=0; SameSite=Lax';
+      }
     }
   }
 

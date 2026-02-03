@@ -34,10 +34,8 @@ export function QorIdLoginModal({ isOpen, onClose, onLoginSuccess, onSwitchToReg
 
     try {
       // Login accepts email or username
-      const response = await qorAuth.login(identifier, password);
-      
-      // Set cookie for middleware
-      document.cookie = `qor_token=${response.token}; path=/; max-age=86400; SameSite=Lax`;
+      // Cookie is automatically set by qor-sdk's setToken()
+      await qorAuth.login(identifier, password);
       
       // CRITICAL: Refresh the AuthContext state with the logged-in user
       await refreshUser();
