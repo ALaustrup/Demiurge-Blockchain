@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { QorIdAuthFlow } from './QorIdAuthFlow';
+import { TerminalButton } from '@/components/terminal';
 
 /**
  * AuthGate Component
@@ -233,8 +234,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             </span>
           </div>
 
-          {/* Learn more link */}
-          <div className="mt-6">
+          {/* Action buttons */}
+          <div className="mt-6 flex items-center gap-4">
+            {/* Terminal button */}
+            <TerminalButton variant="inline" />
+            
+            {/* Learn more link */}
             <a
               href="https://demiurge.guru"
               target="_blank"

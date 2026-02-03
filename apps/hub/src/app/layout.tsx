@@ -12,6 +12,7 @@ import { ContextMenuProvider } from '@/contexts/ContextMenuContext'
 import { StarfieldBackground, HeaderBar } from '@/components/Launcher'
 import { MusicPlayer } from '@/components/music/MusicPlayer'
 import { AuthGate } from '@/components/auth/AuthGate'
+import { TerminalButton } from '@/components/terminal'
 import './globals.css'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -98,6 +99,9 @@ export default function RootLayout({
                           
                           {/* Global Music Player */}
                           <MusicPlayer />
+                          
+                          {/* Floating Terminal Button */}
+                          <TerminalButton />
                         </ContextMenuProvider>
                       </MusicProvider>
                     </VoiceProvider>
