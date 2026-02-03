@@ -762,6 +762,87 @@ impl<S: Storage> RpcMethods<S> {
         })
     }
     
+    /// Mint a new DRC-369 NFT (Admin/Privileged operation)
+    /// 
+    /// This is a privileged mint operation that creates a new NFT.
+    /// In production, this should require admin signature verification.
+    /// Returns the token ID and transaction hash.
+    pub async fn drc369_mint(&self, mint_request: Drc369MintRequest) -> Result<Drc369MintResult, RpcError> {
+        // Generate token ID if not provided
+        let token_id = mint_request.token_id.unwrap_or_else(|| {
+            format!("drc369_{:x}_{:06x}", 
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis() as u64,
+                rand::random::<u32>() & 0xFFFFFF
+            )
+        });
+        
+        let token_id_bytes = self.parse_token_id(&token_id)?;
+        
+        // Check if token already exists
+        let owner_key = Self::drc369_owner_key(token_id_bytes);
+        if self.storage.get(&owner_key).is_some() {
+            return Err(RpcError::InvalidTransaction("Token already exists".to_string()));
+        }
+        
+        // Parse owner address
+        let owner_bytes: [u8; 32] = if mint_request.owner.len() == 64 {
+            hex::decode(&mint_request.owner)
+                .map_err(|_| RpcError::InvalidParams)?
+                .try_into()
+                .map_err(|_| RpcError::InvalidParams)?
+        } else {
+            // For QOR ID owners, hash the ID
+            use blake2::{Blake2b512, Digest};
+            let mut hasher = Blake2b512::new();
+            hasher.update(b"QOR_ID:");
+            hasher.update(mint_request.owner.as_bytes());
+            let hash = hasher.finalize();
+            let mut result = [0u8; 32];
+            result.copy_from_slice(&hash[..32]);
+            result
+        };
+        
+        // Generate transaction hash
+        use blake2::{Blake2b512, Digest};
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"DRC369_MINT");
+        hasher.update(&token_id_bytes);
+        hasher.update(&owner_bytes);
+        hasher.update(mint_request.name.as_bytes());
+        hasher.update(&std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .to_le_bytes());
+        let hash = hasher.finalize();
+        let mut tx_hash = [0u8; 32];
+        tx_hash.copy_from_slice(&hash[..32]);
+        
+        // Note: Direct storage writes require mutable access.
+        // For now, we return the mint result and the caller should
+        // submit this as a transaction to the pool for actual on-chain storage.
+        // This is a "dry run" that validates and prepares the mint.
+        
+        tracing::info!(
+            "DRC-369 Mint prepared: {} -> owner {}",
+            token_id,
+            mint_request.owner
+        );
+        
+        Ok(Drc369MintResult {
+            token_id,
+            tx_hash: hex::encode(tx_hash),
+            owner: mint_request.owner,
+            name: mint_request.name,
+            soulbound: mint_request.soulbound.unwrap_or(false),
+            status: "pending".to_string(),
+            block_number: None,
+        })
+    }
+
     /// Get DRC-369 token full info
     /// 
     /// Returns comprehensive information about a token including
@@ -1418,6 +1499,46 @@ pub struct Drc369CollectionStats {
     pub soulbound_count: u64,
     /// Number of nested tokens
     pub nested_count: u64,
+}
+
+/// DRC-369 mint request
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369MintRequest {
+    /// Optional token ID (auto-generated if not provided)
+    pub token_id: Option<String>,
+    /// Owner address (hex) or QOR ID
+    pub owner: String,
+    /// Token name
+    pub name: String,
+    /// Token description
+    pub description: Option<String>,
+    /// Token image URI
+    pub image: Option<String>,
+    /// Whether token is soulbound
+    pub soulbound: Option<bool>,
+    /// Whether token is dynamic
+    pub dynamic: Option<bool>,
+    /// Custom metadata
+    pub metadata: Option<serde_json::Value>,
+}
+
+/// DRC-369 mint result
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369MintResult {
+    /// Generated token ID
+    pub token_id: String,
+    /// Transaction hash
+    pub tx_hash: String,
+    /// Owner address
+    pub owner: String,
+    /// Token name
+    pub name: String,
+    /// Whether soulbound
+    pub soulbound: bool,
+    /// Status: "pending", "confirmed", "failed"
+    pub status: String,
+    /// Block number if confirmed
+    pub block_number: Option<u64>,
 }
 
 /// DRC-369 state tree response

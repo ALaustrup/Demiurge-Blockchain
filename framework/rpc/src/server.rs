@@ -300,6 +300,14 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_getStateBatch: {}", e)))?;
 
+        // drc369_mint - Privileged mint operation
+        module.register_async_method("drc369_mint", |params, ctx| async move {
+            let mint_request: crate::methods::Drc369MintRequest = params.one()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid mint request") })?;
+            ctx.drc369_mint(mint_request).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_mint: {}", e)))?;
+
         Ok(())
     }
 
