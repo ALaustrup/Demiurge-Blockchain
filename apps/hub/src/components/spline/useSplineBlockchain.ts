@@ -103,12 +103,12 @@ export function useSplineBlockchain({
     return {
       blockHeight: chainInfo.blockHeight || 0,
       validators: chainInfo.validators || 0,
-      tps: chainInfo.tps || 0,
+      tps: 0, // TODO: Implement TPS tracking
       isConnected: chainInfo.isConnected,
       cgtBalance: parseFloat(cgtBalanceRaw.toFixed(2)),
       energy: 100, // TODO: Hook up to energy system
       nftCount: 0, // TODO: Hook up to NFT count
-      networkLoad: Math.min(100, (chainInfo.tps || 0) * 10), // Estimate
+      networkLoad: 50, // TODO: Calculate from actual metrics
       blockProgress: 0, // Would need block time tracking
     };
   }, [chainInfo, balance.data]);

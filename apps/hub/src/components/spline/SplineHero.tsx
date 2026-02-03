@@ -196,7 +196,6 @@ export function SplineHero({
       spline.setVariable('blockHeight', chainInfo.blockHeight || 0);
       spline.setVariable('validators', chainInfo.validators || 0);
       spline.setVariable('isConnected', chainInfo.isConnected);
-      spline.setVariable('tps', chainInfo.tps || 0);
     } catch {
       // Variables might not exist in scene
     }
