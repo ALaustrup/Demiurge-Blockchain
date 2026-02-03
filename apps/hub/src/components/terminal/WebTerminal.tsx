@@ -230,7 +230,10 @@ class CommandExecutor {
         
         try {
           const balanceResult = await this.client.getBalance(address);
-          const balance = balanceResult?.free ?? balanceResult ?? '0';
+          // Handle both string and object responses
+          const balance = typeof balanceResult === 'object' 
+            ? ((balanceResult as any)?.free ?? '0')
+            : (balanceResult ?? '0');
           const balanceNum = Number(balance) || 0;
           const cgtBalance = (balanceNum / 1e18).toFixed(6);
           const sparks = (balanceNum / 1e16).toFixed(2);
