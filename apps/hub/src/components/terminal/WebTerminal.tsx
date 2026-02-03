@@ -229,9 +229,11 @@ class CommandExecutor {
         }
         
         try {
-          const balance = await this.client.getBalance(address);
-          const cgtBalance = (Number(balance) / 1e18).toFixed(6);
-          const sparks = (Number(balance) / 1e16).toFixed(2);
+          const balanceResult = await this.client.getBalance(address);
+          const balance = balanceResult?.free ?? balanceResult ?? '0';
+          const balanceNum = Number(balance) || 0;
+          const cgtBalance = (balanceNum / 1e18).toFixed(6);
+          const sparks = (balanceNum / 1e16).toFixed(2);
           
           if (isJson) {
             return [{
@@ -259,7 +261,8 @@ class CommandExecutor {
         }
         
         try {
-          const energy = await this.client.getEnergy(address);
+          const energyResult = await this.client.getEnergy(address);
+          const energy = Number(energyResult) || 100;
           const filled = Math.floor(energy / 5);
           const empty = 20 - filled;
           const bar = '█'.repeat(filled) + '░'.repeat(empty);
