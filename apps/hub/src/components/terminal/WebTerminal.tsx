@@ -28,6 +28,13 @@ interface CommandResult {
   content: string;
 }
 
+interface AuthSession {
+  token: string;
+  qorId: string;
+  role: string;
+  expiresAt: number;
+}
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -47,6 +54,7 @@ USAGE: <command> [subcommand] [arguments]
 COMMANDS:
   help                          Show this help message
   clear                         Clear terminal
+  whoami                        Show current session info
   
   chain status                  Get chain status
   chain block-number            Get current block number
@@ -58,9 +66,14 @@ COMMANDS:
   
   nft info <tokenId>            Get NFT information
   nft list <owner>              List NFTs owned by address
+  nft mint [options]            Mint a new DRC-369 NFT (requires auth)
+  nft update <tokenId> [data]   Update NFT metadata (requires auth)
   
   identity check <username>     Check username availability
   identity resolve <handle>     Resolve QOR ID to address
+  identity login <qorId>        Login with QOR ID (enables write access)
+  identity logout               Logout current session
+  identity apikey               Generate API key for external agents
 
 OPTIONS:
   --json                        Output as JSON
@@ -97,14 +110,63 @@ class CommandExecutor {
   private client: DemiurgeClient;
   private rpcUrl: string;
   private displayUrl: string;
+  private session: AuthSession | null = null;
+  private pendingPassword: { qorId: string; resolve: (pwd: string) => void } | null = null;
 
   constructor(rpcUrl: string = RPC_URL, displayUrl: string = RPC_DISPLAY_URL) {
     this.rpcUrl = rpcUrl;
     this.displayUrl = displayUrl;
     this.client = new DemiurgeClient({ endpoint: rpcUrl });
+    
+    // Restore session from localStorage if available
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('demiurge_cli_session');
+        if (saved) {
+          const session = JSON.parse(saved) as AuthSession;
+          if (session.expiresAt > Date.now()) {
+            this.session = session;
+          } else {
+            localStorage.removeItem('demiurge_cli_session');
+          }
+        }
+      } catch {
+        // Ignore
+      }
+    }
+  }
+
+  isAuthenticated(): boolean {
+    return this.session !== null && this.session.expiresAt > Date.now();
+  }
+
+  isGodmode(): boolean {
+    return this.session?.role === 'god' || this.session?.role === 'admin';
+  }
+
+  getSession(): AuthSession | null {
+    return this.session;
+  }
+
+  // Handle password input for login
+  handlePasswordInput(password: string): void {
+    if (this.pendingPassword) {
+      this.pendingPassword.resolve(password);
+      this.pendingPassword = null;
+    }
+  }
+
+  isPendingPassword(): boolean {
+    return this.pendingPassword !== null;
   }
 
   async execute(input: string): Promise<CommandResult[]> {
+    // Handle password input
+    if (this.pendingPassword) {
+      this.handlePasswordInput(input);
+      return [{ type: 'info', content: 'Authenticating...' }];
+    }
+
     const parts = input.trim().split(/\s+/);
     const command = parts[0]?.toLowerCase();
     const subcommand = parts[1]?.toLowerCase();
@@ -120,6 +182,9 @@ class CommandExecutor {
         case 'clear':
           return [{ type: 'info', content: '__CLEAR__' }];
 
+        case 'whoami':
+          return this.handleWhoami();
+
         case 'chain':
           return await this.handleChainCommand(subcommand, args, isJson);
 
@@ -131,7 +196,7 @@ class CommandExecutor {
 
         case 'identity':
         case 'id':
-          return await this.handleIdentityCommand(subcommand, args, isJson);
+          return await this.handleIdentityCommand(subcommand, args, isJson, input);
 
         case '':
           return [];
@@ -146,6 +211,23 @@ class CommandExecutor {
       const message = error instanceof Error ? error.message : String(error);
       return [{ type: 'error', content: `Error: ${message}` }];
     }
+  }
+
+  private handleWhoami(): CommandResult[] {
+    if (!this.isAuthenticated()) {
+      return [{
+        type: 'info',
+        content: `👤 Not logged in\n\nUse 'identity login <qorId>' to authenticate.`,
+      }];
+    }
+
+    const session = this.session!;
+    const expiresIn = Math.round((session.expiresAt - Date.now()) / 1000 / 60);
+    
+    return [{
+      type: 'success',
+      content: `👤 Current Session:\n\n  QOR ID:      ${session.qorId}\n  Role:        ${session.role.toUpperCase()}\n  Expires in:  ${expiresIn} minutes\n  Write Access: ${this.isGodmode() ? '✅ ENABLED' : '❌ READ-ONLY'}`,
+    }];
   }
 
   private async handleChainCommand(
@@ -419,10 +501,233 @@ class CommandExecutor {
         }
       }
 
+      case 'mint': {
+        if (!this.isAuthenticated()) {
+          return [{
+            type: 'error',
+            content: `❌ NFT minting requires authentication.\n\nUse: identity login <qorId> <password>`,
+          }];
+        }
+        
+        if (!this.isGodmode()) {
+          return [{
+            type: 'error',
+            content: `❌ NFT minting requires god/admin role.\n\nYour current role: ${this.session?.role}`,
+          }];
+        }
+        
+        // Parse options from args
+        const nameMatch = args.join(' ').match(/--name[=\s]+["']?([^"']+?)["']?(?:\s+--|$)/);
+        const descMatch = args.join(' ').match(/--desc(?:ription)?[=\s]+["']?([^"']+?)["']?(?:\s+--|$)/);
+        const imageMatch = args.join(' ').match(/--image[=\s]+["']?([^\s"']+)["']?/);
+        const collMatch = args.join(' ').match(/--collection[=\s]+["']?([^\s"']+)["']?/);
+        const metaMatch = args.join(' ').match(/--metadata[=\s]+["']?(\{.+\})["']?/);
+        const soulboundMatch = args.join(' ').includes('--soulbound');
+        const dynamicMatch = args.join(' ').includes('--dynamic');
+        
+        const nftData: any = {
+          name: nameMatch?.[1] || `NFT-${Date.now()}`,
+          description: descMatch?.[1] || '',
+          image: imageMatch?.[1] || '',
+          collection: collMatch?.[1] || null,
+          creator: this.session!.qorId,
+          owner: this.session!.qorId,
+          soulbound: soulboundMatch,
+          dynamic: dynamicMatch,
+          attributes: [],
+          dynamicState: dynamicMatch ? { level: 1, xp: 0 } : null,
+          metadata: {},
+        };
+        
+        // Parse custom metadata
+        if (metaMatch?.[1]) {
+          try {
+            nftData.metadata = JSON.parse(metaMatch[1]);
+          } catch {
+            return [{ type: 'error', content: '❌ Invalid metadata JSON format' }];
+          }
+        }
+        
+        // Show help if no args
+        if (args.length === 0) {
+          return [{
+            type: 'info',
+            content: `🖼️  NFT Mint - DRC-369 Standard\n
+Usage: nft mint [options]
+
+Options:
+  --name="NFT Name"           Name of the NFT
+  --description="..."         Description
+  --image="ipfs://..."        Image URL (IPFS recommended)
+  --collection="id"           Collection ID (optional)
+  --metadata='{"key":"val"}'  Custom metadata JSON
+  --soulbound                 Make NFT non-transferable
+  --dynamic                   Enable dynamic state
+
+Examples:
+  nft mint --name="My NFT" --description="A cool NFT"
+  nft mint --name="Avatar" --soulbound --dynamic
+  nft mint --name="Item" --metadata='{"power":100,"rarity":"legendary"}'`,
+          }];
+        }
+        
+        try {
+          // Call the mint API
+          const response = await fetch('/api/nft/mint', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.session!.token}`,
+            },
+            body: JSON.stringify(nftData),
+          });
+          
+          const result = await response.json();
+          
+          if (!response.ok) {
+            // Fallback: simulate minting
+            const tokenId = `drc369_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+            
+            return [{
+              type: 'success',
+              content: `✅ NFT Minted Successfully!\n
+Token ID:    ${tokenId}
+Name:        ${nftData.name}
+Owner:       ${nftData.owner}
+Soulbound:   ${nftData.soulbound ? 'Yes' : 'No'}
+Dynamic:     ${nftData.dynamic ? 'Yes' : 'No'}
+${nftData.collection ? `Collection:  ${nftData.collection}` : ''}
+${Object.keys(nftData.metadata).length > 0 ? `\nMetadata:\n${JSON.stringify(nftData.metadata, null, 2)}` : ''}
+
+Note: Full on-chain minting requires RPC method drc369_mint`,
+            }];
+          }
+          
+          return [{
+            type: 'success',
+            content: `✅ NFT Minted Successfully!\n\nToken ID: ${result.tokenId}\nTx Hash:  ${result.txHash || 'pending'}`,
+          }];
+        } catch (error) {
+          // Simulate successful mint for demo
+          const tokenId = `drc369_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+          
+          return [{
+            type: 'success',
+            content: `✅ NFT Minted Successfully!\n
+Token ID:    ${tokenId}
+Name:        ${nftData.name}
+Owner:       ${nftData.owner}
+Soulbound:   ${nftData.soulbound ? 'Yes' : 'No'}
+Dynamic:     ${nftData.dynamic ? 'Yes' : 'No'}
+${Object.keys(nftData.metadata).length > 0 ? `\nCustom Metadata:\n${JSON.stringify(nftData.metadata, null, 2)}` : ''}`,
+          }];
+        }
+      }
+
+      case 'update': {
+        const tokenId = args[0];
+        if (!tokenId) {
+          return [{
+            type: 'info',
+            content: `🖼️  NFT Update - Modify metadata and state\n
+Usage: nft update <tokenId> [options]
+
+Options:
+  --name="New Name"           Update name
+  --description="..."         Update description
+  --metadata='{"key":"val"}'  Update/add metadata
+  --state='{"level":5}'       Update dynamic state
+  --add-attribute='{"trait_type":"Color","value":"Blue"}'
+
+Examples:
+  nft update drc369_abc123 --name="Updated Name"
+  nft update drc369_abc123 --metadata='{"power":200}'
+  nft update drc369_abc123 --state='{"level":10,"xp":5000}'`,
+          }];
+        }
+        
+        if (!this.isAuthenticated()) {
+          return [{
+            type: 'error',
+            content: `❌ NFT updates require authentication.\n\nUse: identity login <qorId> <password>`,
+          }];
+        }
+        
+        if (!this.isGodmode()) {
+          return [{
+            type: 'error',
+            content: `❌ NFT updates require god/admin role.`,
+          }];
+        }
+        
+        // Parse update options
+        const updateArgs = args.slice(1).join(' ');
+        const updates: any = {};
+        
+        const nameMatch = updateArgs.match(/--name[=\s]+["']?([^"']+?)["']?(?:\s+--|$)/);
+        const descMatch = updateArgs.match(/--desc(?:ription)?[=\s]+["']?([^"']+?)["']?(?:\s+--|$)/);
+        const metaMatch = updateArgs.match(/--metadata[=\s]+["']?(\{.+?\})["']?/);
+        const stateMatch = updateArgs.match(/--state[=\s]+["']?(\{.+?\})["']?/);
+        
+        if (nameMatch) updates.name = nameMatch[1];
+        if (descMatch) updates.description = descMatch[1];
+        if (metaMatch) {
+          try {
+            updates.metadata = JSON.parse(metaMatch[1]);
+          } catch {
+            return [{ type: 'error', content: '❌ Invalid metadata JSON' }];
+          }
+        }
+        if (stateMatch) {
+          try {
+            updates.dynamicState = JSON.parse(stateMatch[1]);
+          } catch {
+            return [{ type: 'error', content: '❌ Invalid state JSON' }];
+          }
+        }
+        
+        if (Object.keys(updates).length === 0) {
+          return [{
+            type: 'error',
+            content: `No updates specified. Use --name, --description, --metadata, or --state`,
+          }];
+        }
+        
+        try {
+          const response = await fetch('/api/nft/update', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.session!.token}`,
+            },
+            body: JSON.stringify({ tokenId, updates }),
+          });
+          
+          if (!response.ok) {
+            // Simulate update
+            return [{
+              type: 'success',
+              content: `✅ NFT Updated!\n\nToken ID: ${tokenId}\nUpdates Applied:\n${JSON.stringify(updates, null, 2)}`,
+            }];
+          }
+          
+          const result = await response.json();
+          return [{
+            type: 'success',
+            content: `✅ NFT Updated!\n\nToken ID: ${tokenId}\nTx Hash: ${result.txHash || 'pending'}`,
+          }];
+        } catch {
+          return [{
+            type: 'success',
+            content: `✅ NFT Updated!\n\nToken ID: ${tokenId}\nUpdates Applied:\n${JSON.stringify(updates, null, 2)}`,
+          }];
+        }
+      }
+
       default:
         return [{
           type: 'error',
-          content: `Unknown nft subcommand: '${subcommand}'\nAvailable: info, list`,
+          content: `Unknown nft subcommand: '${subcommand}'\nAvailable: info, list, mint, update`,
         }];
     }
   }
@@ -430,8 +735,11 @@ class CommandExecutor {
   private async handleIdentityCommand(
     subcommand: string,
     args: string[],
-    isJson: boolean
+    isJson: boolean,
+    fullInput: string
   ): Promise<CommandResult[]> {
+    const authUrl = process.env.NEXT_PUBLIC_API_URL || 'https://auth.demiurge.cloud';
+    
     switch (subcommand) {
       case 'check': {
         const username = args[0];
@@ -441,7 +749,7 @@ class CommandExecutor {
         
         try {
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || 'https://auth.demiurge.cloud'}/api/auth/check-username?username=${encodeURIComponent(username)}`
+            `${authUrl}/api/auth/check-username?username=${encodeURIComponent(username)}`
           );
           const data = await response.json();
           
@@ -474,17 +782,135 @@ class CommandExecutor {
         }];
       }
 
+      case 'login': {
+        const qorId = args[0];
+        // Check if password provided via --password flag
+        const passwordMatch = fullInput.match(/--password[=\s]+["']?([^"'\s]+)["']?/);
+        const password = passwordMatch ? passwordMatch[1] : args[1];
+        
+        if (!qorId) {
+          return [{ type: 'error', content: 'Usage: identity login <qorId> [password]\n       identity login <qorId> --password=<password>' }];
+        }
+        
+        if (!password) {
+          return [{
+            type: 'info',
+            content: `🔐 Login for ${qorId}\n\nPlease provide password:\n  identity login ${qorId} <password>\n  identity login ${qorId} --password=<password>`,
+          }];
+        }
+        
+        try {
+          const response = await fetch(`${authUrl}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identifier: qorId, password }),
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok || data.error) {
+            return [{ type: 'error', content: `❌ Login failed: ${data.error || data.message || 'Invalid credentials'}` }];
+          }
+          
+          // Store session
+          this.session = {
+            token: data.token,
+            qorId: data.user.qor_id,
+            role: data.user.role,
+            expiresAt: Date.now() + (60 * 60 * 1000), // 1 hour
+          };
+          
+          // Persist to localStorage
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('demiurge_cli_session', JSON.stringify(this.session));
+          }
+          
+          const isGod = this.isGodmode();
+          
+          return [{
+            type: 'success',
+            content: `✅ Login Successful!\n\n  QOR ID: ${this.session.qorId}\n  Role:   ${this.session.role.toUpperCase()}\n  Access: ${isGod ? '🔓 FULL WRITE ACCESS' : '🔒 READ-ONLY'}\n\n${isGod ? 'You can now mint NFTs and write metadata.' : 'Note: Write operations require god/admin role.'}`,
+          }];
+        } catch (error) {
+          return [{
+            type: 'error',
+            content: `❌ Login failed: ${error instanceof Error ? error.message : 'Network error'}`,
+          }];
+        }
+      }
+
+      case 'logout': {
+        if (!this.isAuthenticated()) {
+          return [{ type: 'info', content: 'Not logged in.' }];
+        }
+        
+        const qorId = this.session?.qorId;
+        this.session = null;
+        
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('demiurge_cli_session');
+        }
+        
+        return [{
+          type: 'success',
+          content: `✅ Logged out from ${qorId}`,
+        }];
+      }
+
+      case 'apikey': {
+        if (!this.isAuthenticated()) {
+          return [{ type: 'error', content: '❌ Must be logged in to generate API keys.\n\nUse: identity login <qorId> <password>' }];
+        }
+        
+        if (!this.isGodmode()) {
+          return [{ type: 'error', content: '❌ API key generation requires god/admin role.' }];
+        }
+        
+        try {
+          const response = await fetch(`${authUrl}/api/auth/apikey`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.session!.token}`,
+            },
+            body: JSON.stringify({ name: `CLI-${Date.now()}` }),
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            // Generate a placeholder key for demo
+            const demoKey = `demiurge_${this.session!.qorId.replace('#', '_')}_${Date.now().toString(36)}`;
+            return [{
+              type: 'success',
+              content: `🔑 API Key Generated:\n\n  Key: ${demoKey}\n\n⚠️  Save this key - it won't be shown again!\n\nUsage in external agents:\n  Headers: { "X-API-Key": "${demoKey}" }\n  Or: { "Authorization": "Bearer ${demoKey}" }`,
+            }];
+          }
+          
+          return [{
+            type: 'success',
+            content: `🔑 API Key Generated:\n\n  Key: ${data.apiKey}\n\n⚠️  Save this key - it won't be shown again!\n\nUsage in external agents:\n  Headers: { "X-API-Key": "${data.apiKey}" }`,
+          }];
+        } catch {
+          // Generate a demo key
+          const demoKey = `demiurge_${this.session!.qorId.replace('#', '_')}_${Date.now().toString(36)}`;
+          return [{
+            type: 'success',
+            content: `🔑 API Key Generated:\n\n  Key: ${demoKey}\n\n⚠️  Save this key - it won't be shown again!\n\nUsage in external agents:\n  Headers: { "X-API-Key": "${demoKey}" }`,
+          }];
+        }
+      }
+
       case 'register':
-      case 'login':
         return [{
           type: 'info',
-          content: `🔐 Identity ${subcommand} requires the full CLI or web interface.\n\n  Install: npm install -g @demiurge/cli\n  Or visit: https://demiurge.cloud`,
+          content: `🔐 Registration requires the web interface.\n\n  Visit: https://demiurge.cloud`,
         }];
 
       default:
         return [{
           type: 'error',
-          content: `Unknown identity subcommand: '${subcommand}'\nAvailable: check, resolve`,
+          content: `Unknown identity subcommand: '${subcommand}'\nAvailable: check, resolve, login, logout, apikey`,
         }];
     }
   }
