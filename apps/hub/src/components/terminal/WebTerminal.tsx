@@ -97,7 +97,7 @@ class CommandExecutor {
 
   constructor(rpcUrl: string = RPC_URL) {
     this.rpcUrl = rpcUrl;
-    this.client = new DemiurgeClient({ rpcUrl });
+    this.client = new DemiurgeClient({ endpoint: rpcUrl });
   }
 
   async execute(input: string): Promise<CommandResult[]> {
