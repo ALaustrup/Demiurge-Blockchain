@@ -5,7 +5,7 @@
 
 use crate::{
     CvpEngine, CvpConfig, EquivalenceProof, MutationResult,
-    ContractId, SemanticIR, Result,
+    ContractId, SemanticIR, Result, ProofSystem,
 };
 use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
@@ -166,6 +166,35 @@ impl CvpConsensusIntegration {
         self.engine.get_bytecode(contract_id)
     }
     
+    /// Get CVP configuration
+    pub fn config(&self) -> &CvpConfig {
+        &self.engine.config()
+    }
+    
+    /// Direct access to epoch transition
+    /// 
+    /// Used when mutations need to happen BEFORE block creation
+    /// (as opposed to on_block_finalized which happens after)
+    pub fn transition_epoch(
+        &mut self,
+        block_number: u64,
+        block_hashes: &[[u8; 32]],
+    ) -> Result<Vec<MutationResult>> {
+        self.engine.transition_epoch(block_number, block_hashes)
+    }
+    
+    /// Analyze transactions for attack patterns (without epoch transition)
+    /// 
+    /// Use this for validators processing blocks - they verify proof roots
+    /// separately and only need attack detection here.
+    pub fn analyze_transactions(
+        &mut self,
+        block_number: u64,
+        transactions: &[TransactionInfo],
+    ) -> Vec<Threat> {
+        self.attack_detector.analyze_block(block_number, transactions)
+    }
+    
     /// Get engine statistics
     pub fn stats(&self) -> CvpStats {
         let engine_stats = self.engine.stats();
@@ -176,6 +205,8 @@ impl CvpConsensusIntegration {
             total_mutations: engine_stats.total_mutations,
             threats_detected: self.attack_detector.total_threats_detected(),
             pending_proofs: self.pending_proofs.len(),
+            epoch_length: engine_stats.epoch_length,
+            proof_system: self.engine.proof_system(),
         }
     }
     
@@ -208,6 +239,10 @@ pub struct CvpStats {
     pub total_mutations: u64,
     pub threats_detected: u64,
     pub pending_proofs: usize,
+    /// Epoch length in blocks
+    pub epoch_length: u64,
+    /// Proof system being used (e.g., "TranslationValidation", "Plonky2")
+    pub proof_system: ProofSystem,
 }
 
 /// Transaction info for attack detection

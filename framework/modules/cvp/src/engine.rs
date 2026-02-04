@@ -278,6 +278,11 @@ impl CvpEngine {
         self.proof_generator.proof_system()
     }
     
+    /// Get the CVP configuration
+    pub fn config(&self) -> &CvpConfig {
+        &self.config
+    }
+    
     /// Register a contract for CVP
     pub fn register_contract(
         &self,

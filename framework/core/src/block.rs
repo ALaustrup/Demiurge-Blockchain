@@ -1,10 +1,13 @@
 //! Block structure and validation
+//!
+//! Includes CVP (Consensus-Verified Polymorphism) proof root for epoch-based
+//! bytecode mutations with cryptographic commitments.
 
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Serialize, Deserialize};
 use crate::Transaction;
-use crate::serde_helpers::{serialize_bytes, deserialize_bytes};
+use crate::serde_helpers::{serialize_bytes, deserialize_bytes, serialize_option_bytes, deserialize_option_bytes};
 
 /// A block in the blockchain
 #[derive(Clone, Debug, Encode, Decode, TypeInfo, Serialize, Deserialize)]
@@ -14,6 +17,10 @@ pub struct Block {
 }
 
 /// Block header
+/// 
+/// The `cvp_proof_root` field contains a Merkle root of all CVP equivalence proofs
+/// generated during epoch transitions. This cryptographically commits validators
+/// to the bytecode mutations, ensuring consensus on the polymorphic state.
 #[derive(Clone, Debug, Encode, Decode, TypeInfo, Serialize, Deserialize)]
 pub struct BlockHeader {
     #[serde(serialize_with = "serialize_bytes", deserialize_with = "deserialize_bytes")]
@@ -24,6 +31,23 @@ pub struct BlockHeader {
     #[serde(serialize_with = "serialize_bytes", deserialize_with = "deserialize_bytes")]
     pub extrinsics_root: [u8; 32],
     pub timestamp: u64,
+    
+    /// CVP (Consensus-Verified Polymorphism) proof root
+    /// 
+    /// Present only at epoch boundaries when bytecode mutations occur.
+    /// Contains Merkle root of: hash(contract_id || original_hash || new_hash || proof_hash)
+    /// for all contracts mutated in this epoch transition.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_option_bytes",
+        deserialize_with = "deserialize_option_bytes"
+    )]
+    pub cvp_proof_root: Option<[u8; 32]>,
+    
+    /// Epoch number for CVP mutations (increments at epoch boundaries)
+    #[serde(default)]
+    pub cvp_epoch: u64,
 }
 
 impl Block {

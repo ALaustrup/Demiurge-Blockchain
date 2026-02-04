@@ -1363,10 +1363,15 @@ impl<S: Storage> RpcMethods<S> {
     /// - Current epoch number
     /// - Number of registered contracts
     /// - Total mutations performed
+    /// - Epoch length and next transition block
     pub async fn cvp_get_status(&self) -> Result<CvpStatus, RpcError> {
         if let Some(consensus) = &self.consensus {
             let consensus_guard = consensus.lock().await;
             let stats = consensus_guard.cvp_stats();
+            
+            // Calculate next epoch block from current epoch
+            let epoch_length = stats.epoch_length;
+            let next_epoch_block = (stats.current_epoch + 1) * epoch_length;
             
             Ok(CvpStatus {
                 enabled: stats.enabled,
@@ -1375,10 +1380,45 @@ impl<S: Storage> RpcMethods<S> {
                 total_mutations: stats.total_mutations,
                 threats_detected: stats.threats_detected,
                 pending_proofs: stats.pending_proofs,
+                epoch_length,
+                next_epoch_block,
+                proof_system: format!("{:?}", stats.proof_system),
             })
         } else {
             Err(RpcError::NotImplemented)
         }
+    }
+    
+    /// Get CVP proof information for a specific block
+    /// 
+    /// Returns information about CVP proofs committed in a block header,
+    /// useful for verifying epoch transitions.
+    pub async fn cvp_get_block_proof(&self, block_number: u64) -> Result<CvpBlockProofInfo, RpcError> {
+        // Get the block from storage
+        let block_key = format!("block:{}", block_number);
+        let block_data = self.storage.get(block_key.as_bytes())
+            .ok_or(RpcError::InvalidParams)?;
+        
+        let block: demiurge_core::Block = codec::Decode::decode(&mut &block_data[..])
+            .map_err(|e| RpcError::InternalError(format!("Failed to decode block: {}", e)))?;
+        
+        // Get CVP config for epoch calculations
+        let epoch_length = if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            consensus_guard.cvp_stats().epoch_length
+        } else {
+            100 // Default
+        };
+        
+        let is_epoch_boundary = block_number > 0 && block_number % epoch_length == 0;
+        
+        Ok(CvpBlockProofInfo {
+            block_number,
+            is_epoch_boundary,
+            epoch: block.header.cvp_epoch,
+            proof_root: block.header.cvp_proof_root.map(|r| hex::encode(r)),
+            contracts_mutated: if block.header.cvp_proof_root.is_some() { 1 } else { 0 }, // Simplified
+        })
     }
     
     /// Get CVP-protected bytecode for a contract
@@ -1461,6 +1501,109 @@ impl<S: Storage> RpcMethods<S> {
         if let Some(consensus) = &self.consensus {
             let consensus_guard = consensus.lock().await;
             Ok(consensus_guard.get_cvp_bytecode(&contract_id).is_some())
+        } else {
+            Err(RpcError::NotImplemented)
+        }
+    }
+    
+    // ========== Phase 5: CVP Threat Monitoring Methods ==========
+    
+    /// Get recent threat events detected by CVP
+    /// 
+    /// Returns the threat history with optional filtering by severity.
+    /// Use this to monitor for attack patterns and reactive mutations.
+    pub async fn cvp_get_threats(&self, query: Option<CvpThreatQuery>) -> Result<Vec<CvpThreatEvent>, RpcError> {
+        if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            let threat_history = consensus_guard.get_threat_history();
+            
+            let query = query.unwrap_or(CvpThreatQuery {
+                min_severity: None,
+                limit: Some(100),
+                offset: Some(0),
+            });
+            
+            // Convert severity string to numeric for comparison
+            let min_severity_level = match query.min_severity.as_deref() {
+                Some("Critical") => 4,
+                Some("High") => 3,
+                Some("Medium") => 2,
+                Some("Low") => 1,
+                Some("Info") => 0,
+                _ => 0,
+            };
+            
+            // Convert severity enum value to numeric level for filtering
+            let severity_to_level = |sev_str: &str| -> u8 {
+                if sev_str.contains("Critical") { 4 }
+                else if sev_str.contains("High") { 3 }
+                else if sev_str.contains("Medium") { 2 }
+                else if sev_str.contains("Low") { 1 }
+                else { 0 }
+            };
+            
+            let offset = query.offset.unwrap_or(0);
+            let limit = query.limit.unwrap_or(100);
+            
+            let events: Vec<CvpThreatEvent> = threat_history
+                .iter()
+                .filter(|event| {
+                    let sev_str = format!("{:?}", event.severity);
+                    severity_to_level(&sev_str) >= min_severity_level
+                })
+                .skip(offset)
+                .take(limit)
+                .map(|event| CvpThreatEvent {
+                    block_number: event.block_number,
+                    threat_type: format!("{:?}", event.threat_type),
+                    severity: format!("{:?}", event.severity),
+                    description: event.description.clone(),
+                    target_contract: event.target_contract.map(|c| hex::encode(c)),
+                    mutation_triggered: event.mutation_triggered,
+                    timestamp: event.timestamp,
+                })
+                .collect();
+            
+            Ok(events)
+        } else {
+            Err(RpcError::NotImplemented)
+        }
+    }
+    
+    /// Get CVP threat statistics
+    /// 
+    /// Returns aggregated statistics about detected threats, including
+    /// breakdowns by type and severity, and reactive mutation counts.
+    pub async fn cvp_get_threat_stats(&self) -> Result<CvpThreatStats, RpcError> {
+        if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            let stats = consensus_guard.get_threat_stats();
+            
+            // Stats already have String keys from consensus engine
+            Ok(CvpThreatStats {
+                total_threats: stats.total_threats,
+                by_type: stats.threats_by_type,
+                by_severity: stats.threats_by_severity,
+                mutations_triggered: stats.mutations_triggered,
+                scheduled_mutations: stats.scheduled_mutations,
+            })
+        } else {
+            Err(RpcError::NotImplemented)
+        }
+    }
+    
+    /// Get scheduled reactive mutations
+    /// 
+    /// Returns a list of contracts with pending scheduled mutations and
+    /// the block number when the mutation will be executed.
+    pub async fn cvp_get_scheduled_mutations(&self) -> Result<Vec<(String, u64)>, RpcError> {
+        if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            let stats = consensus_guard.get_threat_stats();
+            
+            // Note: For full implementation, we'd need to expose scheduled_mutations HashMap
+            // For now, just return the count
+            Ok(Vec::new()) // TODO: Return actual scheduled mutations
         } else {
             Err(RpcError::NotImplemented)
         }
@@ -1821,6 +1964,27 @@ pub struct CvpStatus {
     pub threats_detected: u64,
     /// Number of proofs pending inclusion in a block
     pub pending_proofs: usize,
+    /// Epoch length (blocks between mutations)
+    pub epoch_length: u64,
+    /// Block number of next epoch transition
+    pub next_epoch_block: u64,
+    /// Proof system being used
+    pub proof_system: String,
+}
+
+/// CVP epoch/proof information for a specific block
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CvpBlockProofInfo {
+    /// Block number
+    pub block_number: u64,
+    /// Whether this block was an epoch boundary
+    pub is_epoch_boundary: bool,
+    /// CVP epoch number
+    pub epoch: u64,
+    /// CVP proof root (hex, if present)
+    pub proof_root: Option<String>,
+    /// Number of contracts mutated (if epoch boundary)
+    pub contracts_mutated: usize,
 }
 
 /// CVP bytecode information
@@ -1853,6 +2017,53 @@ pub struct CvpContractInfo {
     pub has_proof: bool,
     /// Proof system used (e.g., "Plonky2", "TranslationValidation")
     pub proof_system: String,
+}
+
+// ========== Phase 5: CVP Threat Detection Types ==========
+
+/// A threat event from the CVP attack detector
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CvpThreatEvent {
+    /// Block number where threat was detected
+    pub block_number: u64,
+    /// Threat type
+    pub threat_type: String,
+    /// Severity level (Info, Low, Medium, High, Critical)
+    pub severity: String,
+    /// Human-readable description
+    pub description: String,
+    /// Target contract (hex, if identified)
+    pub target_contract: Option<String>,
+    /// Whether a reactive mutation was triggered
+    pub mutation_triggered: bool,
+    /// Unix timestamp (milliseconds)
+    pub timestamp: u64,
+}
+
+/// Threat detection statistics
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CvpThreatStats {
+    /// Total threats in history window
+    pub total_threats: u64,
+    /// Breakdown by threat type
+    pub by_type: std::collections::HashMap<String, u64>,
+    /// Breakdown by severity
+    pub by_severity: std::collections::HashMap<String, u64>,
+    /// Total reactive mutations triggered
+    pub mutations_triggered: u64,
+    /// Currently scheduled mutations pending
+    pub scheduled_mutations: usize,
+}
+
+/// Threat history query parameters
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CvpThreatQuery {
+    /// Minimum severity to include (optional)
+    pub min_severity: Option<String>,
+    /// Maximum number of results (default: 100)
+    pub limit: Option<usize>,
+    /// Starting offset for pagination
+    pub offset: Option<usize>,
 }
 
 // ========== DRC-369 Response Types ==========

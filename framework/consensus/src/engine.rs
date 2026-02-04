@@ -38,6 +38,48 @@ pub struct ConsensusEngine<S: Storage> {
     cvp: CvpConsensusIntegration,
     cvp_enabled: bool,
     recent_block_hashes: Vec<[u8; 32]>, // For CVP epoch seed generation
+    
+    // Phase 5: Attack Detection & Reactive Mutation
+    /// Scheduled mutations (contract_id -> scheduled_block)
+    scheduled_mutations: HashMap<ContractId, u64>,
+    /// Recent threat history for monitoring (capped at 1000)
+    threat_history: Vec<ThreatEvent>,
+    /// Maximum threat history size
+    max_threat_history: usize,
+}
+
+/// A recorded threat event
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ThreatEvent {
+    /// Block number where threat was detected
+    pub block_number: u64,
+    /// The threat type
+    pub threat_type: demiurge_cvp::ThreatType,
+    /// Severity level
+    pub severity: ThreatSeverity,
+    /// Description
+    pub description: String,
+    /// Target contract (if identified)
+    pub target_contract: Option<ContractId>,
+    /// Whether reactive mutation was triggered
+    pub mutation_triggered: bool,
+    /// Timestamp (Unix milliseconds)
+    pub timestamp: u64,
+}
+
+/// Threat detection statistics
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ThreatStats {
+    /// Total threats detected in history window
+    pub total_threats: u64,
+    /// Threats by type (as strings since ThreatType doesn't impl Hash)
+    pub threats_by_type: HashMap<String, u64>,
+    /// Threats by severity (as strings since ThreatSeverity doesn't impl Hash)
+    pub threats_by_severity: HashMap<String, u64>,
+    /// Total reactive mutations triggered
+    pub mutations_triggered: u64,
+    /// Currently scheduled mutations pending
+    pub scheduled_mutations: usize,
 }
 
 impl<S: Storage> ConsensusEngine<S> {
@@ -69,6 +111,9 @@ impl<S: Storage> ConsensusEngine<S> {
             cvp: CvpConsensusIntegration::new(cvp_config),
             cvp_enabled: true,
             recent_block_hashes: Vec::with_capacity(10),
+            scheduled_mutations: HashMap::new(),
+            threat_history: Vec::new(),
+            max_threat_history: 1000,
         };
         
         // Auto-register DRC-369 with CVP for polymorphic protection
@@ -102,6 +147,9 @@ impl<S: Storage> ConsensusEngine<S> {
             cvp: CvpConsensusIntegration::new(cvp_config),
             cvp_enabled: false,
             recent_block_hashes: Vec::new(),
+            scheduled_mutations: HashMap::new(),
+            threat_history: Vec::new(),
+            max_threat_history: 1000,
         }
     }
     
@@ -235,6 +283,9 @@ impl<S: Storage> ConsensusEngine<S> {
 
     /// Propose a new block
     /// Returns the proposed block and proof
+    /// 
+    /// IMPORTANT: CVP mutations happen BEFORE block header creation to ensure
+    /// the proof root is cryptographically committed in the header.
     pub fn propose_block(
         &mut self,
         transactions: Vec<Transaction>,
@@ -250,14 +301,27 @@ impl<S: Storage> ConsensusEngine<S> {
         let latest_block_number = self.get_latest_block_number()?;
         let latest_hash = self.get_latest_hash()?;
         let new_block_number = latest_block_number + 1;
+        let timestamp = self.get_timestamp();
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // CVP: Process mutations BEFORE creating block header
+        // This ensures proofs are generated and committed in the header
+        // ═══════════════════════════════════════════════════════════════════
+        let (cvp_proof_root, cvp_epoch) = if self.cvp_enabled {
+            self.prepare_cvp_for_block(new_block_number, latest_hash)?
+        } else {
+            (None, 0)
+        };
 
-        // Create block header (state root will be calculated after execution)
+        // Create block header with CVP proof root included
         let header = demiurge_core::BlockHeader {
             parent_hash: latest_hash,
             block_number: new_block_number,
             state_root: [0u8; 32], // Will be calculated after execution
             extrinsics_root: self.calculate_extrinsics_root(&transactions),
-            timestamp: self.get_timestamp(),
+            timestamp,
+            cvp_proof_root,
+            cvp_epoch,
         };
 
         // Create block
@@ -280,6 +344,128 @@ impl<S: Storage> ConsensusEngine<S> {
         };
 
         Ok((block, proof))
+    }
+    
+    /// Prepare CVP state for a new block
+    /// 
+    /// At epoch boundaries, this triggers bytecode mutations and generates
+    /// ZK equivalence proofs. Returns the proof root to include in the header.
+    /// 
+    /// Phase 5: Also processes scheduled reactive mutations.
+    fn prepare_cvp_for_block(
+        &mut self,
+        block_number: u64,
+        parent_hash: [u8; 32],
+    ) -> Result<(Option<[u8; 32]>, u64)> {
+        use blake2::{Blake2b512, Digest};
+        
+        // Store block hash for epoch seed generation
+        self.recent_block_hashes.push(parent_hash);
+        if self.recent_block_hashes.len() > 10 {
+            self.recent_block_hashes.remove(0);
+        }
+        
+        // Check if this is an epoch boundary
+        let cvp_epoch_length = self.cvp.config().mutation_epoch_length;
+        let current_epoch = block_number / cvp_epoch_length;
+        let is_epoch_boundary = block_number > 0 && block_number % cvp_epoch_length == 0;
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // Phase 5: Process scheduled reactive mutations (always check)
+        // ═══════════════════════════════════════════════════════════════════
+        let scheduled_mutations = self.process_scheduled_mutations(block_number);
+        let has_scheduled_mutations = !scheduled_mutations.is_empty();
+        
+        if has_scheduled_mutations {
+            info!(
+                "CVP: Processed {} scheduled reactive mutations at block {}",
+                scheduled_mutations.len(),
+                block_number
+            );
+        }
+        
+        if !is_epoch_boundary && !has_scheduled_mutations {
+            // Not an epoch boundary and no scheduled mutations - no proof root needed
+            return Ok((None, current_epoch));
+        }
+        
+        info!(
+            "CVP: {} at block {} - preparing mutations for epoch {}",
+            if is_epoch_boundary { "Epoch boundary" } else { "Reactive mutations" },
+            block_number, current_epoch
+        );
+        
+        // Perform epoch transition - this mutates all registered contracts
+        // and generates ZK equivalence proofs
+        let epoch_mutations = if is_epoch_boundary {
+            self.cvp.transition_epoch(block_number, &self.recent_block_hashes)
+                .map_err(|e| ConsensusError::CvpError(format!("Epoch transition failed: {}", e)))?
+        } else {
+            Vec::new()
+        };
+        
+        // Combine epoch mutations and scheduled mutations
+        let mutations: Vec<_> = epoch_mutations.into_iter()
+            .chain(scheduled_mutations.into_iter())
+            .collect();
+        
+        if mutations.is_empty() {
+            info!("CVP: No contracts registered for mutation");
+            return Ok((None, current_epoch));
+        }
+        
+        // Calculate CVP proof root from all mutation results
+        // Root = H(H(m1) || H(m2) || ... || H(mn))
+        // where H(m) = H(contract_id || original_hash || new_hash || proof_hash)
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"CVP_PROOF_ROOT_V1");
+        hasher.update(&block_number.to_le_bytes());
+        
+        for mutation in &mutations {
+            // Hash each mutation's key data
+            let mut mutation_hasher = Blake2b512::new();
+            mutation_hasher.update(&mutation.contract_id);
+            mutation_hasher.update(&mutation.original_hash);
+            mutation_hasher.update(&mutation.new_hash);
+            mutation_hasher.update(&mutation.proof.hash());
+            let mutation_hash = mutation_hasher.finalize();
+            
+            // Add to root calculation
+            hasher.update(&mutation_hash[..32]);
+            
+            // Verify proof is valid before including
+            let is_valid = self.cvp.verify_proof(&mutation.proof)
+                .map_err(|e| ConsensusError::CvpError(format!("Proof verification failed: {}", e)))?;
+            
+            if !is_valid {
+                return Err(ConsensusError::CvpError(format!(
+                    "Invalid proof for contract {} - cannot include in block",
+                    hex::encode(&mutation.contract_id[..8])
+                )));
+            }
+            
+            info!(
+                "CVP: Mutation prepared for {} - {} -> {} (proof: {:?})",
+                hex::encode(&mutation.contract_id[..8]),
+                hex::encode(&mutation.original_hash[..8]),
+                hex::encode(&mutation.new_hash[..8]),
+                mutation.proof.proof_system
+            );
+        }
+        
+        // Finalize proof root
+        let root_hash = hasher.finalize();
+        let mut cvp_proof_root = [0u8; 32];
+        cvp_proof_root.copy_from_slice(&root_hash[..32]);
+        
+        info!(
+            "CVP: Proof root calculated for epoch {} - {} contracts, root: {}",
+            current_epoch,
+            mutations.len(),
+            hex::encode(&cvp_proof_root[..8])
+        );
+        
+        Ok((Some(cvp_proof_root), current_epoch))
     }
 
     /// Select proposer using weighted random selection based on stake
@@ -357,16 +543,77 @@ impl<S: Storage> ConsensusEngine<S> {
         // Parent validation is done separately during block import
         block.validate(None)?;
         
-        // If validation fails, slash proposer for invalid block
-        // Note: This is a simplified check - in production, we'd validate more thoroughly
-        // before slashing
-        
-        // Note: Individual transaction validation is now done inside block.validate()
+        // ═══════════════════════════════════════════════════════════════════
+        // CVP: Verify proof root if present (epoch boundary blocks)
+        // ═══════════════════════════════════════════════════════════════════
+        if self.cvp_enabled {
+            self.verify_cvp_proof_root(block)?;
+        }
 
         // Verify timestamp (not too far in future/past)
         self.verify_timestamp(block.header.timestamp)?;
 
         Ok(())
+    }
+    
+    /// Verify CVP proof root in block header
+    /// 
+    /// At epoch boundaries, the proof root must be present and valid.
+    /// Non-epoch blocks should NOT have a proof root.
+    fn verify_cvp_proof_root(&self, block: &Block) -> Result<()> {
+        let block_number = block.header.block_number;
+        let cvp_epoch_length = self.cvp.config().mutation_epoch_length;
+        let is_epoch_boundary = block_number > 0 && block_number % cvp_epoch_length == 0;
+        
+        match (is_epoch_boundary, &block.header.cvp_proof_root) {
+            // Epoch boundary WITH proof root - verify it
+            (true, Some(proof_root)) => {
+                // Verify the epoch number is correct
+                let expected_epoch = block_number / cvp_epoch_length;
+                if block.header.cvp_epoch != expected_epoch {
+                    return Err(ConsensusError::CvpError(format!(
+                        "CVP epoch mismatch: header has {}, expected {}",
+                        block.header.cvp_epoch, expected_epoch
+                    )));
+                }
+                
+                info!(
+                    "CVP: Block {} is epoch boundary - proof root present: {}",
+                    block_number,
+                    hex::encode(&proof_root[..8])
+                );
+                
+                // Note: Full proof verification happens during finalization
+                // Here we just verify the structure is correct
+                Ok(())
+            }
+            
+            // Epoch boundary WITHOUT proof root - ERROR if contracts are registered
+            (true, None) => {
+                // Check if we have registered contracts that should have been mutated
+                let stats = self.cvp.stats();
+                if stats.registered_contracts > 0 {
+                    warn!(
+                        "CVP: Block {} is epoch boundary but has no proof root ({} contracts registered)",
+                        block_number, stats.registered_contracts
+                    );
+                    // Don't fail - the proposer may have a different view of registered contracts
+                    // This will be caught during full validation if proofs don't match
+                }
+                Ok(())
+            }
+            
+            // Non-epoch block WITH proof root - ERROR (shouldn't have proofs)
+            (false, Some(_)) => {
+                Err(ConsensusError::CvpError(format!(
+                    "Block {} has CVP proof root but is not an epoch boundary",
+                    block_number
+                )))
+            }
+            
+            // Non-epoch block without proof root - OK
+            (false, None) => Ok(()),
+        }
     }
 
     /// Finalize a block using BFT
@@ -447,14 +694,19 @@ impl<S: Storage> ConsensusEngine<S> {
         Ok(())
     }
     
-    /// Process block through CVP system
+    /// Process block through CVP system (validator side)
     /// 
     /// This handles:
     /// - Transaction analysis for attack patterns
-    /// - Epoch transition mutations
-    /// - Threat response (including emergency mutations)
-    /// - **ZK proof verification for all mutations**
+    /// - Threat response (emergency mutations only)
+    /// - **Verification that epoch mutations match header proof root**
+    /// 
+    /// NOTE: Epoch transitions are now done in `prepare_cvp_for_block` BEFORE
+    /// block creation. This function verifies the transitions for validators
+    /// who didn't propose the block.
     fn process_cvp_block(&mut self, block: &Block) -> Result<()> {
+        use blake2::{Blake2b512, Digest};
+        
         let block_hash = block.hash();
         let block_number = block.header.block_number;
         
@@ -464,49 +716,72 @@ impl<S: Storage> ConsensusEngine<S> {
             self.recent_block_hashes.remove(0);
         }
         
-        // Convert transactions to CVP format
+        // ═══════════════════════════════════════════════════════════════════
+        // PHASE 1: Verify epoch mutations match header proof root
+        // ═══════════════════════════════════════════════════════════════════
+        let cvp_epoch_length = self.cvp.config().mutation_epoch_length;
+        let is_epoch_boundary = block_number > 0 && block_number % cvp_epoch_length == 0;
+        
+        if is_epoch_boundary && block.header.cvp_proof_root.is_some() {
+            // Validator must independently compute mutations and verify proof root matches
+            let mutations = self.cvp.transition_epoch(block_number, &self.recent_block_hashes)
+                .map_err(|e| ConsensusError::CvpError(format!("Epoch transition failed: {}", e)))?;
+            
+            // Calculate proof root the same way as proposer
+            let mut hasher = Blake2b512::new();
+            hasher.update(b"CVP_PROOF_ROOT_V1");
+            hasher.update(&block_number.to_le_bytes());
+            
+            for mutation in &mutations {
+                let mut mutation_hasher = Blake2b512::new();
+                mutation_hasher.update(&mutation.contract_id);
+                mutation_hasher.update(&mutation.original_hash);
+                mutation_hasher.update(&mutation.new_hash);
+                mutation_hasher.update(&mutation.proof.hash());
+                let mutation_hash = mutation_hasher.finalize();
+                hasher.update(&mutation_hash[..32]);
+                
+                // Verify each proof
+                self.verify_mutation_proof(mutation, block_number)?;
+            }
+            
+            let root_hash = hasher.finalize();
+            let mut computed_root = [0u8; 32];
+            computed_root.copy_from_slice(&root_hash[..32]);
+            
+            // Verify computed root matches header
+            let header_root = block.header.cvp_proof_root.unwrap();
+            if computed_root != header_root {
+                return Err(ConsensusError::CvpError(format!(
+                    "CVP proof root mismatch at block {}: computed {} != header {}",
+                    block_number,
+                    hex::encode(&computed_root[..8]),
+                    hex::encode(&header_root[..8])
+                )));
+            }
+            
+            info!(
+                "CVP: Verified epoch {} proof root at block {} - {} contracts",
+                block.header.cvp_epoch,
+                block_number,
+                mutations.len()
+            );
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // PHASE 2: Attack detection (runs on every block)
+        // ═══════════════════════════════════════════════════════════════════
         let tx_infos: Vec<TransactionInfo> = block.transactions
             .iter()
             .map(|tx| self.transaction_to_cvp_info(tx, block.header.timestamp))
             .collect();
         
-        // Process through CVP
-        let cvp_result = self.cvp.on_block_finalized(
-            block_number,
-            block_hash,
-            &tx_infos,
-        ).map_err(|e| ConsensusError::CvpError(format!("{}", e)))?;
+        // Analyze transactions for attack patterns (don't do epoch transition again)
+        let threats = self.cvp.analyze_transactions(block_number, &tx_infos);
         
         // Handle detected threats
-        for threat in &cvp_result.threats_detected {
-            self.handle_cvp_threat(threat, block_number)?;
-        }
-        
-        // Verify and log epoch mutation results
-        if !cvp_result.epoch_mutations.is_empty() {
-            info!(
-                "CVP: Epoch transition at block {} - {} contracts mutated",
-                block_number,
-                cvp_result.epoch_mutations.len()
-            );
-            
-            // Verify all mutation proofs
-            for mutation in &cvp_result.epoch_mutations {
-                self.verify_mutation_proof(mutation, block_number)?;
-            }
-        }
-        
-        // Verify and log emergency mutations
-        if !cvp_result.emergency_mutations.is_empty() {
-            warn!(
-                "CVP: Emergency mutations triggered - {} contracts",
-                cvp_result.emergency_mutations.len()
-            );
-            
-            // Verify all emergency mutation proofs
-            for mutation in &cvp_result.emergency_mutations {
-                self.verify_mutation_proof(mutation, block_number)?;
-            }
+        for threat in &threats {
+            self.handle_cvp_threat(&threat, block_number)?;
         }
         
         Ok(())
@@ -611,7 +886,16 @@ impl<S: Storage> ConsensusEngine<S> {
     }
     
     /// Handle a CVP threat detection
+    /// 
+    /// Phase 5: Reactive Mutation Implementation
+    /// - Info/Low: Log only
+    /// - Medium: Alert and monitor
+    /// - High: Schedule early mutation (next 5 blocks)
+    /// - Critical: Trigger immediate emergency mutation
     fn handle_cvp_threat(&mut self, threat: &Threat, block_number: u64) -> Result<()> {
+        let mut mutation_triggered = false;
+        let timestamp = self.get_timestamp();
+        
         match threat.severity {
             ThreatSeverity::Info => {
                 // Just log
@@ -637,6 +921,7 @@ impl<S: Storage> ConsensusEngine<S> {
                     threat.description,
                     threat.threat_type
                 );
+                // Alert operators (in production, this would send notifications)
             }
             ThreatSeverity::High => {
                 warn!(
@@ -646,7 +931,19 @@ impl<S: Storage> ConsensusEngine<S> {
                     threat.threat_type,
                     threat.target_contract.map(|c| hex::encode(&c[..8]))
                 );
-                // Could trigger early epoch transition here
+                
+                // Schedule early mutation for targeted contract
+                if let Some(contract_id) = threat.target_contract {
+                    let scheduled_block = block_number + 5; // Mutate in 5 blocks
+                    self.scheduled_mutations.insert(contract_id, scheduled_block);
+                    mutation_triggered = true;
+                    
+                    warn!(
+                        "CVP: Scheduled early mutation for contract {:?} at block {}",
+                        hex::encode(&contract_id[..8]),
+                        scheduled_block
+                    );
+                }
             }
             ThreatSeverity::Critical => {
                 error!(
@@ -656,11 +953,161 @@ impl<S: Storage> ConsensusEngine<S> {
                     threat.threat_type,
                     threat.target_contract.map(|c| hex::encode(&c[..8]))
                 );
-                // Emergency mutation already triggered by CVP engine
+                
+                // Trigger immediate emergency mutation
+                if let Some(contract_id) = threat.target_contract {
+                    match self.trigger_emergency_mutation(&contract_id, &threat.description) {
+                        Ok(_) => {
+                            mutation_triggered = true;
+                            error!(
+                                "CVP: Emergency mutation EXECUTED for contract {:?}",
+                                hex::encode(&contract_id[..8])
+                            );
+                        }
+                        Err(e) => {
+                            error!(
+                                "CVP: Emergency mutation FAILED for contract {:?}: {}",
+                                hex::encode(&contract_id[..8]),
+                                e
+                            );
+                        }
+                    }
+                }
             }
         }
         
+        // Record threat event
+        self.record_threat_event(ThreatEvent {
+            block_number,
+            threat_type: threat.threat_type,
+            severity: threat.severity,
+            description: threat.description.clone(),
+            target_contract: threat.target_contract,
+            mutation_triggered,
+            timestamp,
+        });
+        
         Ok(())
+    }
+    
+    /// Trigger emergency mutation for a contract under attack
+    fn trigger_emergency_mutation(&mut self, contract_id: &ContractId, reason: &str) -> Result<demiurge_cvp::MutationResult> {
+        // Use the CVP integration to perform emergency mutation
+        // This generates a new bytecode variant and proof immediately
+        
+        use demiurge_cvp::CvpEngine;
+        
+        // Create temporary engine config for emergency mutation
+        let config = self.cvp.config().clone();
+        let mut temp_engine = CvpEngine::with_config(config);
+        
+        // Get current contract bytecode
+        match self.cvp.get_bytecode(contract_id) {
+            Ok(Some(bytecode)) => {
+                // Re-register with current bytecode for emergency mutation
+                let semantic_ir = demiurge_cvp::SemanticIR::new(*contract_id, "emergency".to_string());
+                temp_engine.register_contract(*contract_id, semantic_ir, bytecode)
+                    .map_err(|e| ConsensusError::CvpError(format!("Failed to register: {}", e)))?;
+                
+                // Perform emergency mutation
+                let result = temp_engine.emergency_mutate(contract_id, reason)
+                    .map_err(|e| ConsensusError::CvpError(format!("Emergency mutation failed: {}", e)))?;
+                
+                info!(
+                    "CVP: Emergency mutation complete - contract {:?}, new bytecode hash: {:?}",
+                    hex::encode(&contract_id[..8]),
+                    hex::encode(&result.new_hash[..8])
+                );
+                
+                Ok(result)
+            }
+            Ok(None) => {
+                Err(ConsensusError::CvpError("Contract not found for emergency mutation".to_string()))
+            }
+            Err(e) => {
+                Err(ConsensusError::CvpError(format!("Failed to get bytecode: {}", e)))
+            }
+        }
+    }
+    
+    /// Record a threat event to history
+    fn record_threat_event(&mut self, event: ThreatEvent) {
+        self.threat_history.push(event);
+        
+        // Trim if exceeds max size
+        while self.threat_history.len() > self.max_threat_history {
+            self.threat_history.remove(0);
+        }
+    }
+    
+    /// Process scheduled mutations at block start
+    /// 
+    /// Called during block proposal to check if any scheduled mutations are due
+    fn process_scheduled_mutations(&mut self, block_number: u64) -> Vec<demiurge_cvp::MutationResult> {
+        let mut results = Vec::new();
+        
+        // Find mutations due at this block
+        let due_contracts: Vec<ContractId> = self.scheduled_mutations
+            .iter()
+            .filter(|(_, scheduled_block)| **scheduled_block <= block_number)
+            .map(|(contract_id, _)| *contract_id)
+            .collect();
+        
+        // Execute scheduled mutations
+        for contract_id in &due_contracts {
+            match self.trigger_emergency_mutation(contract_id, "Scheduled reactive mutation") {
+                Ok(result) => {
+                    info!(
+                        "CVP: Executed scheduled mutation for contract {:?} at block {}",
+                        hex::encode(&contract_id[..8]),
+                        block_number
+                    );
+                    results.push(result);
+                }
+                Err(e) => {
+                    error!(
+                        "CVP: Scheduled mutation failed for contract {:?}: {}",
+                        hex::encode(&contract_id[..8]),
+                        e
+                    );
+                }
+            }
+        }
+        
+        // Remove processed mutations from schedule
+        for contract_id in due_contracts {
+            self.scheduled_mutations.remove(&contract_id);
+        }
+        
+        results
+    }
+    
+    /// Get threat history for monitoring
+    pub fn get_threat_history(&self) -> &[ThreatEvent] {
+        &self.threat_history
+    }
+    
+    /// Get threat statistics
+    pub fn get_threat_stats(&self) -> ThreatStats {
+        let mut by_type: HashMap<String, u64> = HashMap::new();
+        let mut by_severity: HashMap<String, u64> = HashMap::new();
+        let mut mutations_triggered = 0u64;
+        
+        for event in &self.threat_history {
+            *by_type.entry(format!("{:?}", event.threat_type)).or_insert(0) += 1;
+            *by_severity.entry(format!("{:?}", event.severity)).or_insert(0) += 1;
+            if event.mutation_triggered {
+                mutations_triggered += 1;
+            }
+        }
+        
+        ThreatStats {
+            total_threats: self.threat_history.len() as u64,
+            threats_by_type: by_type,
+            threats_by_severity: by_severity,
+            mutations_triggered,
+            scheduled_mutations: self.scheduled_mutations.len(),
+        }
     }
 
     /// Calculate extrinsics root

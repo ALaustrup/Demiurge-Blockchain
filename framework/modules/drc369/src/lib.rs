@@ -53,7 +53,10 @@
 pub mod nft;
 pub mod error;
 pub mod physics;
+pub mod physics_integration;
 pub mod royalty;
+pub mod royalty_distributor;
+pub mod cvp_hooks;
 pub mod metaverse;
 pub mod rental;
 pub mod fractional;
@@ -122,4 +125,20 @@ pub use security::{
     TransferLimit, Cooldown, CooldownAction,
     AllowlistConfig, RecoveryConfig, PendingRecovery,
     StolenReport,
+};
+
+// Automatic royalty distribution (Phase 3)
+pub use royalty_distributor::{
+    RoyaltyDistributor, RoyaltyPayment, DistributionResult,
+    transfer_integration,
+};
+
+// Physics integration (Phase 3)
+pub use physics_integration::{
+    PhysicsIntegration, PhysicsNftBundle, PhysicsPreset, GameEngine,
+};
+
+// CVP integration hooks (Phase 3)
+pub use cvp_hooks::{
+    CvpHookManager, Drc369CvpStatus, MutationEvent,
 };

@@ -45,7 +45,6 @@ zk-plonky2 = ["plonky2", "plonky2_field"]
 # Enable all ZK systems
 zk-full = ["zk-plonky2"]
 
-# Benchmarks (uncomment when benchmark file is created)
-# [[bench]]
-# name = "mutation_benchmark"
-# harness = false
+[[bench]]
+name = "proof_benchmark"
+harness = false

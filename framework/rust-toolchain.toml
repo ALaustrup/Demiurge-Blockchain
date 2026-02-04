@@ -1,0 +1,12 @@
+# Rust Toolchain Configuration for Demiurge Blockchain
+# 
+# Plonky2 ZK proofs require nightly Rust due to experimental features:
+# - specialization
+# - stdarch_x86_avx512
+#
+# This toolchain is used when building with --features zk-plonky2
+
+[toolchain]
+channel = "nightly-2024-12-01"
+components = ["rustfmt", "clippy"]
+targets = ["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]

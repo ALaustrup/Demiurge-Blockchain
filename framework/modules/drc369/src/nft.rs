@@ -352,10 +352,40 @@ impl Drc369Module {
     }
     
     // ========================================================================
-    // CORE OPERATIONS
+    // PUBLIC CORE OPERATIONS
     // ========================================================================
     
     /// Mint a new NFT
+    /// 
+    /// Public wrapper for minting. Returns the newly created NFT ID.
+    pub fn mint(
+        storage: &dyn Storage,
+        caller: [u8; 32],
+        owner: [u8; 32],
+        metadata: Vec<u8>,
+        soulbound: bool,
+    ) -> Result<[u8; 32]> {
+        Self::do_mint(storage, caller, owner, metadata, soulbound)
+    }
+    
+    /// Transfer an NFT
+    /// 
+    /// Public wrapper for transfers.
+    pub fn transfer(
+        storage: &dyn Storage,
+        caller: [u8; 32],
+        from: [u8; 32],
+        to: [u8; 32],
+        nft_id: [u8; 32],
+    ) -> Result<()> {
+        Self::do_transfer(storage, caller, from, to, nft_id)
+    }
+    
+    // ========================================================================
+    // INTERNAL CORE OPERATIONS
+    // ========================================================================
+    
+    /// Mint a new NFT (internal implementation)
     fn do_mint(
         storage: &dyn Storage,
         caller: [u8; 32],
@@ -879,7 +909,8 @@ impl Drc369Module {
     // QUERY HELPERS
     // ========================================================================
     
-    fn get_owner(storage: &dyn Storage, nft_id: &[u8; 32]) -> Option<[u8; 32]> {
+    /// Get the owner of an NFT
+    pub fn get_owner(storage: &dyn Storage, nft_id: &[u8; 32]) -> Option<[u8; 32]> {
         storage.get(&Self::owner_key(nft_id)).and_then(|v| {
             if v.len() == 32 && v != [0u8; 32].to_vec() {
                 let mut owner = [0u8; 32];
@@ -943,7 +974,8 @@ impl Drc369Module {
             .unwrap_or(false)
     }
     
-    fn get_state(storage: &dyn Storage, nft_id: &[u8; 32]) -> NftState {
+    /// Get the state (XP, level, stats) of an NFT
+    pub fn get_state(storage: &dyn Storage, nft_id: &[u8; 32]) -> NftState {
         storage.get(&Self::state_key(nft_id))
             .and_then(|v| NftState::decode(&mut &v[..]).ok())
             .unwrap_or(NftState { xp: 0, level: 1, stats: vec![] })

@@ -34,4 +34,10 @@ pub enum Drc369Error {
     
     #[error("Invalid royalty configuration: {0}")]
     InvalidRoyalty(String),
+    
+    #[error("CVP registration failed: {0}")]
+    CvpRegistrationFailed(String),
+    
+    #[error("CVP mutation failed: {0}")]
+    CvpMutationFailed(String),
 }
