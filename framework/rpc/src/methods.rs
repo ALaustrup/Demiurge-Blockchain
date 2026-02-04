@@ -478,12 +478,7 @@ impl<S: Storage> RpcMethods<S> {
     }
 
     /// Get validator by account
-    pub async fn consensus_get_validator(&self, account_hex: String) -> Result<Option<ValidatorInfo>, RpcError> {
-        let account = hex::decode(account_hex)
-            .map_err(|_e| RpcError::InvalidParams)?
-            .try_into()
-            .map_err(|_| RpcError::InvalidParams)?;
-        
+    pub async fn consensus_get_validator(&self, account: [u8; 32]) -> Result<Option<ValidatorInfo>, RpcError> {
         if let Some(consensus) = &self.consensus {
             let consensus_guard = consensus.lock().await;
             if let Some(validator) = consensus_guard.validators.get_validator(&account) {
@@ -504,12 +499,7 @@ impl<S: Storage> RpcMethods<S> {
     }
 
     /// Get staking pool for validator
-    pub async fn consensus_get_staking_pool(&self, validator_hex: String) -> Result<Option<StakingPoolInfo>, RpcError> {
-        let validator_account: [u8; 32] = hex::decode(validator_hex)
-            .map_err(|_e| RpcError::InvalidParams)?
-            .try_into()
-            .map_err(|_| RpcError::InvalidParams)?;
-        
+    pub async fn consensus_get_staking_pool(&self, validator_account: [u8; 32]) -> Result<Option<StakingPoolInfo>, RpcError> {
         if let Some(consensus) = &self.consensus {
             let consensus_guard = consensus.lock().await;
             if let Some(pool) = consensus_guard.staking_pools.get(&validator_account) {
@@ -1260,13 +1250,9 @@ impl<S: Storage> RpcMethods<S> {
     // ========== Session Keys Methods ==========
 
     /// Get active session keys for account
-    pub async fn session_keys_get_active_keys(&self, account_hex: String) -> Result<Vec<SessionKeyInfo>, RpcError> {
-        let _account: [u8; 32] = hex::decode(account_hex)
-            .map_err(|_e| RpcError::InvalidParams)?
-            .try_into()
-            .map_err(|_| RpcError::InvalidParams)?;
-        
+    pub async fn session_keys_get_active_keys(&self, account: [u8; 32]) -> Result<Vec<SessionKeyInfo>, RpcError> {
         // Get current block
+        let _account = account; // Use the account in future implementation
         let _current_block = self.get_block_number().await?;
         
         // Query session keys from storage
