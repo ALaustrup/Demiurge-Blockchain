@@ -1,31 +1,65 @@
-//! # DRC-369 Module
+//! # DRC-369: The Metaversal NFT Standard
 //!
-//! Stateful NFT Standard - NFTs that evolve, gain XP, and level up.
-//! Multi-resource support, soulbound capability, composable.
+//! The world's premier universal NFT infrastructure for metaverse assets.
+//! DRC-369 is a comprehensive, cross-chain, cross-metaverse NFT standard
+//! designed for true digital asset interoperability.
 //!
-//! ## CVP Protection
+//! ## Core Philosophy
 //!
-//! DRC-369 is protected by Consensus-Verified Polymorphism (CVP), making it
-//! the most secure NFT standard in existence. The contract bytecode mutates
-//! every epoch while preserving all functionality, making it impossible for
-//! attackers to target static bytecode patterns.
+//! DRC-369 treats NFTs as first-class citizens of the metaverse - not just
+//! static images, but living, evolving digital assets that can exist and
+//! function across any virtual world, blockchain, or game engine.
 //!
-//! ## Features
+//! ## Key Features
 //!
-//! - **Evolving NFTs**: XP and level system for NFT progression
-//! - **Soulbound**: Non-transferable NFTs bound to their owner
-//! - **Multi-resource**: Multiple assets per NFT (sprites, 3D models, audio)
-//! - **Composable**: NFTs can be nested within other NFTs
-//! - **Delegated Permissions**: Grant specific rights without transferring ownership
-//! - **CVP Protected**: Polymorphic bytecode that morphs to resist attacks
-//! - **Physics-Ready**: Standardized physics properties for game engines
-//! - **Recursive Royalties**: Perpetual creator compensation across sales and usage
+//! ### Universal Identity (UNID)
+//! - **Cross-Chain Identity**: `did:drc369:<chain>:<contract>:<token>` format
+//! - **Bridge-Aware Provenance**: Full history across chain bridges
+//! - **Chain-Agnostic Metadata**: Works on any blockchain
+//!
+//! ### Metaverse Compatibility
+//! - **Multi-Platform Support**: Decentraland, VRChat, Sandbox, Roblox, custom
+//! - **Asset Format Declarations**: glTF, VRM, voxels, sprites, audio
+//! - **Interoperability Standards**: OMI, VAMS, MSF compliance
+//!
+//! ### Dynamic State
+//! - **Evolving NFTs**: XP, levels, stats that change over time
+//! - **Physics Properties**: Standardized physics for all game engines
+//! - **Equipment Slots**: Typed composability for items and wearables
+//!
+//! ### Advanced Ownership
+//! - **Fractional Ownership**: Split NFTs into tradeable shares
+//! - **Rental/Lease Protocol**: Rent out assets while retaining ownership
+//! - **Multi-Signature**: N-of-M approval for high-value transfers
+//!
+//! ### Enterprise Security
+//! - **Emergency Freeze**: Instant freeze for theft/hack response
+//! - **Rate Limiting**: Prevent rapid suspicious transfers
+//! - **Social Recovery**: Guardian-based key recovery
+//! - **CVP Protection**: Polymorphic bytecode that morphs to resist attacks
+//!
+//! ### Creator Economics
+//! - **Multi-Party Royalties**: Split royalties between multiple recipients
+//! - **Derivative Tracking**: Royalties on derivative works
+//! - **Rental Revenue**: Passive income from asset rentals
+//!
+//! ## Standards Compliance
+//!
+//! - ERC-721 compatible (cross-chain bridging)
+//! - ERC-1155 compatible (fractional shares)
+//! - Open Metaverse Interoperability (OMI)
+//! - Metaverse Standards Forum (MSF)
 
 pub mod nft;
 pub mod error;
 pub mod physics;
 pub mod royalty;
+pub mod metaverse;
+pub mod rental;
+pub mod fractional;
+pub mod security;
 
+// Core NFT functionality
 pub use nft::{
     Drc369Module, 
     NftCall, 
@@ -33,17 +67,59 @@ pub use nft::{
     Resource, 
     Permission, 
     Delegation,
+    RoyaltyConfig as NftRoyaltyConfig,
+    TransferWithPaymentResult,
     CvpRegistrar,
     register_drc369_with_cvp,
 };
 pub use error::{Drc369Error, Result};
+
+// Physics system
 pub use physics::{
     PhysicsProperties, RigidBodyProperties, CollisionShape,
     MaterialPhysics, MaterialPreset, ThermalProperties,
     DestructionProperties, FluidInteraction, DamageType,
 };
+
+// Royalty system
 pub use royalty::{
     RoyaltyConfig, RoyaltyRecipient, RoyaltyRole,
     RoyaltyRegistry, RoyaltyDistribution, RoyaltyType,
     UsageTracker, CreatorStats, BasisPoints, MAX_TOTAL_ROYALTY_BPS,
+};
+
+// Metaverse interoperability
+pub use metaverse::{
+    UniversalNftId,
+    MetaverseCompatibility, MetaversePlatform, MetaverseCapabilities,
+    AssetFormat, AssetFormatType, QualityTier,
+    InteropStandard, PlatformData,
+    EquipmentSlots, EquipmentSlot, SlotType, StatModifier, ModifierType,
+    AvatarConfig, AvatarModel, AvatarFormat, AvatarCustomization,
+    PlatformAvatarModel, SocialLink,
+    BridgeProvenance, BridgeEvent,
+};
+
+// Rental system
+pub use rental::{
+    RentalAgreement, RentalConfig, RentalType, RentalStatus,
+    RentalPermissions, RentalManager,
+};
+
+// Fractional ownership
+pub use fractional::{
+    FractionalConfig, FractionalManager,
+    ShareBalance, BuyoutOffer, BuyoutStatus,
+    FractionalProposal, ProposalType, ProposalStatus,
+    share_token_id,
+};
+
+// Security features
+pub use security::{
+    SecurityManager,
+    FreezeStatus, FreezeReason, FreezeEvent, FreezeAction,
+    MultiSigConfig, PendingTransfer,
+    TransferLimit, Cooldown, CooldownAction,
+    AllowlistConfig, RecoveryConfig, PendingRecovery,
+    StolenReport,
 };
