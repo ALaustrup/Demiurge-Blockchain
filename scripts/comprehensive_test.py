@@ -19,29 +19,41 @@ print('=' * 70)
 print('DEMIURGE BLOCKCHAIN - COMPREHENSIVE RPC TEST')
 print('=' * 70)
 
+# Using CORRECT method names from server.rs
 tests = [
-    # Chain methods
+    # Chain methods (all registered)
     ('chain_getBlockNumber', []),
     ('chain_getHealth', []),
     ('chain_getBlock', [0]),
-    ('chain_getTransaction', ['0x' + '0' * 64]),
+    ('chain_getLatestBlock', []),
+    ('chain_getTransactionHistory', ['0' * 64, 10]),
     
-    # Consensus methods
+    # Consensus methods (registered names)
     ('consensus_getValidators', []),
-    ('consensus_getEraInfo', []),
-    ('consensus_getSlashingStatus', ['0' * 64]),
+    ('consensus_getCurrentEra', []),
+    ('consensus_getValidator', ['0' * 64]),
+    ('consensus_getStakingPool', ['0' * 64]),
+    ('consensus_getStatus', []),
     
     # Balance methods  
     ('balances_getBalance', ['0' * 64]),
-    ('balances_totalSupply', []),
+    ('balances_claimStarter', ['0' * 64]),
+    ('balances_hasClaimedStarter', ['0' * 64]),
     
-    # DRC-369 NFT methods
-    ('drc369_getToken', ['0x' + '0' * 64]),
-    ('drc369_getTokensByOwner', ['0' * 64]),
-    ('drc369_getStateTree', ['0x' + '0' * 64, []]),
+    # Energy methods
+    ('energy_getEnergy', ['0' * 64]),
     
-    # Session keys
-    ('session_keys_list_authorized', ['0' * 64]),
+    # DRC-369 NFT methods (correct names)
+    ('drc369_totalSupply', []),
+    ('drc369_balanceOf', ['0' * 64]),
+    ('drc369_ownerOf', ['0x' + '0' * 64]),
+    ('drc369_tokenURI', ['0x' + '0' * 64]),
+    ('drc369_isSoulbound', ['0x' + '0' * 64]),
+    ('drc369_getTokenInfo', ['0x' + '0' * 64]),
+    ('drc369_getDynamicState', ['0x' + '0' * 64, 'level']),
+    
+    # Session keys (correct name)
+    ('sessionKeys_getActiveKeys', ['0' * 64]),
 ]
 
 passed = 0
