@@ -2,23 +2,31 @@
 //!
 //! Provides efficient key-value storage with prefix iteration support
 //! for hierarchical state queries (critical for DRC-369 state trees).
+//!
+//! Note: All write operations use &self (not &mut self) to support
+//! usage through Arc in RPC handlers. Both RocksDB and MemoryStorage
+//! provide interior mutability to make this safe.
 
 use thiserror::Error;
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 /// Storage trait with prefix iteration support
-pub trait Storage {
+/// 
+/// Uses &self for write operations to support Arc-based sharing in RPC handlers.
+/// Implementations must provide thread-safe interior mutability.
+pub trait Storage: Send + Sync {
     /// Get a value by key
     fn get(&self, key: &[u8]) -> Option<Vec<u8>>;
     
-    /// Put a key-value pair
-    fn put(&mut self, key: &[u8], value: &[u8]);
+    /// Put a key-value pair (uses interior mutability)
+    fn put(&self, key: &[u8], value: &[u8]);
     
-    /// Delete a key
-    fn delete(&mut self, key: &[u8]);
+    /// Delete a key (uses interior mutability)
+    fn delete(&self, key: &[u8]);
     
     /// Commit changes and return root hash
-    fn commit(&mut self) -> Result<[u8; 32], StorageError>;
+    fn commit(&self) -> Result<[u8; 32], StorageError>;
     
     /// Calculate current state root without committing
     fn state_root(&self) -> Result<[u8; 32], StorageError>;
@@ -38,45 +46,52 @@ pub trait Storage {
     }
 }
 
-/// In-memory storage for testing
-#[derive(Default)]
+/// In-memory storage for testing (thread-safe with RwLock)
 pub struct MemoryStorage {
-    data: HashMap<Vec<u8>, Vec<u8>>,
+    data: RwLock<HashMap<Vec<u8>, Vec<u8>>>,
+}
+
+impl Default for MemoryStorage {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl MemoryStorage {
     pub fn new() -> Self {
         Self {
-            data: HashMap::new(),
+            data: RwLock::new(HashMap::new()),
         }
     }
 }
 
 impl Storage for MemoryStorage {
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.data.get(key).cloned()
+        self.data.read().unwrap().get(key).cloned()
     }
 
-    fn put(&mut self, key: &[u8], value: &[u8]) {
-        self.data.insert(key.to_vec(), value.to_vec());
+    fn put(&self, key: &[u8], value: &[u8]) {
+        self.data.write().unwrap().insert(key.to_vec(), value.to_vec());
     }
 
-    fn delete(&mut self, key: &[u8]) {
-        self.data.remove(key);
+    fn delete(&self, key: &[u8]) {
+        self.data.write().unwrap().remove(key);
     }
 
-    fn commit(&mut self) -> Result<[u8; 32], StorageError> {
+    fn commit(&self) -> Result<[u8; 32], StorageError> {
         use blake2::{Blake2b512, Digest};
         use crate::merkle::MerkleTree;
         
+        let data = self.data.read().unwrap();
+        
         // Sort keys for deterministic ordering
-        let mut keys: Vec<_> = self.data.keys().cloned().collect();
+        let mut keys: Vec<_> = data.keys().cloned().collect();
         keys.sort();
         
         // Create leaves from key-value hashes
         let leaves: Vec<[u8; 32]> = keys.iter()
             .filter_map(|key| {
-                self.data.get(key).map(|value| {
+                data.get(key).map(|value| {
                     let mut hasher = Blake2b512::new();
                     hasher.update(key);
                     hasher.update(value);
@@ -96,14 +111,16 @@ impl Storage for MemoryStorage {
         use blake2::{Blake2b512, Digest};
         use crate::merkle::MerkleTree;
         
+        let data = self.data.read().unwrap();
+        
         // Sort keys for deterministic ordering
-        let mut keys: Vec<_> = self.data.keys().cloned().collect();
+        let mut keys: Vec<_> = data.keys().cloned().collect();
         keys.sort();
         
         // Create leaves from key-value hashes
         let leaves: Vec<[u8; 32]> = keys.iter()
             .filter_map(|key| {
-                self.data.get(key).map(|value| {
+                data.get(key).map(|value| {
                     let mut hasher = Blake2b512::new();
                     hasher.update(key);
                     hasher.update(value);
@@ -121,11 +138,12 @@ impl Storage for MemoryStorage {
     
     fn prefix_iter(&self, prefix: &[u8]) -> Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)> + '_> {
         let prefix = prefix.to_vec();
+        let data = self.data.read().unwrap();
         
         // Collect matching entries and sort by key
-        let mut entries: Vec<_> = self.data
+        let mut entries: Vec<_> = data
             .iter()
-            .filter(move |(k, _)| k.starts_with(&prefix))
+            .filter(|(k, _)| k.starts_with(&prefix))
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
         
@@ -153,20 +171,22 @@ impl Storage for StorageBackend {
         self.db.get(key).ok().flatten()
     }
 
-    fn put(&mut self, key: &[u8], value: &[u8]) {
+    fn put(&self, key: &[u8], value: &[u8]) {
+        // RocksDB has interior mutability - put is thread-safe
         let _ = self.db.put(key, value);
     }
 
-    fn delete(&mut self, key: &[u8]) {
+    fn delete(&self, key: &[u8]) {
+        // RocksDB has interior mutability - delete is thread-safe
         let _ = self.db.delete(key);
     }
 
-    fn commit(&mut self) -> Result<[u8; 32], StorageError> {
+    fn commit(&self) -> Result<[u8; 32], StorageError> {
         use blake2::{Blake2b512, Digest};
         use rocksdb::IteratorMode;
         use crate::merkle::MerkleTree;
         
-        // Flush to disk
+        // Flush to disk (RocksDB flush is internally thread-safe)
         self.db.flush().map_err(|e| StorageError::DatabaseError(e.to_string()))?;
         
         // Collect all key-value pairs and create leaf hashes
