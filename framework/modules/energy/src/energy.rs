@@ -4,7 +4,7 @@
 //! Energy regenerates over time and is consumed by transactions.
 
 use crate::{EnergyError, Result};
-use demiurge_modules::traits::Module;
+use demiurge_modules::traits::{Module, ExecutionContext};
 use demiurge_storage::Storage;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
@@ -25,23 +25,39 @@ impl Module for EnergyModule {
     fn execute(
         &self,
         call: Vec<u8>,
+        context: &ExecutionContext,
         storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         let call_data: EnergyCall = Decode::decode(&mut &call[..])
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
 
+        let caller = context.caller;
+
         match call_data {
             EnergyCall::Consume { account, amount } => {
+                // Can only consume own energy unless privileged
+                if account != caller && !context.is_privileged {
+                    return Err(demiurge_modules::traits::ModuleError::Unauthorized(
+                        "Can only consume own energy".to_string()
+                    ));
+                }
                 Self::consume_energy(storage, account, amount)
                     .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))?;
                 Ok(())
             }
             EnergyCall::Regenerate { account } => {
+                // Anyone can trigger regeneration for any account
                 Self::regenerate_energy(storage, account)
                     .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))?;
                 Ok(())
             }
             EnergyCall::Sponsor { developer, user } => {
+                // Developer must be the caller
+                if developer != caller {
+                    return Err(demiurge_modules::traits::ModuleError::Unauthorized(
+                        "Caller must be the developer sponsoring".to_string()
+                    ));
+                }
                 Self::sponsor_transaction(storage, developer, user)
                     .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))?;
                 Ok(())

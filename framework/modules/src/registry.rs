@@ -1,12 +1,18 @@
 //! Module registry - manages all loaded modules
 
 use std::collections::HashMap;
-use crate::traits::Module;
+use crate::traits::{Module, ExecutionContext, ModuleError};
 use demiurge_storage::Storage;
 use thiserror::Error;
 
 pub struct ModuleRegistry {
     modules: HashMap<String, Box<dyn Module>>,
+}
+
+impl Default for ModuleRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ModuleRegistry {
@@ -20,20 +26,30 @@ impl ModuleRegistry {
         let name = module.name().to_string();
         self.modules.insert(name, Box::new(module));
     }
+    
+    pub fn get(&self, module_name: &str) -> Option<&dyn Module> {
+        self.modules.get(module_name).map(|m| m.as_ref())
+    }
 
+    /// Execute a call on a registered module
     pub fn execute(
         &self,
         module_name: &str,
-        _call: Vec<u8>,
-        _storage: &mut dyn Storage,
+        call: Vec<u8>,
+        context: &ExecutionContext,
+        storage: &dyn Storage,
     ) -> Result<(), RegistryError> {
-        let _module = self.modules
+        let module = self.modules
             .get(module_name)
             .ok_or_else(|| RegistryError::ModuleNotFound(module_name.to_string()))?;
 
-        // Need mutable reference - this is a design issue we'll fix
-        // For now, return error
-        Err(RegistryError::ExecutionError("Module execution not yet implemented".to_string()))
+        module.execute(call, context, storage)
+            .map_err(|e| RegistryError::ModuleError(e))
+    }
+    
+    /// Get all registered module names
+    pub fn module_names(&self) -> Vec<&str> {
+        self.modules.keys().map(|s| s.as_str()).collect()
     }
 }
 
@@ -41,6 +57,8 @@ impl ModuleRegistry {
 pub enum RegistryError {
     #[error("Module not found: {0}")]
     ModuleNotFound(String),
+    #[error("Module error: {0}")]
+    ModuleError(#[from] ModuleError),
     #[error("Execution error: {0}")]
     ExecutionError(String),
 }

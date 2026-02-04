@@ -3,7 +3,7 @@
 //! The most secure NFT standard in existence - bytecode that morphs
 //! while preserving all functionality through Consensus-Verified Polymorphism.
 
-use demiurge_modules::traits::Module;
+use demiurge_modules::traits::{Module, ExecutionContext};
 use demiurge_storage::Storage;
 use demiurge_cvp::{
     SemanticIR, ContractId,
@@ -1035,15 +1035,21 @@ impl Module for Drc369Module {
     fn execute(
         &self,
         call: Vec<u8>,
+        context: &ExecutionContext,
         storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         // Decode call
         let call_data: NftCall = Decode::decode(&mut &call[..])
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
         
-        // For now, use a placeholder caller (would come from transaction context)
-        // In production, this would be extracted from the transaction
-        let caller = [0u8; 32]; // TODO: Get from execution context
+        // Get the caller from execution context
+        let caller = context.caller;
+        
+        info!(
+            "DRC369: Executing call from {} at block {}",
+            hex::encode(&caller[..8]),
+            context.block_number
+        );
 
         let result = match call_data {
             NftCall::Mint { owner, metadata } => {

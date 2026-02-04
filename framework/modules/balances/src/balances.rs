@@ -1,7 +1,7 @@
 //! Balances module implementation
 
 use crate::{BalancesError, Result};
-use demiurge_modules::traits::Module;
+use demiurge_modules::traits::{Module, ExecutionContext};
 use demiurge_storage::Storage;
 use codec::{Decode, Encode};
 use constants::EXISTENTIAL_DEPOSIT;
@@ -21,22 +21,44 @@ impl Module for BalancesModule {
     fn execute(
         &self,
         call: Vec<u8>,
+        context: &ExecutionContext,
         storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         // Decode call
         let call_data: BalanceCall = Decode::decode(&mut &call[..])
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
 
+        // Get caller from context
+        let caller = context.caller;
+
         match call_data {
             BalanceCall::Transfer { from, to, amount } => {
+                // Verify caller is the sender or has permission
+                if from != caller && !context.is_privileged {
+                    return Err(demiurge_modules::traits::ModuleError::Unauthorized(
+                        "Caller is not the sender".to_string()
+                    ));
+                }
                 Self::transfer(storage, from, to, amount)
                     .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))
             }
             BalanceCall::Mint { to, amount } => {
+                // Only privileged calls can mint
+                if !context.is_privileged {
+                    return Err(demiurge_modules::traits::ModuleError::Unauthorized(
+                        "Only privileged calls can mint".to_string()
+                    ));
+                }
                 Self::mint(storage, to, amount)
                     .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))
             }
             BalanceCall::Burn { from, amount } => {
+                // Verify caller owns the tokens or has permission
+                if from != caller && !context.is_privileged {
+                    return Err(demiurge_modules::traits::ModuleError::Unauthorized(
+                        "Caller is not the token owner".to_string()
+                    ));
+                }
                 Self::burn(storage, from, amount)
                     .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))
             }

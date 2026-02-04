@@ -6,6 +6,64 @@
 use demiurge_storage::Storage;
 use thiserror::Error;
 
+/// Execution context passed to module calls
+/// 
+/// Contains information about the transaction sender and execution environment.
+#[derive(Clone, Debug)]
+pub struct ExecutionContext {
+    /// The account that signed and submitted the transaction (the "caller")
+    pub caller: [u8; 32],
+    /// Current block number
+    pub block_number: u64,
+    /// Current block timestamp (milliseconds since Unix epoch)
+    pub timestamp: u64,
+    /// Transaction nonce (for replay protection)
+    pub nonce: u64,
+    /// Whether this is a privileged/sudo call
+    pub is_privileged: bool,
+}
+
+impl ExecutionContext {
+    /// Create a new execution context
+    pub fn new(caller: [u8; 32], block_number: u64, timestamp: u64, nonce: u64) -> Self {
+        Self {
+            caller,
+            block_number,
+            timestamp,
+            nonce,
+            is_privileged: false,
+        }
+    }
+    
+    /// Create a privileged execution context (for system operations)
+    pub fn privileged(block_number: u64, timestamp: u64) -> Self {
+        Self {
+            caller: [0u8; 32], // System account
+            block_number,
+            timestamp,
+            nonce: 0,
+            is_privileged: true,
+        }
+    }
+    
+    /// Check if caller is the system/root account
+    pub fn is_system(&self) -> bool {
+        self.caller == [0u8; 32]
+    }
+}
+
+impl Default for ExecutionContext {
+    fn default() -> Self {
+        Self {
+            caller: [0u8; 32],
+            block_number: 0,
+            timestamp: 0,
+            nonce: 0,
+            is_privileged: false,
+        }
+    }
+}
+
 /// Base trait for all modules
 /// 
 /// Storage uses interior mutability - all storage operations work through &dyn Storage.
@@ -17,12 +75,14 @@ pub trait Module: Send + Sync {
     /// Module version
     fn version(&self) -> u32;
 
-    /// Execute a call
+    /// Execute a call with execution context
     /// 
+    /// The context provides the caller address, block info, and other metadata.
     /// Storage uses interior mutability for writes.
     fn execute(
         &self,
         call: Vec<u8>,
+        context: &ExecutionContext,
         storage: &dyn Storage,
     ) -> Result<(), ModuleError>;
 
@@ -49,4 +109,6 @@ pub enum ModuleError {
     InvalidCall(String),
     #[error("Execution failed: {0}")]
     ExecutionFailed(String),
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
 }

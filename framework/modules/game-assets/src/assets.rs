@@ -1,6 +1,6 @@
 //! Game assets implementation
 
-use demiurge_modules::traits::Module;
+use demiurge_modules::traits::{Module, ExecutionContext};
 use demiurge_storage::Storage;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
@@ -20,26 +20,29 @@ impl Module for GameAssetsModule {
     fn execute(
         &self,
         call: Vec<u8>,
-        _storage: &mut dyn Storage,
+        context: &ExecutionContext,
+        _storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         let call_data: AssetCall = Decode::decode(&mut &call[..])
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
 
+        let _caller = context.caller;
+
         match call_data {
             AssetCall::CreateAsset { game_id: _, asset_type: _ } => {
-                // TODO: Create asset type
+                // TODO: Create asset type (verify caller is game admin)
                 Ok(())
             }
             AssetCall::Mint { game_id: _, asset_type: _, to: _, amount: _ } => {
-                // TODO: Mint assets
+                // TODO: Mint assets (verify caller is game admin)
                 Ok(())
             }
             AssetCall::Transfer { game_id: _, asset_type: _, from: _, to: _, amount: _ } => {
-                // TODO: Transfer assets (feeless)
+                // TODO: Transfer assets (feeless, verify caller owns assets)
                 Ok(())
             }
             AssetCall::Burn { game_id: _, asset_type: _, from: _, amount: _ } => {
-                // TODO: Burn assets
+                // TODO: Burn assets (verify caller owns assets)
                 Ok(())
             }
         }

@@ -1,6 +1,6 @@
 //! Yield NFTs implementation
 
-use demiurge_modules::traits::Module;
+use demiurge_modules::traits::{Module, ExecutionContext};
 use demiurge_storage::Storage;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
@@ -20,22 +20,25 @@ impl Module for YieldNftsModule {
     fn execute(
         &self,
         call: Vec<u8>,
-        _storage: &mut dyn Storage,
+        context: &ExecutionContext,
+        _storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         let call_data: YieldCall = Decode::decode(&mut &call[..])
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
 
+        let _caller = context.caller;
+
         match call_data {
             YieldCall::Stake { nft_id: _, duration: _ } => {
-                // TODO: Stake NFT
+                // TODO: Stake NFT (verify caller owns NFT)
                 Ok(())
             }
             YieldCall::Unstake { nft_id: _ } => {
-                // TODO: Unstake NFT and claim yield
+                // TODO: Unstake NFT and claim yield (verify caller)
                 Ok(())
             }
             YieldCall::ClaimYield { nft_id: _ } => {
-                // TODO: Claim accumulated yield
+                // TODO: Claim accumulated yield (verify caller)
                 Ok(())
             }
             YieldCall::ShareRevenue { nft_id: _, amount: _ } => {
@@ -48,7 +51,7 @@ impl Module for YieldNftsModule {
     fn on_initialize(
         &mut self,
         _block_number: u64,
-        _storage: &mut dyn Storage,
+        _storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         // Update yield pools on each block
         // TODO: Implement yield accumulation

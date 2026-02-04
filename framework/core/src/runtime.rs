@@ -2,7 +2,7 @@
 
 use crate::{Block, Result, Transaction, TransactionData};
 use demiurge_storage::Storage;
-use demiurge_modules::{ModuleRegistry, traits::Module};
+use demiurge_modules::{ModuleRegistry, ExecutionContext, traits::Module};
 use demiurge_module_balances::{BalancesModule, BalanceCall};
 use demiurge_module_energy::{EnergyModule, EnergyCall};
 use demiurge_module_energy::energy::constants as EnergyConstants;
@@ -47,6 +47,14 @@ impl<S: Storage> Runtime<S> {
         // Get storage reference - uses interior mutability
         let storage = &*self.storage;
 
+        // Create execution context with caller info
+        let context = ExecutionContext::new(
+            tx.from,                    // Caller is the transaction sender
+            self.block_number,          // Current block number
+            self.get_timestamp(),       // Current timestamp
+            tx.nonce,                   // Transaction nonce
+        );
+
         // Check session key authorization (if using session key)
         // For now, we'll check if the transaction is from a session key
         // TODO: Add session key field to Transaction struct
@@ -67,70 +75,8 @@ impl<S: Storage> Runtime<S> {
         // Execute based on transaction type
         match &tx.data {
             TransactionData::ModuleCall { module, call } => {
-                // Execute module call
-                match module.as_str() {
-                    "Balances" => {
-                        // Decode balance call
-                        let balance_call: BalanceCall = codec::Decode::decode(&mut &call[..])
-                            .map_err(|e| crate::Error::InvalidTransaction(format!("Failed to decode balance call: {}", e)))?;
-                        
-                        match balance_call {
-                            BalanceCall::Transfer { from, to, amount } => {
-                                BalancesModule::transfer(storage, from, to, amount)
-                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                            }
-                            BalanceCall::Mint { to, amount } => {
-                                BalancesModule::mint(storage, to, amount)
-                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                            }
-                            BalanceCall::Burn { from, amount } => {
-                                BalancesModule::burn(storage, from, amount)
-                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                            }
-                        }
-                    }
-                    "Energy" => {
-                        // Decode energy call
-                        let energy_call: EnergyCall = codec::Decode::decode(&mut &call[..])
-                            .map_err(|e| crate::Error::InvalidTransaction(format!("Failed to decode energy call: {}", e)))?;
-                        
-                        match energy_call {
-                            EnergyCall::Consume { account, amount } => {
-                                EnergyModule::consume_energy(storage, account, amount)
-                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                            }
-                            EnergyCall::Regenerate { account } => {
-                                EnergyModule::regenerate_energy(storage, account)
-                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                            }
-                            EnergyCall::Sponsor { developer, user } => {
-                                EnergyModule::sponsor_transaction(storage, developer, user)
-                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                            }
-                        }
-                    }
-                    "SessionKeys" => {
-                        // Decode session keys call
-                        let session_call: SessionCall = codec::Decode::decode(&mut &call[..])
-                            .map_err(|e| crate::Error::InvalidTransaction(format!("Failed to decode session keys call: {}", e)))?;
-                        
-                        match session_call {
-                            SessionCall::Authorize { primary_account, session_key, duration } => {
-                                SessionKeysModule::authorize_session_key(storage, primary_account, session_key, duration)
-                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                            }
-                            SessionCall::Revoke { primary_account, session_key } => {
-                                SessionKeysModule::revoke_session_key(storage, primary_account, session_key)
-                                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
-                            }
-                        }
-                    }
-                    _ => {
-                        // Try to execute via module registry
-                        // For now, return error for unknown modules
-                        return Err(crate::Error::ModuleError(format!("Unknown module: {}", module)));
-                    }
-                }
+                // Execute module call with caller context
+                self.execute_module_call(module, call, &context, storage)?;
             }
             TransactionData::Transfer { to, amount } => {
                 // Direct transfer - use balances module
@@ -139,6 +85,133 @@ impl<S: Storage> Runtime<S> {
             }
         }
 
+        Ok(())
+    }
+    
+    /// Get current timestamp (milliseconds since Unix epoch)
+    fn get_timestamp(&self) -> u64 {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0)
+    }
+    
+    /// Execute a module call with proper context
+    fn execute_module_call(
+        &self,
+        module: &str,
+        call: &[u8],
+        context: &ExecutionContext,
+        storage: &dyn Storage,
+    ) -> Result<()> {
+        match module {
+            "Balances" => {
+                // Decode balance call
+                let balance_call: BalanceCall = codec::Decode::decode(&mut &call[..])
+                    .map_err(|e| crate::Error::InvalidTransaction(format!("Failed to decode balance call: {}", e)))?;
+                
+                // Validate caller authorization
+                let caller = context.caller;
+                
+                match balance_call {
+                    BalanceCall::Transfer { from, to, amount } => {
+                        // Verify caller is the sender
+                        if from != caller && !context.is_privileged {
+                            return Err(crate::Error::ModuleError("Caller is not the sender".to_string()));
+                        }
+                        BalancesModule::transfer(storage, from, to, amount)
+                            .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                    }
+                    BalanceCall::Mint { to, amount } => {
+                        // Only privileged calls can mint
+                        if !context.is_privileged {
+                            return Err(crate::Error::ModuleError("Only privileged calls can mint".to_string()));
+                        }
+                        BalancesModule::mint(storage, to, amount)
+                            .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                    }
+                    BalanceCall::Burn { from, amount } => {
+                        // Verify caller owns the tokens
+                        if from != caller && !context.is_privileged {
+                            return Err(crate::Error::ModuleError("Caller is not the token owner".to_string()));
+                        }
+                        BalancesModule::burn(storage, from, amount)
+                            .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                    }
+                }
+            }
+            "Energy" => {
+                // Decode energy call
+                let energy_call: EnergyCall = codec::Decode::decode(&mut &call[..])
+                    .map_err(|e| crate::Error::InvalidTransaction(format!("Failed to decode energy call: {}", e)))?;
+                
+                let caller = context.caller;
+                
+                match energy_call {
+                    EnergyCall::Consume { account, amount } => {
+                        // Can only consume own energy
+                        if account != caller && !context.is_privileged {
+                            return Err(crate::Error::ModuleError("Can only consume own energy".to_string()));
+                        }
+                        EnergyModule::consume_energy(storage, account, amount)
+                            .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                    }
+                    EnergyCall::Regenerate { account } => {
+                        // Anyone can trigger regeneration
+                        EnergyModule::regenerate_energy(storage, account)
+                            .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                    }
+                    EnergyCall::Sponsor { developer, user } => {
+                        // Developer must be the caller
+                        if developer != caller {
+                            return Err(crate::Error::ModuleError("Caller must be the developer".to_string()));
+                        }
+                        EnergyModule::sponsor_transaction(storage, developer, user)
+                            .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                    }
+                }
+            }
+            "SessionKeys" => {
+                // Decode session keys call
+                let session_call: SessionCall = codec::Decode::decode(&mut &call[..])
+                    .map_err(|e| crate::Error::InvalidTransaction(format!("Failed to decode session keys call: {}", e)))?;
+                
+                let caller = context.caller;
+                
+                match session_call {
+                    SessionCall::Authorize { primary_account, session_key, duration } => {
+                        // Only account owner can authorize
+                        if primary_account != caller {
+                            return Err(crate::Error::ModuleError("Only account owner can authorize session keys".to_string()));
+                        }
+                        SessionKeysModule::authorize_session_key(storage, primary_account, session_key, duration)
+                            .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                    }
+                    SessionCall::Revoke { primary_account, session_key } => {
+                        // Only account owner can revoke
+                        if primary_account != caller {
+                            return Err(crate::Error::ModuleError("Only account owner can revoke session keys".to_string()));
+                        }
+                        SessionKeysModule::revoke_session_key(storage, primary_account, session_key)
+                            .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+                    }
+                }
+            }
+            "DRC369" => {
+                // Execute DRC-369 module with full execution context
+                use demiurge_module_drc369::Drc369Module;
+                let drc369 = Drc369Module::new();
+                drc369.execute(call.to_vec(), context, storage)
+                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+            }
+            _ => {
+                // Try to execute via module registry
+                self.modules.execute(module, call.to_vec(), context, storage)
+                    .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
+            }
+        }
+        
         Ok(())
     }
 

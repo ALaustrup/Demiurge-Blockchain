@@ -4,4 +4,4 @@ pub mod registry;
 pub mod traits;
 
 pub use registry::ModuleRegistry;
-pub use traits::Module;
+pub use traits::{Module, ExecutionContext, ModuleError};

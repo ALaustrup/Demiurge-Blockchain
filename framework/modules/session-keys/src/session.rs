@@ -4,7 +4,7 @@
 //! Session keys can perform limited actions without requiring the main private key.
 
 use crate::{SessionKeysError, Result};
-use demiurge_modules::traits::Module;
+use demiurge_modules::traits::{Module, ExecutionContext};
 use demiurge_storage::Storage;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
@@ -25,18 +25,33 @@ impl Module for SessionKeysModule {
     fn execute(
         &self,
         call: Vec<u8>,
+        context: &ExecutionContext,
         storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         let call_data: SessionCall = Decode::decode(&mut &call[..])
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
 
+        let caller = context.caller;
+
         match call_data {
             SessionCall::Authorize { primary_account, session_key, duration } => {
+                // Only the primary account owner can authorize session keys
+                if primary_account != caller {
+                    return Err(demiurge_modules::traits::ModuleError::Unauthorized(
+                        "Only the account owner can authorize session keys".to_string()
+                    ));
+                }
                 Self::authorize_session_key(storage, primary_account, session_key, duration)
                     .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))?;
                 Ok(())
             }
             SessionCall::Revoke { primary_account, session_key } => {
+                // Only the primary account owner can revoke session keys
+                if primary_account != caller {
+                    return Err(demiurge_modules::traits::ModuleError::Unauthorized(
+                        "Only the account owner can revoke session keys".to_string()
+                    ));
+                }
                 Self::revoke_session_key(storage, primary_account, session_key)
                     .map_err(|e| demiurge_modules::traits::ModuleError::ExecutionFailed(e.to_string()))?;
                 Ok(())
