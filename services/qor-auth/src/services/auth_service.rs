@@ -159,11 +159,20 @@ impl AuthService {
     /// Generate email verification token
     pub fn generate_verification_token() -> String {
         use sha2::{Sha256, Digest};
-        use hex;
         let mut hasher = Sha256::new();
         hasher.update(uuid::Uuid::new_v4().as_bytes());
         hasher.update(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs().to_be_bytes());
         hex::encode(hasher.finalize())[..32].to_string()
+    }
+
+    /// Generate a deterministic on-chain address from a seed string
+    /// Returns 64 hex characters (32 bytes) suitable for blockchain address
+    pub fn hash_to_address(seed: &str) -> String {
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(b"demiurge:address:");
+        hasher.update(seed.as_bytes());
+        hex::encode(hasher.finalize())
     }
 }
 

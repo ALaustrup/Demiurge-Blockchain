@@ -73,6 +73,9 @@ tokio-graceful-shutdown = "0.15"
 # Email
 lettre = { version = "0.11", features = ["tokio1-native-tls", "builder", "hostname", "smtp-transport"] }
 
+# HTTP Client (for blockchain RPC calls)
+reqwest = { version = "0.12", features = ["json"] }
+
 [dev-dependencies]
 tokio-test = "0.4"
 rstest = "0.23"

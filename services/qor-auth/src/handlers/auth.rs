@@ -19,6 +19,47 @@ use crate::models::{
 use crate::services::{auth_service::AuthService, session_service::SessionService};
 use crate::state::AppState;
 
+/// Mint starter CGT to a new user's wallet via blockchain RPC
+/// This creates their first on-chain transaction
+async fn mint_starter_cgt(rpc_url: &str, address_hex: &str) -> Result<(), String> {
+    let client = reqwest::Client::new();
+    
+    let request_body = json!({
+        "jsonrpc": "2.0",
+        "method": "balances_claimStarter",
+        "params": [address_hex],
+        "id": 1
+    });
+
+    let response = client
+        .post(rpc_url)
+        .header("Content-Type", "application/json")
+        .json(&request_body)
+        .send()
+        .await
+        .map_err(|e| format!("RPC request failed: {}", e))?;
+
+    let result: Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse RPC response: {}", e))?;
+
+    if let Some(error) = result.get("error") {
+        return Err(format!("RPC error: {:?}", error));
+    }
+
+    // Check if minting was successful
+    if let Some(success) = result.get("result").and_then(|r| r.get("success")).and_then(|s| s.as_bool()) {
+        if !success {
+            let msg = result.get("result").and_then(|r| r.get("message")).and_then(|m| m.as_str()).unwrap_or("Unknown error");
+            return Err(format!("Mint failed: {}", msg));
+        }
+    }
+
+    tracing::info!("Minted starter CGT to 0x{}", address_hex);
+    Ok(())
+}
+
 /// Register a new user
 pub async fn register(
     State(state): State<Arc<AppState>>,
@@ -86,15 +127,21 @@ pub async fn register(
         (None, None)
     };
 
-    // Insert user
-    let _user_id = sqlx::query_scalar::<_, uuid::Uuid>(
+    // Generate on-chain address from user data (deterministic derivation)
+    // Use hash of username + discriminator + timestamp as seed
+    let address_seed = format!("{}#{}:{}", username_lower, discriminator, Utc::now().timestamp());
+    let address_hash = AuthService::hash_to_address(&address_seed);
+    let on_chain_address = format!("0x{}", address_hash);
+
+    // Insert user with on-chain address
+    let user_id = sqlx::query_scalar::<_, uuid::Uuid>(
         r#"
         INSERT INTO users (
             email, username, discriminator, password_hash, 
             email_verified, backup_code, email_verification_token, email_verification_expires_at,
-            role, status
+            role, status, on_chain_address
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'user', 'active')
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'user', 'active', $9)
         RETURNING id
         "#,
     )
@@ -106,10 +153,22 @@ pub async fn register(
     .bind(&backup_code)
     .bind(&email_verification_token)
     .bind(&email_verification_expires_at)
+    .bind(&on_chain_address)
     .fetch_one(&state.db)
     .await?;
 
+    // Mint starter CGT to new user's wallet (100 CGT = 10000 Sparks)
+    // This is their first on-chain transaction
+    let rpc_url = std::env::var("BLOCKCHAIN_RPC_URL").unwrap_or_else(|_| "http://localhost:9944".to_string());
+    let mint_result = mint_starter_cgt(&rpc_url, &address_hash).await;
+    
+    if let Err(e) = &mint_result {
+        tracing::warn!("Failed to mint starter CGT for {}: {}", username_lower, e);
+        // Don't fail registration if minting fails - user can claim later or admin can issue
+    }
+
     // Send verification email if email provided
+    let cgt_minted = mint_result.is_ok();
     let response = if let Some(ref email) = req.email {
         // Send verification email (async, don't block registration on email sending)
         let email_service = state.email_service.clone();
@@ -125,15 +184,29 @@ pub async fn register(
         
         json!({
             "qor_id": format!("{}#{:04}", username_lower, discriminator),
+            "user_id": user_id,
+            "on_chain_address": on_chain_address,
             "email_verified": false,
-            "message": "Please check your email to verify your account"
+            "starter_cgt_minted": cgt_minted,
+            "message": if cgt_minted { 
+                "Account created! 100 CGT has been added to your wallet. Please verify your email."
+            } else {
+                "Account created! Please verify your email."
+            }
         })
     } else {
         json!({
             "qor_id": format!("{}#{:04}", username_lower, discriminator),
+            "user_id": user_id,
+            "on_chain_address": on_chain_address,
             "backup_code": backup_code,
-            "email_verified": true, // No email to verify
-            "message": "Account created successfully. Save your backup code!"
+            "email_verified": true,
+            "starter_cgt_minted": cgt_minted,
+            "message": if cgt_minted {
+                "Account created! 100 CGT has been added to your wallet. Save your backup code!"
+            } else {
+                "Account created! Save your backup code!"
+            }
         })
     };
 
