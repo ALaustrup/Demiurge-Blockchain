@@ -40,7 +40,7 @@ impl<S: Storage> Runtime<S> {
     /// 
     /// Storage uses interior mutability (RwLock), so we can call write operations
     /// on &self without requiring mutable access to the Arc.
-    pub fn execute_transaction(&mut self, tx: &Transaction) -> Result<()> {
+    pub fn execute_transaction(&self, tx: &Transaction) -> Result<()> {
         // Validate transaction
         tx.validate()?;
 
@@ -150,12 +150,9 @@ impl<S: Storage> Runtime<S> {
         // Validate block (standalone - parent validation done at import)
         block.validate(None)?;
 
-        // Get storage reference - uses interior mutability
-        let storage = &*self.storage;
-
         // Update block number storage for modules that need it
         let block_key = b"System:BlockNumber";
-        storage.put(block_key, &self.block_number.encode());
+        self.storage.put(block_key, &self.block_number.encode());
 
         // Execute all transactions
         for tx in &block.transactions {
@@ -165,7 +162,7 @@ impl<S: Storage> Runtime<S> {
         // Call on_initialize for modules (cleanup expired session keys, etc.)
         // Note: This is a simplified approach - in production we'd iterate through registered modules
         let mut session_keys_module = SessionKeysModule;
-        session_keys_module.on_initialize(self.block_number, storage)
+        session_keys_module.on_initialize(self.block_number, &*self.storage)
             .map_err(|e| crate::Error::ModuleError(format!("SessionKeys on_initialize error: {}", e)))?;
 
         // Calculate state root after execution
@@ -175,12 +172,12 @@ impl<S: Storage> Runtime<S> {
         self.block_number += 1;
         
         // Update block number storage and state root
-        storage.put(block_key, &self.block_number.encode());
+        self.storage.put(block_key, &self.block_number.encode());
         let state_root_key = b"System:StateRoot";
-        storage.put(state_root_key, &state_root);
+        self.storage.put(state_root_key, &state_root);
 
         // Commit storage changes
-        if let Err(e) = storage.commit() {
+        if let Err(e) = self.storage.commit() {
             tracing::warn!("Storage commit failed: {:?}", e);
         }
 
