@@ -38,7 +38,11 @@ pub mod plonky2_circuits;
 
 pub use semantic_ir::*;
 pub use compiler::{PolymorphicCompiler, Bytecode};
-pub use mutation::{MutationStrategy, MutationConfig, CompositeMutation};
+pub use mutation::{
+    MutationStrategy, MutationConfig, CompositeMutation, StrategyType,
+    OpcodeSubstitution, MemoryRandomization, ControlFlowObfuscation,
+    DeadCodeInjection, StackScrambling, ConstantObfuscation, OperationReordering,
+};
 pub use proof::{
     EquivalenceProof, ProofGenerator, ProofVerifier, ProofSystem,
     PlaceholderProofGenerator, PlaceholderProofVerifier,
