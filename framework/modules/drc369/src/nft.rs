@@ -33,6 +33,8 @@ mod storage_keys {
     pub const NFT_CHILDREN: &[u8] = b"DRC369:Children:";
     pub const NFT_DELEGATION: &[u8] = b"DRC369:Delegation:";
     pub const NFT_PHYSICS: &[u8] = b"DRC369:Physics:";  // Physics properties storage
+    pub const NFT_ROYALTY: &[u8] = b"DRC369:Royalty:";  // Royalty configuration
+    pub const NFT_CREATOR: &[u8] = b"DRC369:Creator:";  // Original creator/minter
     pub const NEXT_NFT_ID: &[u8] = b"DRC369:NextId";
     pub const TOTAL_SUPPLY: &[u8] = b"DRC369:TotalSupply";
     pub const CVP_CONTRACT_ID: &[u8] = b"DRC369:CvpContractId";
@@ -121,7 +123,7 @@ impl Drc369Module {
     }
     
     /// Mark CVP as registered
-    fn set_cvp_registered(storage: &mut dyn Storage) {
+    fn set_cvp_registered(storage: &dyn Storage) {
         storage.put(storage_keys::CVP_REGISTERED, &[1u8]);
     }
     
@@ -204,6 +206,20 @@ impl Drc369Module {
         key
     }
     
+    /// Generate storage key for royalty configuration
+    fn royalty_key(nft_id: &[u8; 32]) -> Vec<u8> {
+        let mut key = storage_keys::NFT_ROYALTY.to_vec();
+        key.extend_from_slice(nft_id);
+        key
+    }
+    
+    /// Generate storage key for original creator
+    fn creator_key(nft_id: &[u8; 32]) -> Vec<u8> {
+        let mut key = storage_keys::NFT_CREATOR.to_vec();
+        key.extend_from_slice(nft_id);
+        key
+    }
+    
     // ========================================================================
     // PHYSICS OPERATIONS
     // ========================================================================
@@ -224,7 +240,7 @@ impl Drc369Module {
     ) -> Result<()> {
         // Verify ownership
         let owner = Self::get_owner(storage, &nft_id)
-            .ok_or(Drc369Error::NotFound)?;
+            .ok_or(Drc369Error::NftNotFound)?;
         
         if owner != caller {
             return Err(Drc369Error::NotOwner);
@@ -254,13 +270,95 @@ impl Drc369Module {
     }
     
     // ========================================================================
+    // ROYALTY OPERATIONS
+    // ========================================================================
+    
+    /// Set royalty configuration for an NFT
+    /// Only the creator (original minter) can set royalties
+    pub fn set_royalty(
+        storage: &dyn Storage,
+        caller: [u8; 32],
+        nft_id: [u8; 32],
+        royalty: RoyaltyConfig,
+    ) -> Result<()> {
+        // Verify caller is the creator
+        let creator = Self::get_creator(storage, &nft_id)
+            .ok_or(Drc369Error::NftNotFound)?;
+        
+        if creator != caller {
+            return Err(Drc369Error::NotOwner);
+        }
+        
+        // Validate royalty percentage (max 50% = 5000 basis points)
+        if royalty.percentage_bps > 5000 {
+            return Err(Drc369Error::StateUpdateFailed(
+                "Royalty percentage cannot exceed 50%".to_string()
+            ));
+        }
+        
+        // Store royalty config
+        let key = Self::royalty_key(&nft_id);
+        storage.put(&key, &royalty.encode());
+        
+        info!(
+            "DRC369: Set royalty for NFT {} - {}bps to {}",
+            hex::encode(&nft_id[..8]),
+            royalty.percentage_bps,
+            hex::encode(&royalty.recipient[..8])
+        );
+        
+        Ok(())
+    }
+    
+    /// Get royalty configuration for an NFT
+    pub fn get_royalty(storage: &dyn Storage, nft_id: &[u8; 32]) -> Option<RoyaltyConfig> {
+        let key = Self::royalty_key(nft_id);
+        storage.get(&key).and_then(|bytes| RoyaltyConfig::decode(&mut &bytes[..]).ok())
+    }
+    
+    /// Check if NFT has royalty configured
+    pub fn has_royalty(storage: &dyn Storage, nft_id: &[u8; 32]) -> bool {
+        Self::get_royalty(storage, nft_id).is_some()
+    }
+    
+    /// Get the original creator of an NFT
+    pub fn get_creator(storage: &dyn Storage, nft_id: &[u8; 32]) -> Option<[u8; 32]> {
+        storage.get(&Self::creator_key(nft_id)).and_then(|v| {
+            if v.len() == 32 {
+                let mut creator = [0u8; 32];
+                creator.copy_from_slice(&v);
+                Some(creator)
+            } else {
+                None
+            }
+        })
+    }
+    
+    /// Calculate royalty amount for a given sale price
+    /// Returns (royalty_amount, remainder_to_seller)
+    pub fn calculate_royalty(
+        storage: &dyn Storage,
+        nft_id: &[u8; 32],
+        sale_price: u128,
+    ) -> (u128, u128) {
+        if let Some(royalty) = Self::get_royalty(storage, nft_id) {
+            // Calculate royalty: (price * bps) / 10000
+            let royalty_amount = (sale_price * royalty.percentage_bps as u128) / 10000;
+            let remainder = sale_price.saturating_sub(royalty_amount);
+            (royalty_amount, remainder)
+        } else {
+            (0, sale_price)
+        }
+    }
+    
+    // ========================================================================
     // CORE OPERATIONS
     // ========================================================================
     
     /// Mint a new NFT
     fn do_mint(
-        storage: &mut dyn Storage,
-        _caller: [u8; 32],
+        storage: &dyn Storage,
+        caller: [u8; 32],
         owner: [u8; 32],
         metadata: Vec<u8>,
         soulbound: bool,
@@ -271,6 +369,11 @@ impl Drc369Module {
         
         // Set owner
         storage.put(&Self::owner_key(&nft_id), &owner);
+        
+        // Set creator (minter) - important for royalties
+        // If caller is zero (system mint), use owner as creator
+        let creator = if caller == [0u8; 32] { owner } else { caller };
+        storage.put(&Self::creator_key(&nft_id), &creator);
         
         // Increment balance
         let balance = Self::get_balance(storage, &owner);
@@ -300,9 +403,10 @@ impl Drc369Module {
         storage.put(storage_keys::TOTAL_SUPPLY, &(total_supply + 1).encode());
         
         info!(
-            "DRC369: Minted NFT {} to {} (soulbound: {})",
+            "DRC369: Minted NFT {} to {} by creator {} (soulbound: {})",
             hex::encode(&nft_id[..8]),
             hex::encode(&owner[..8]),
+            hex::encode(&creator[..8]),
             soulbound
         );
         
@@ -311,7 +415,7 @@ impl Drc369Module {
     
     /// Transfer an NFT
     fn do_transfer(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         from: [u8; 32],
         to: [u8; 32],
@@ -363,9 +467,97 @@ impl Drc369Module {
         Ok(())
     }
     
+    /// Transfer an NFT with payment, auto-distributing royalties
+    /// 
+    /// This is used for marketplace sales where a payment amount is specified.
+    /// Royalties are automatically calculated and distributed to the creator.
+    /// 
+    /// Returns: (royalty_paid, seller_receives)
+    pub fn do_transfer_with_payment(
+        storage: &dyn Storage,
+        caller: [u8; 32],
+        from: [u8; 32],
+        to: [u8; 32],
+        nft_id: [u8; 32],
+        payment_amount: u128,
+    ) -> Result<TransferWithPaymentResult> {
+        // Verify ownership
+        let owner = Self::get_owner(storage, &nft_id)
+            .ok_or(Drc369Error::NftNotFound)?;
+        
+        if owner != from {
+            return Err(Drc369Error::NotOwner);
+        }
+        
+        // Check caller is authorized
+        if !Self::is_authorized(storage, &caller, &from, &nft_id) {
+            return Err(Drc369Error::NotOwner);
+        }
+        
+        // Check not soulbound
+        if Self::is_soulbound(storage, &nft_id) {
+            return Err(Drc369Error::Soulbound);
+        }
+        
+        // Check recipient is not zero
+        if to == [0u8; 32] {
+            return Err(Drc369Error::TransferFailed("Cannot transfer to zero address".to_string()));
+        }
+        
+        // Calculate royalties
+        let (royalty_amount, seller_amount) = Self::calculate_royalty(storage, &nft_id, payment_amount);
+        let royalty_recipient = Self::get_royalty(storage, &nft_id)
+            .map(|r| r.recipient);
+        
+        // Update owner
+        storage.put(&Self::owner_key(&nft_id), &to);
+        
+        // Update balances
+        let from_balance = Self::get_balance(storage, &from);
+        let to_balance = Self::get_balance(storage, &to);
+        
+        storage.put(&Self::balance_key(&from), &from_balance.saturating_sub(1).encode());
+        storage.put(&Self::balance_key(&to), &(to_balance + 1).encode());
+        
+        // Clear approval
+        storage.put(&Self::approval_key(&nft_id), &[0u8; 32]);
+        
+        // Log the transfer with payment details
+        if let Some(recipient) = &royalty_recipient {
+            info!(
+                "DRC369: Transferred NFT {} from {} to {} - Payment: {}, Royalty: {} to {}, Seller receives: {}",
+                hex::encode(&nft_id[..8]),
+                hex::encode(&from[..8]),
+                hex::encode(&to[..8]),
+                payment_amount,
+                royalty_amount,
+                hex::encode(&recipient[..8]),
+                seller_amount
+            );
+        } else {
+            info!(
+                "DRC369: Transferred NFT {} from {} to {} - Payment: {} (no royalty configured)",
+                hex::encode(&nft_id[..8]),
+                hex::encode(&from[..8]),
+                hex::encode(&to[..8]),
+                payment_amount
+            );
+        }
+        
+        Ok(TransferWithPaymentResult {
+            nft_id,
+            from,
+            to,
+            payment_amount,
+            royalty_amount,
+            royalty_recipient,
+            seller_receives: seller_amount,
+        })
+    }
+    
     /// Approve an address to transfer NFT
     fn do_approve(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         approved: [u8; 32],
         nft_id: [u8; 32],
@@ -384,7 +576,7 @@ impl Drc369Module {
     
     /// Set operator approval for all NFTs
     fn do_set_approval_for_all(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         operator: [u8; 32],
         approved: bool,
@@ -396,7 +588,7 @@ impl Drc369Module {
     
     /// Update NFT state (XP, level, stats)
     fn do_update_state(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         nft_id: [u8; 32],
         state: NftState,
@@ -430,7 +622,7 @@ impl Drc369Module {
     
     /// Add XP to NFT
     fn do_add_xp(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         nft_id: [u8; 32],
         xp_amount: u64,
@@ -463,7 +655,7 @@ impl Drc369Module {
     
     /// Set soulbound status
     fn do_set_soulbound(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         nft_id: [u8; 32],
         soulbound: bool,
@@ -492,7 +684,7 @@ impl Drc369Module {
     
     /// Add a resource to NFT
     fn do_add_resource(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         nft_id: [u8; 32],
         resource: Resource,
@@ -521,7 +713,7 @@ impl Drc369Module {
     
     /// Nest an NFT under a parent NFT
     fn do_nest(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         child_id: [u8; 32],
         parent_id: [u8; 32],
@@ -564,7 +756,7 @@ impl Drc369Module {
     
     /// Unnest an NFT from its parent
     fn do_unnest(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         child_id: [u8; 32],
     ) -> Result<()> {
@@ -597,7 +789,7 @@ impl Drc369Module {
     
     /// Delegate permissions on an NFT
     fn do_delegate(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         nft_id: [u8; 32],
         delegatee: [u8; 32],
@@ -629,7 +821,7 @@ impl Drc369Module {
     
     /// Revoke delegation
     fn do_revoke_delegation(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         nft_id: [u8; 32],
         delegatee: [u8; 32],
@@ -648,7 +840,7 @@ impl Drc369Module {
     
     /// Burn an NFT
     fn do_burn(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         caller: [u8; 32],
         nft_id: [u8; 32],
     ) -> Result<()> {
@@ -843,7 +1035,7 @@ impl Module for Drc369Module {
     fn execute(
         &self,
         call: Vec<u8>,
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         // Decode call
         let call_data: NftCall = Decode::decode(&mut &call[..])
@@ -897,6 +1089,14 @@ impl Module for Drc369Module {
             }
             NftCall::Burn { nft_id } => {
                 Self::do_burn(storage, caller, nft_id)
+            }
+            NftCall::SetRoyalty { nft_id, recipient, percentage_bps } => {
+                let royalty = RoyaltyConfig::new(recipient, percentage_bps);
+                Self::set_royalty(storage, caller, nft_id, royalty)
+            }
+            NftCall::TransferWithPayment { from, to, nft_id, payment_amount } => {
+                Self::do_transfer_with_payment(storage, caller, from, to, nft_id, payment_amount)
+                    .map(|_| ())
             }
         };
 
@@ -981,6 +1181,19 @@ pub enum NftCall {
     Burn {
         nft_id: [u8; 32],
     },
+    /// Set royalty configuration (creator only)
+    SetRoyalty {
+        nft_id: [u8; 32],
+        recipient: [u8; 32],
+        percentage_bps: u16,
+    },
+    /// Transfer with payment (for marketplace sales with auto-royalty)
+    TransferWithPayment {
+        from: [u8; 32],
+        to: [u8; 32],
+        nft_id: [u8; 32],
+        payment_amount: u128,
+    },
 }
 
 /// NFT state (XP, level, stats) - evolving NFTs
@@ -1018,6 +1231,48 @@ pub struct Delegation {
     pub delegatee: [u8; 32],
     pub permissions: Vec<Permission>,
     pub expires_at: Option<u64>, // Optional expiration timestamp
+}
+
+/// Royalty configuration for an NFT
+/// 
+/// Royalties are automatically distributed on transfers with payment.
+#[derive(Clone, Debug, Encode, Decode, TypeInfo)]
+pub struct RoyaltyConfig {
+    /// Address to receive royalties
+    pub recipient: [u8; 32],
+    /// Royalty percentage in basis points (100 = 1%, max 5000 = 50%)
+    pub percentage_bps: u16,
+}
+
+impl RoyaltyConfig {
+    /// Create a new royalty configuration
+    pub fn new(recipient: [u8; 32], percentage_bps: u16) -> Self {
+        Self { recipient, percentage_bps }
+    }
+    
+    /// Calculate royalty amount for a given price
+    pub fn calculate(&self, price: u128) -> u128 {
+        (price * self.percentage_bps as u128) / 10000
+    }
+}
+
+/// Result of a transfer with payment
+#[derive(Clone, Debug)]
+pub struct TransferWithPaymentResult {
+    /// NFT that was transferred
+    pub nft_id: [u8; 32],
+    /// Previous owner (seller)
+    pub from: [u8; 32],
+    /// New owner (buyer)
+    pub to: [u8; 32],
+    /// Total payment amount
+    pub payment_amount: u128,
+    /// Royalty amount paid to creator
+    pub royalty_amount: u128,
+    /// Royalty recipient (if configured)
+    pub royalty_recipient: Option<[u8; 32]>,
+    /// Amount seller receives after royalty
+    pub seller_receives: u128,
 }
 
 // ============================================================================

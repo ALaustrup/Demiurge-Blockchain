@@ -329,6 +329,43 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_setPhysics: {}", e)))?;
 
+        // drc369_getRoyalty - Get royalty configuration
+        module.register_async_method("drc369_getRoyalty", |params, ctx| async move {
+            let token_id: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid token_id") })?;
+            ctx.drc369_get_royalty(token_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_getRoyalty: {}", e)))?;
+
+        // drc369_hasRoyalty - Check if token has royalty
+        module.register_async_method("drc369_hasRoyalty", |params, ctx| async move {
+            let token_id: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid token_id") })?;
+            ctx.drc369_has_royalty(token_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_hasRoyalty: {}", e)))?;
+
+        // drc369_setRoyalty - Set royalty configuration (creator only)
+        module.register_async_method("drc369_setRoyalty", |params, ctx| async move {
+            let (token_id, recipient, percentage_bps, signature): (String, String, u16, String) = params.parse()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Expected: [token_id, recipient, percentage_bps, signature]") })?;
+            ctx.drc369_set_royalty(token_id, recipient, percentage_bps, signature).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_setRoyalty: {}", e)))?;
+
+        // drc369_calculateRoyalty - Calculate royalty for sale price
+        module.register_async_method("drc369_calculateRoyalty", |params, ctx| async move {
+            let (token_id, sale_price): (String, String) = params.parse()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Expected: [token_id, sale_price]") })?;
+            ctx.drc369_calculate_royalty(token_id, sale_price).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_calculateRoyalty: {}", e)))?;
+
+        // drc369_getCreator - Get original creator of token
+        module.register_async_method("drc369_getCreator", |params, ctx| async move {
+            let token_id: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid token_id") })?;
+            ctx.drc369_get_creator(token_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_getCreator: {}", e)))?;
+
         // drc369_getStateBatch
         module.register_async_method("drc369_getStateBatch", |params, ctx| async move {
             let (token_id, paths): (String, Vec<String>) = params.parse().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid params") })?;

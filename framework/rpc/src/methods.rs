@@ -1124,6 +1124,157 @@ impl<S: Storage> RpcMethods<S> {
         })
     }
     
+    // ========== DRC-369 Royalty Methods ==========
+    
+    /// Get royalty configuration for a token
+    /// 
+    /// Returns the royalty recipient and percentage (in basis points, 100 = 1%)
+    pub async fn drc369_get_royalty(&self, token_id: String) -> Result<Option<Drc369RoyaltyInfo>, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        
+        // Check if token exists
+        let owner_key = Self::drc369_owner_key(token_id_u256);
+        if self.storage.get(&owner_key).is_none() {
+            return Ok(None);
+        }
+        
+        // Get royalty config
+        let royalty_key = Self::drc369_royalty_key(token_id_u256);
+        match self.storage.get(&royalty_key) {
+            Some(bytes) if bytes.len() >= 34 => {
+                // Decode: 32 bytes recipient + 2 bytes percentage_bps
+                let mut recipient = [0u8; 32];
+                recipient.copy_from_slice(&bytes[0..32]);
+                let percentage_bps = u16::from_le_bytes([bytes[32], bytes[33]]);
+                
+                Ok(Some(Drc369RoyaltyInfo {
+                    token_id,
+                    recipient: format!("0x{}", hex::encode(&recipient)),
+                    percentage_bps,
+                    percentage_display: format!("{}%", percentage_bps as f64 / 100.0),
+                }))
+            }
+            _ => Ok(None),
+        }
+    }
+    
+    /// Check if a token has royalty configured
+    pub async fn drc369_has_royalty(&self, token_id: String) -> Result<bool, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        let royalty_key = Self::drc369_royalty_key(token_id_u256);
+        Ok(self.storage.get(&royalty_key).map(|v| v.len() >= 34).unwrap_or(false))
+    }
+    
+    /// Set royalty configuration for a token
+    /// 
+    /// Only the original creator can set royalties.
+    /// percentage_bps is in basis points (100 = 1%, max 5000 = 50%)
+    pub async fn drc369_set_royalty(
+        &self,
+        token_id: String,
+        recipient: String,
+        percentage_bps: u16,
+        signature: String,
+    ) -> Result<Drc369SetRoyaltyResult, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        
+        // Validate signature format
+        if signature.len() < 64 || hex::decode(&signature).is_err() {
+            return Err(RpcError::InvalidTransaction("Invalid signature format".to_string()));
+        }
+        
+        // Validate percentage (max 50%)
+        if percentage_bps > 5000 {
+            return Err(RpcError::InvalidTransaction("Royalty cannot exceed 50% (5000 bps)".to_string()));
+        }
+        
+        // Parse recipient
+        let recipient_bytes = if recipient.starts_with("0x") {
+            hex::decode(&recipient[2..]).map_err(|_| RpcError::InvalidParams)?
+        } else {
+            hex::decode(&recipient).map_err(|_| RpcError::InvalidParams)?
+        };
+        if recipient_bytes.len() != 32 {
+            return Err(RpcError::InvalidParams);
+        }
+        let mut recipient_arr = [0u8; 32];
+        recipient_arr.copy_from_slice(&recipient_bytes);
+        
+        // Check if token exists
+        let owner_key = Self::drc369_owner_key(token_id_u256);
+        if self.storage.get(&owner_key).is_none() {
+            return Err(RpcError::NotFound("Token not found".to_string()));
+        }
+        
+        // Store royalty: 32 bytes recipient + 2 bytes percentage
+        let royalty_key = Self::drc369_royalty_key(token_id_u256);
+        let mut royalty_data = recipient_arr.to_vec();
+        royalty_data.extend_from_slice(&percentage_bps.to_le_bytes());
+        self.storage.put(&royalty_key, &royalty_data);
+        
+        tracing::info!(
+            "DRC369: Set royalty for token {} - {}bps to {}",
+            token_id,
+            percentage_bps,
+            hex::encode(&recipient_arr[..8])
+        );
+        
+        Ok(Drc369SetRoyaltyResult {
+            success: true,
+            token_id,
+            recipient: format!("0x{}", hex::encode(&recipient_arr)),
+            percentage_bps,
+        })
+    }
+    
+    /// Calculate royalty for a given sale price
+    pub async fn drc369_calculate_royalty(
+        &self,
+        token_id: String,
+        sale_price: String,
+    ) -> Result<Drc369RoyaltyCalculation, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        let price: u128 = sale_price.parse()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Get royalty config
+        let royalty_key = Self::drc369_royalty_key(token_id_u256);
+        let (royalty_amount, seller_amount, recipient) = match self.storage.get(&royalty_key) {
+            Some(bytes) if bytes.len() >= 34 => {
+                let mut recipient = [0u8; 32];
+                recipient.copy_from_slice(&bytes[0..32]);
+                let percentage_bps = u16::from_le_bytes([bytes[32], bytes[33]]);
+                
+                let royalty = (price * percentage_bps as u128) / 10000;
+                let seller = price.saturating_sub(royalty);
+                
+                (royalty, seller, Some(format!("0x{}", hex::encode(&recipient))))
+            }
+            _ => (0, price, None),
+        };
+        
+        Ok(Drc369RoyaltyCalculation {
+            token_id,
+            sale_price,
+            royalty_amount: royalty_amount.to_string(),
+            seller_receives: seller_amount.to_string(),
+            royalty_recipient: recipient,
+        })
+    }
+    
+    /// Get the original creator of a token
+    pub async fn drc369_get_creator(&self, token_id: String) -> Result<Option<String>, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        let creator_key = Self::drc369_creator_key(token_id_u256);
+        
+        match self.storage.get(&creator_key) {
+            Some(bytes) if bytes.len() == 32 => {
+                Ok(Some(format!("0x{}", hex::encode(&bytes))))
+            }
+            _ => Ok(None),
+        }
+    }
+    
     // ========== DRC-369 Storage Key Helpers ==========
     
     fn parse_token_id(&self, token_id: &str) -> Result<[u8; 32], RpcError> {
@@ -1181,6 +1332,18 @@ impl<S: Storage> RpcMethods<S> {
     
     fn drc369_physics_key(token_id: [u8; 32]) -> Vec<u8> {
         let mut key = b"DRC369:Physics:".to_vec();
+        key.extend_from_slice(&token_id);
+        key
+    }
+    
+    fn drc369_royalty_key(token_id: [u8; 32]) -> Vec<u8> {
+        let mut key = b"DRC369:Royalty:".to_vec();
+        key.extend_from_slice(&token_id);
+        key
+    }
+    
+    fn drc369_creator_key(token_id: [u8; 32]) -> Vec<u8> {
+        let mut key = b"DRC369:Creator:".to_vec();
         key.extend_from_slice(&token_id);
         key
     }
@@ -1730,6 +1893,34 @@ pub struct Drc369SetPhysicsResult {
     pub success: bool,
     pub token_id: String,
     pub physics_size_bytes: u32,
+}
+
+/// DRC-369 royalty information
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369RoyaltyInfo {
+    pub token_id: String,
+    pub recipient: String,
+    pub percentage_bps: u16,
+    pub percentage_display: String,
+}
+
+/// Result of setting royalty
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369SetRoyaltyResult {
+    pub success: bool,
+    pub token_id: String,
+    pub recipient: String,
+    pub percentage_bps: u16,
+}
+
+/// Royalty calculation result
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369RoyaltyCalculation {
+    pub token_id: String,
+    pub sale_price: String,
+    pub royalty_amount: String,
+    pub seller_receives: String,
+    pub royalty_recipient: Option<String>,
 }
 
 /// DRC-369 collection statistics
