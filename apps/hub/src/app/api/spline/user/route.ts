@@ -13,10 +13,25 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud';
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'demiurge-secret-key');
+
+// Simple JWT decode (no verification - for Spline visualization only)
+function decodeJWT(token: string): { user_id: string; qor_id: string; role: string; address?: string } | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    return {
+      user_id: payload.user_id || payload.sub || '',
+      qor_id: payload.qor_id || payload.sub || '',
+      role: payload.role || 'user',
+      address: payload.address,
+    };
+  } catch {
+    return null;
+  }
+}
 
 interface UserData {
   // Identity
@@ -120,13 +135,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const token = authHeader.slice(7);
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    const decoded = payload as {
-      user_id: string;
-      qor_id: string;
-      role: string;
-      address?: string;
-    };
+    const decoded = decodeJWT(token);
+    
+    if (!decoded) {
+      throw new Error('Invalid token');
+    }
 
     const address = decoded.address || '';
     
