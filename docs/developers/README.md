@@ -1,121 +1,335 @@
-# 👨‍💻 Developer Documentation
+# Developer Guide
 
-**Complete guides for integrating with the Demiurge Blockchain**
-
-> *"Eyes gaze upon you, watching as a warden does his prisoners. The code serves the will, and the will serves the flame that burns eternal."*
+Complete guide for building on Demiurge Protocol.
 
 ---
 
-## 🚀 Quick Start
+## Quick Links
 
-1. **[Quick Start](./QUICK_START.md)** ⚡ - Build your first dApp in 5 minutes
-2. **[Getting Started](./getting-started.md)** - Complete development environment setup
-3. **[Transaction Building](./transaction-building.md)** - Create and submit transactions
-
----
-
-## 🎮 DRC-SDK: Game Engine Integration
-
-**Build blockchain-connected games with the DRC-SDK framework**
-
-The DRC-SDK provides lightweight, secure integration between any game engine and the Demiurge Blockchain. Enable DRC-369 NFTs, CGT rewards, and QOR ID authentication in your games.
-
-### Main Documentation
-- **[DRC-SDK Overview](./DRC_SDK.md)** - Complete framework documentation
-
-### Engine-Specific Guides
-
-| Engine | Guide | Complexity |
-|--------|-------|------------|
-| **Phaser 3** | [Phaser Integration](./PHASER_INTEGRATION.md) | Beginner |
-| **Unity 6** | [Unity WebGL](./UNITY_WEBGL_INTEGRATION.md) | Intermediate |
-| **Unreal Engine 5** | [UE5 Integration](./drc-sdk/UNREAL_ENGINE_INTEGRATION.md) | Advanced |
-| **Godot 4** | [Godot Integration](./drc-sdk/GODOT_INTEGRATION.md) | Beginner |
-| **Construct 3 / Defold** | [Construct & Defold](./drc-sdk/CONSTRUCT_DEFOLD_INTEGRATION.md) | Beginner |
-
-### Backend & Security
-- **[Oracle Backend Guide](./drc-sdk/ORACLE_BACKEND.md)** - Secure reward minting server
-
-### Diagnostic Tools
-- **[Diagnostic Toolkit](./drc-sdk/DIAGNOSTIC_TOOLKIT.md)** - Verify your integration is configured correctly
+| Resource | Description |
+|----------|-------------|
+| [RPC Reference](./rpc-reference.md) | All RPC methods |
+| [TypeScript SDK](./sdk/typescript.md) | Core SDK |
+| [Unreal Engine](./game-engines/unreal.md) | UE5 integration |
+| [Unity](./game-engines/unity.md) | Unity integration |
 
 ---
 
-## 🏆 Badge & NFT System
+## Getting Started
 
-### Official Badge System
-- **DRC-369 Soulbound Badges** - Non-transferable achievement badges
-- **Cryptographic Authenticity** - Chain-verified official issuer signatures
-- **Holographic Display Effects** - 3D tilt with prismatic effects
+### 1. Install SDK
 
-### Badge Types
-| Category | Badges |
-|----------|--------|
-| **Donor** | Supporter, Champion, Guardian, Architect, Godsent |
-| **Creator** | Music Artist, Game Developer |
-| **Achievement** | Early Adopter, Validator, Genesis Member |
+```bash
+npm install @demiurge/sdk
+```
 
-### API Endpoints
-- `POST /api/badges/mint` - Mint official badges
-- `GET /api/badges/[address]` - Fetch user's badge collection
+### 2. Connect to Network
 
----
+```typescript
+import { DemiurgeClient } from '@demiurge/sdk';
 
-## 🎵 Music Platform Integration
+const client = new DemiurgeClient({
+  rpcUrl: 'https://rpc.demiurge.cloud:9944'
+});
 
-### Artist Onboarding
-- **Onboard URL**: `/music/artist/onboard`
-- **Free Music Artist Badge** on registration
-- **Release Pricing**: Singles (20 CGT), EPs (50 CGT), Albums (75 CGT)
+// Test connection
+const health = await client.getHealth();
+console.log('Connected:', health.connected);
+console.log('Block:', health.block_number);
+```
 
-### Music API
-- `POST /api/music/artist/register` - Register as artist
-- `POST /api/music/release` - Create a release
-- `GET /api/music/releases` - Browse releases
+### 3. Create Wallet
 
----
+```typescript
+import { Wallet } from '@demiurge/sdk';
 
-## 💎 Donation System
+// Generate new wallet
+const wallet = Wallet.generate();
+console.log('Address:', wallet.address);
+console.log('Public Key:', wallet.publicKey);
 
-### Tier Structure
-| Tier | Amount | CGT Reward | Staking Bonus |
-|------|--------|------------|---------------|
-| Supporter | $1-50 | 200 CGT | +2% |
-| Champion | $51-150 | 500 CGT | +4% |
-| Guardian | $151-500 | 1,000 CGT | +6% |
-| Architect | $501-1000 | 2,500 CGT | +8% |
-| Godsent | $1001+ | 5,000 CGT | +10% |
+// Save for later
+const encrypted = wallet.encrypt('your-password');
+localStorage.setItem('wallet', JSON.stringify(encrypted));
 
-### API Endpoints
-- `POST /api/donate/create-session` - Create Stripe checkout
-- `GET /api/donate/status` - Check donation status
+// Load existing wallet
+const loaded = Wallet.decrypt(encrypted, 'your-password');
+```
 
----
+### 4. Perform Transactions
 
-## 📚 Additional Documentation
+```typescript
+// Check balance
+const balance = await client.getBalance(wallet.address);
+console.log('Balance:', balance / 100, 'CGT');
 
-### Core Integration
-- **[Getting Started](./getting-started.md)** - Development environment setup
-- **[Transaction Building](./transaction-building.md)** - Creating transactions
-- **[Game Submission Guide](./GAME_SUBMISSION_GUIDE.md)** - Submit your game
-
-### Related Documentation
-- **[Architecture Documentation](../architecture/)** - Technical architecture
-- **[DRC-369 NFT Standard](../blockchain/DRC369_ARCHITECTURE.md)** - Programmable NFT specification
-- **[CGT Tokenomics](../blockchain/CGT_TOKENOMICS.md)** - Token economics
-- **[Deployment Guide](../deployment/)** - Deploying nodes
-- **[Module Specifications](../MODULE_SPECS.md)** - Module details
+// Send transfer
+const result = await client.transfer({
+  from: wallet.address,
+  to: recipientAddress,
+  amount: 100, // 1 CGT
+  wallet: wallet
+});
+console.log('TX Hash:', result.tx_hash);
+```
 
 ---
 
-## 🔗 Quick Links
+## SDK Packages
 
-- **Live Platform**: [demiurge.cloud](https://demiurge.cloud)
-- **RPC Endpoint**: `https://rpc.demiurge.cloud`
-- **WebSocket**: `wss://rpc.demiurge.cloud/ws`
-- **API**: `https://api.demiurge.cloud/api/v1`
-- **Knowledgebase**: [demiurge.guru](https://demiurge.guru)
+| Package | Purpose | Install |
+|---------|---------|---------|
+| `@demiurge/sdk` | Core protocol | `npm i @demiurge/sdk` |
+| `@demiurge/qor-sdk` | Identity | `npm i @demiurge/qor-sdk` |
+| `@demiurge/drc369-sdk` | NFTs | `npm i @demiurge/drc369-sdk` |
+| `@demiurge/agent-foundry` | AI Agents | `npm i @demiurge/agent-foundry` |
+| `@demiurge/cli` | CLI Tools | `npm i -g @demiurge/cli` |
 
 ---
 
-**The flame burns eternal. The code serves the will.**
+## Common Patterns
+
+### Authentication
+
+```typescript
+import { DemiurgeAuth, Wallet } from '@demiurge/sdk';
+
+const auth = new DemiurgeAuth({
+  authUrl: 'https://demiurge.cloud/api/v1'
+});
+
+// Keypair login (recommended for apps)
+const wallet = Wallet.generate();
+const session = await auth.loginWithKeypair(wallet);
+
+// QOR ID login (for users)
+const session = await auth.loginWithQorId({
+  qorId: 'alice#0001',
+  password: 'password'
+});
+```
+
+### Error Handling
+
+```typescript
+try {
+  const result = await client.transfer({...});
+} catch (error) {
+  if (error.code === -32010) {
+    // Insufficient balance
+    console.error('Not enough CGT');
+  } else if (error.code === -32602) {
+    // Invalid parameters
+    console.error('Check your parameters');
+  } else {
+    console.error('Unknown error:', error.message);
+  }
+}
+```
+
+### Batch Operations
+
+```typescript
+// Get multiple balances efficiently
+const addresses = ['0x...', '0x...', '0x...'];
+const balances = await Promise.all(
+  addresses.map(addr => client.getBalance(addr))
+);
+```
+
+### Subscriptions (WebSocket)
+
+```typescript
+const client = new DemiurgeClient({
+  rpcUrl: 'wss://rpc.demiurge.cloud:9944'
+});
+
+// Subscribe to new blocks
+client.subscribeBlocks((block) => {
+  console.log('New block:', block.number);
+});
+
+// Subscribe to account changes
+client.subscribeAccount(myAddress, (update) => {
+  console.log('Balance changed:', update.balance);
+});
+```
+
+---
+
+## NFT Development
+
+### Mint NFT
+
+```typescript
+import { DRC369Client } from '@demiurge/drc369-sdk';
+
+const nft = new DRC369Client({
+  rpcUrl: 'https://rpc.demiurge.cloud:9944'
+});
+
+const result = await nft.mint({
+  to: wallet.address,
+  tokenUri: 'https://example.com/metadata.json',
+  physics: {
+    mass: 5.0,
+    friction: 0.5,
+    restitution: 0.3
+  },
+  wallet: wallet
+});
+
+console.log('Token ID:', result.token_id);
+```
+
+### Query NFTs
+
+```typescript
+// Get token info
+const info = await nft.getTokenInfo(tokenId);
+console.log('Owner:', info.owner);
+
+// Get tokens by owner
+const tokens = await nft.getTokensByOwner(ownerAddress);
+
+// Get physics
+const physics = await nft.getPhysics(tokenId);
+console.log('Mass:', physics.mass);
+```
+
+### Update Dynamic State
+
+```typescript
+// Set state
+await nft.setState({
+  tokenId: tokenId,
+  key: 'kills',
+  value: '42',
+  wallet: wallet
+});
+
+// Get state
+const kills = await nft.getState(tokenId, 'kills');
+```
+
+---
+
+## Agent Development
+
+### Create Agent
+
+```typescript
+import { createAgent } from '@demiurge/agent-foundry';
+
+const agent = await createAgent({
+  name: 'TradingBot',
+  autonomy: 'bounded',
+  spendingLimit: '100 CGT',
+  capabilities: ['transfer', 'nft_trade'],
+  llm: {
+    provider: 'openai',
+    apiKey: process.env.OPENAI_API_KEY
+  }
+});
+
+console.log('Agent DID:', agent.did);
+console.log('Agent Address:', agent.address);
+```
+
+### Agent Actions
+
+```typescript
+// Agent performs action
+const result = await agent.execute({
+  action: 'transfer',
+  params: {
+    to: recipientAddress,
+    amount: 50
+  }
+});
+
+// Check agent capabilities
+const caps = await agent.getCapabilities();
+```
+
+---
+
+## Testing
+
+### Local Node
+
+```bash
+# Start local node
+cd framework
+cargo run --release -- \
+  --dev \
+  --rpc-addr 127.0.0.1:9944
+
+# Connect to local
+const client = new DemiurgeClient({
+  rpcUrl: 'http://localhost:9944'
+});
+```
+
+### Testnet
+
+```bash
+# Use testnet endpoint
+const client = new DemiurgeClient({
+  rpcUrl: 'https://testnet.demiurge.cloud:9944'
+});
+```
+
+### Mock Testing
+
+```typescript
+import { MockClient } from '@demiurge/sdk/testing';
+
+const mock = new MockClient();
+mock.setBalance('0x...', 10000);
+
+// Test your code
+const result = await myFunction(mock);
+expect(result.success).toBe(true);
+```
+
+---
+
+## Best Practices
+
+### Security
+
+1. **Never expose private keys** in frontend code
+2. **Use session keys** for routine operations
+3. **Validate all inputs** before RPC calls
+4. **Handle errors gracefully**
+
+### Performance
+
+1. **Batch RPC calls** when possible
+2. **Cache frequently accessed data**
+3. **Use WebSocket** for real-time updates
+4. **Paginate large result sets**
+
+### UX
+
+1. **Show loading states** during transactions
+2. **Provide clear error messages**
+3. **Confirm destructive actions**
+4. **Display transaction hashes** for verification
+
+---
+
+## Support
+
+- **GitHub Issues:** https://github.com/ALaustrup/Demiurge-Blockchain/issues
+- **Documentation:** https://demiurge.cloud/docs
+- **Discord:** Coming soon
+
+---
+
+## Further Reading
+
+- [RPC Reference](./rpc-reference.md) - Complete API documentation
+- [Architecture](../architecture/README.md) - System design
+- [Specifications](../specifications/) - Protocol specs

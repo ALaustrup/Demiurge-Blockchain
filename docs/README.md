@@ -1,8 +1,8 @@
 # Demiurge Protocol Documentation
 
-**Complete documentation for the Demiurge blockchain ecosystem**
+> The Sovereign Creative Substrate - A Next-Generation Blockchain for Gaming, AI, and the Open Metaverse
 
-**Status:** Mainnet v1 with fresh genesis | **Treasury:** 1B CGT at Godmode address
+**Status:** Mainnet v1 Live | **Block Time:** 6s | **RPC:** `rpc.demiurge.cloud:9944`
 
 ---
 
@@ -10,155 +10,138 @@
 
 | Resource | URL |
 |----------|-----|
-| Frontend | https://demiurge.cloud |
-| RPC Endpoint | https://rpc.demiurge.cloud |
-| Status | [STATUS.md](./STATUS.md) |
-| Roadmap | [ROADMAP.md](./ROADMAP.md) |
+| **Live Platform** | https://demiurge.cloud |
+| **RPC Endpoint** | https://rpc.demiurge.cloud (port 9944) |
+| **GitHub** | https://github.com/ALaustrup/Demiurge-Blockchain |
 
 ---
 
-## What's New (Mainnet v1)
+## Documentation Map
 
-- **Fresh Genesis** - Chain reset to block #1 with clean state
-- **Godmode Account** - Treasury with 1B CGT at `0x00000000000000000000000000000000DEMIURGE`
-- **Hybrid Authentication** - Keypair-based login alongside QOR ID
-- **Interactive CLI** - Shell mode with animated splash screen
-- **Dual Agent Patterns** - Instant keys and pre-registered agent accounts
-
----
-
-## Documentation by Role
-
-### For Developers
-- [Getting Started](./developers/getting-started.md) - Setup and basics
-- [Quick Start](./developers/QUICK_START.md) - Fast onboarding
-- [Transaction Building](./developers/transaction-building.md) - Create transactions
-- [RPC Implementation](./RPC_IMPLEMENTATION_NOTES.md) - API reference
-- [SDK Reference](../sdk/README.md) - Core SDK with DemiurgeAuth
-
-### For Game Developers
-- [Game Integration Guide](./GAME_INTEGRATION_GUIDE.md) - Integrate games
-- [Unreal Engine SDK](../sdk/unreal/README.md) - UE5 plugin
-- [DRC-369 Guide](./creators/drc369-complete-guide.md) - NFT assets
-
-### For AI/Agent Developers
-- [Agentic Layer](./AGENTIC-LAYER.md) - AI architecture
-- [Agent Foundry SDK](../packages/agent-foundry/README.md) - Dual registration patterns
-
-### For CLI Users
-- [CLI Guide](../cli/README.md) - Interactive shell and command mode
-
-### For Operators
-- [Deployment Guide](./DEPLOYMENT.md) - Production deployment
-- [Testnet Deployment](./deployment/TESTNET_DEPLOYMENT.md) - Test environments
-
----
-
-## Core Documentation
+### Getting Started
+| Document | Description |
+|----------|-------------|
+| [Quick Start](./getting-started/quick-start.md) | 5-minute introduction |
+| [Installation](./getting-started/installation.md) | Set up development environment |
+| [First Transaction](./getting-started/first-transaction.md) | Send your first CGT transfer |
 
 ### Architecture
 | Document | Description |
 |----------|-------------|
-| [MASTERPLAN.md](./MASTERPLAN.md) | Implementation roadmap |
-| [DEMIURGE-LIVING-PROTOCOL.md](./DEMIURGE-LIVING-PROTOCOL.md) | Protocol vision |
-| [Architecture Overview](./architecture/ARCHITECTURE.md) | Technical breakdown |
-| [Consensus Design](./architecture/CONSENSUS_DESIGN.md) | PoS + BFT |
+| [Overview](./architecture/README.md) | System architecture |
+| [Consensus](./architecture/consensus.md) | Hybrid PoS + BFT mechanism |
+| [Modules](./architecture/modules.md) | Runtime module system |
+| [Network](./architecture/network.md) | LibP2P networking layer |
 
-### Standards
+### Specifications
 | Document | Description |
 |----------|-------------|
-| [DRC-369 Specification](./DRC-369-SPECIFICATION.md) | Stateful NFT standard |
-| [QOR ID Specification](./identity/QOR_ID_SPEC.md) | Identity system |
-| [CVP Specification](./ARCHON_CVP_ZK_SPECIFICATION.md) | ZK bytecode mutation |
+| [DRC-369](./specifications/drc369.md) | Dynamic NFT standard with physics |
+| [CGT Tokenomics](./specifications/cgt-tokenomics.md) | Token economics |
+| [CVP](./specifications/cvp.md) | Consensus-Verified Polymorphism |
+| [QOR ID](./specifications/qor-id.md) | Decentralized identity |
+| [Physics Integration](./specifications/physics.md) | Game engine physics metadata |
 
-### Authentication
+### Developers
 | Document | Description |
 |----------|-------------|
-| Keypair Auth | Generate Ed25519 keypairs for direct authentication |
-| QOR ID Auth | Human-readable identity (username#0001) |
-| Hybrid Mode | Use either method based on use case |
+| [Developer Guide](./developers/README.md) | Complete developer reference |
+| [RPC Reference](./developers/rpc-reference.md) | All RPC methods documented |
+| [TypeScript SDK](./developers/sdk/typescript.md) | `@demiurge/sdk` usage |
+| [Unreal Engine](./developers/game-engines/unreal.md) | UE5 integration |
+| [Unity](./developers/game-engines/unity.md) | Unity integration |
 
-### Tokenomics
+### Operations
 | Document | Description |
 |----------|-------------|
-| [CGT Tokenomics](./blockchain/CGT_TOKENOMICS.md) | Token economics |
-| Godmode Treasury | 1B CGT at `0x...DEMIURGE` for ecosystem |
+| [Deployment](./operations/deployment.md) | Production deployment guide |
+| [Testnet](./operations/testnet.md) | Run a local testnet |
+| [Monitoring](./operations/monitoring.md) | Node monitoring |
+
+### Applications
+| Document | Description |
+|----------|-------------|
+| [SOPHIA](./applications/sophia.md) | AI Assistant integration |
+| [VYB](./applications/vyb.md) | Social network features |
+| [Hub](./applications/hub.md) | Web platform |
 
 ---
 
-## Framework Structure
+## Project Structure
 
 ```
-framework/
-├── core/           # Runtime engine
-├── storage/        # RocksDB + Merkle trees
-├── consensus/      # Hybrid PoS + BFT
-├── network/        # LibP2P networking
-├── primitives/     # Cryptographic primitives
-├── rpc/            # JSON-RPC + WebSocket
-├── node/           # Full node
-└── modules/
-    ├── balances/       # CGT token
-    ├── energy/         # Feeless UX
-    ├── session-keys/   # Temp auth
-    ├── qor-identity/   # Sovereign ID
-    ├── drc369/         # Stateful NFTs
-    ├── game-assets/    # Multi-assets
-    ├── yield-nfts/     # Passive income
-    ├── cvp/            # ZK mutations
-    ├── zk/             # Privacy
-    └── agentic/        # AI agents
+Demiurge-Blockchain/
+├── framework/              # Rust blockchain core
+│   ├── core/              # Runtime engine
+│   ├── consensus/         # PoS + BFT consensus
+│   ├── network/           # LibP2P networking
+│   ├── rpc/               # JSON-RPC server
+│   ├── storage/           # RocksDB backend
+│   └── modules/           # Runtime modules
+│       ├── balances/      # CGT token
+│       ├── energy/        # Feeless transactions
+│       ├── drc369/        # Dynamic NFTs
+│       ├── cvp/           # Security mutations
+│       └── agentic/       # AI agents
+├── apps/
+│   ├── hub/               # Next.js web platform
+│   ├── sophia/            # SOPHIA AI interface
+│   └── games/             # Game integrations
+├── packages/              # TypeScript SDKs
+│   ├── qor-sdk/           # Identity SDK
+│   ├── drc369-sdk/        # NFT SDK
+│   └── agent-foundry/     # Agent SDK
+├── sdk/                   # Core protocol SDK
+├── cli/                   # Command-line interface
+├── services/              # Backend services
+├── testnet/               # Multi-node testnet
+└── docs/                  # This documentation
 ```
 
 ---
 
-## SDKs
+## Current Status
 
-| SDK | Language | Location | Key Features |
-|-----|----------|----------|--------------|
-| Core SDK | TypeScript | `sdk/` | DemiurgeClient, DemiurgeAuth, Wallet |
-| QOR SDK | TypeScript | `packages/qor-sdk/` | Identity, keypair auth |
-| DRC-369 SDK | TypeScript | `packages/drc369-sdk/` | Dynamic NFTs, React hooks |
-| Agent Foundry | TypeScript | `packages/agent-foundry/` | Dual patterns: instant keys + pre-registered |
-| CLI | TypeScript | `cli/` | Interactive shell, 30+ commands |
-| Unreal Plugin | C++ | `sdk/unreal/` | UE5 integration |
+### Live Systems
+- **Blockchain Node:** Producing blocks every 6 seconds
+- **RPC API:** 22+ methods verified and operational
+- **Web Platform:** https://demiurge.cloud
+- **Authentication:** Hybrid keypair + QOR ID
 
----
-
-## CLI Quick Start
-
-```bash
-# Install CLI
-npm install -g @demiurge/cli
-
-# Interactive shell mode (with animated splash)
-demiurge
-
-# Command mode
-demiurge chain status
-demiurge wallet generate
-```
-
-See [cli/README.md](../cli/README.md) for full documentation.
+### Verified Functionality (as of Feb 2026)
+| Module | Status | Tests |
+|--------|--------|-------|
+| Chain Health | Operational | Passing |
+| Consensus | Active | 1 validator |
+| Balances | Operational | Transfer verified |
+| Energy | Operational | Regeneration active |
+| DRC-369 | Operational | Physics integration complete |
+| Session Keys | Operational | Key management working |
 
 ---
 
-## Module Documentation
+## Version History
 
-| Module | README |
-|--------|--------|
-| Agentic | [framework/modules/agentic/](../framework/modules/agentic/) |
-| CVP | [framework/modules/cvp/](../framework/modules/cvp/) |
-| DRC-369 | [framework/modules/drc369/](../framework/modules/drc369/) |
-| QOR Identity | [framework/modules/qor-identity/](../framework/modules/qor-identity/) |
-
----
-
-## Archived Documentation
-
-Historical and deprecated documentation is in [archive/](./archive/).
+| Version | Date | Highlights |
+|---------|------|------------|
+| 1.0.0 | Feb 2026 | Mainnet v1 launch, fresh genesis |
+| 0.9.0 | Jan 2026 | DRC-369 physics integration |
+| 0.8.0 | Jan 2026 | CVP security system |
+| 0.7.0 | Dec 2025 | Agentic layer complete |
 
 ---
 
-**Mainnet v1**: https://demiurge.cloud  
-**Genesis**: Fresh reset with 1B CGT treasury
+## Contributing
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
+
+**Key Areas:**
+- Game engine integrations
+- SDK improvements
+- Documentation
+- Security research
+
+---
+
+**Last Updated:** February 2026  
+**Maintainer:** [@ALaustrup](https://github.com/ALaustrup)
