@@ -307,6 +307,28 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_totalSupply: {}", e)))?;
 
+        // drc369_getPhysics - Get physics properties for game engines
+        module.register_async_method("drc369_getPhysics", |params, ctx| async move {
+            let token_id: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid token_id") })?;
+            ctx.drc369_get_physics(token_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_getPhysics: {}", e)))?;
+
+        // drc369_hasPhysics - Check if token has physics
+        module.register_async_method("drc369_hasPhysics", |params, ctx| async move {
+            let token_id: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid token_id") })?;
+            ctx.drc369_has_physics(token_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_hasPhysics: {}", e)))?;
+
+        // drc369_setPhysics - Set physics properties
+        module.register_async_method("drc369_setPhysics", |params, ctx| async move {
+            let (token_id, physics_json, signature): (String, String, String) = params.parse()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Expected: [token_id, physics_json, signature]") })?;
+            ctx.drc369_set_physics(token_id, physics_json, signature).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_setPhysics: {}", e)))?;
+
         // drc369_getStateBatch
         module.register_async_method("drc369_getStateBatch", |params, ctx| async move {
             let (token_id, paths): (String, Vec<String>) = params.parse().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid params") })?;

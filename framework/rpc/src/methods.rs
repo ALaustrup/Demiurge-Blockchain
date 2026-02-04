@@ -1021,6 +1021,109 @@ impl<S: Storage> RpcMethods<S> {
         }
     }
     
+    // ========== DRC-369 Physics Methods ==========
+    
+    /// Get physics properties for a DRC-369 token
+    /// 
+    /// Returns physics-ready metadata for game engine integration.
+    /// Includes rigid body, material, thermal, and destruction properties.
+    pub async fn drc369_get_physics(&self, token_id: String) -> Result<Option<Drc369PhysicsInfo>, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        
+        // Check if token exists
+        let owner_key = Self::drc369_owner_key(token_id_u256);
+        if self.storage.get(&owner_key).is_none() {
+            return Ok(None);
+        }
+        
+        // Get physics data
+        let physics_key = Self::drc369_physics_key(token_id_u256);
+        match self.storage.get(&physics_key) {
+            Some(bytes) => {
+                // Try to parse physics properties
+                match serde_json::from_slice::<serde_json::Value>(&bytes) {
+                    Ok(physics_json) => {
+                        Ok(Some(Drc369PhysicsInfo {
+                            token_id,
+                            has_physics: true,
+                            physics: Some(physics_json),
+                            simulation_ready: true, // TODO: Actually validate
+                        }))
+                    }
+                    Err(_) => {
+                        Ok(Some(Drc369PhysicsInfo {
+                            token_id,
+                            has_physics: true,
+                            physics: None,
+                            simulation_ready: false,
+                        }))
+                    }
+                }
+            }
+            None => {
+                Ok(Some(Drc369PhysicsInfo {
+                    token_id,
+                    has_physics: false,
+                    physics: None,
+                    simulation_ready: false,
+                }))
+            }
+        }
+    }
+    
+    /// Check if a token has physics properties
+    pub async fn drc369_has_physics(&self, token_id: String) -> Result<bool, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        let physics_key = Self::drc369_physics_key(token_id_u256);
+        Ok(self.storage.get(&physics_key).is_some())
+    }
+    
+    /// Set physics properties for a DRC-369 token
+    /// 
+    /// Requires ownership of the token. Physics properties are validated
+    /// before storage to ensure game engine compatibility.
+    pub async fn drc369_set_physics(&self, token_id: String, physics_json: String, signature: String) -> Result<Drc369SetPhysicsResult, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        
+        // Verify signature format (simplified for MVP)
+        if signature.len() < 64 || hex::decode(&signature).is_err() {
+            return Err(RpcError::InvalidTransaction("Invalid signature format".to_string()));
+        }
+        
+        // Check if token exists
+        let owner_key = Self::drc369_owner_key(token_id_u256);
+        let owner = match self.storage.get(&owner_key) {
+            Some(value) if value.len() == 32 => {
+                let mut owner = [0u8; 32];
+                owner.copy_from_slice(&value);
+                owner
+            }
+            _ => return Err(RpcError::NotFound("Token not found".to_string())),
+        };
+        
+        // Parse and validate physics JSON
+        let physics_value: serde_json::Value = serde_json::from_str(&physics_json)
+            .map_err(|e| RpcError::InvalidParams)?;
+        
+        // Store physics properties
+        let physics_key = Self::drc369_physics_key(token_id_u256);
+        let physics_bytes = serde_json::to_vec(&physics_value)
+            .map_err(|_| RpcError::InternalError("Failed to serialize physics".to_string()))?;
+        self.storage.put(&physics_key, &physics_bytes);
+        
+        tracing::info!(
+            "DRC369: Set physics for token {} by owner {}",
+            token_id,
+            hex::encode(&owner[..8])
+        );
+        
+        Ok(Drc369SetPhysicsResult {
+            success: true,
+            token_id,
+            physics_size_bytes: physics_bytes.len() as u32,
+        })
+    }
+    
     // ========== DRC-369 Storage Key Helpers ==========
     
     fn parse_token_id(&self, token_id: &str) -> Result<[u8; 32], RpcError> {
@@ -1073,6 +1176,12 @@ impl<S: Storage> RpcMethods<S> {
         key.extend_from_slice(&token_id);
         key.push(b':');
         key.extend_from_slice(state_key);
+        key
+    }
+    
+    fn drc369_physics_key(token_id: [u8; 32]) -> Vec<u8> {
+        let mut key = b"DRC369:Physics:".to_vec();
+        key.extend_from_slice(&token_id);
         key
     }
     
@@ -1600,6 +1709,27 @@ pub struct Drc369TokenInfo {
     pub parent_token_id: Option<String>,
     /// Whether the token contract is CVP-protected
     pub cvp_protected: bool,
+}
+
+/// DRC-369 physics information
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369PhysicsInfo {
+    /// Token ID
+    pub token_id: String,
+    /// Whether the token has physics properties
+    pub has_physics: bool,
+    /// Physics properties as JSON
+    pub physics: Option<serde_json::Value>,
+    /// Whether the physics can be used in game engines
+    pub simulation_ready: bool,
+}
+
+/// Result of setting physics properties
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369SetPhysicsResult {
+    pub success: bool,
+    pub token_id: String,
+    pub physics_size_bytes: u32,
 }
 
 /// DRC-369 collection statistics

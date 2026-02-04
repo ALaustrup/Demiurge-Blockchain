@@ -32,6 +32,7 @@ mod storage_keys {
     pub const NFT_PARENT: &[u8] = b"DRC369:Parent:";
     pub const NFT_CHILDREN: &[u8] = b"DRC369:Children:";
     pub const NFT_DELEGATION: &[u8] = b"DRC369:Delegation:";
+    pub const NFT_PHYSICS: &[u8] = b"DRC369:Physics:";  // Physics properties storage
     pub const NEXT_NFT_ID: &[u8] = b"DRC369:NextId";
     pub const TOTAL_SUPPLY: &[u8] = b"DRC369:TotalSupply";
     pub const CVP_CONTRACT_ID: &[u8] = b"DRC369:CvpContractId";
@@ -194,6 +195,62 @@ impl Drc369Module {
         key.extend_from_slice(nft_id);
         key.extend_from_slice(delegatee);
         key
+    }
+    
+    /// Generate storage key for physics properties
+    fn physics_key(nft_id: &[u8; 32]) -> Vec<u8> {
+        let mut key = storage_keys::NFT_PHYSICS.to_vec();
+        key.extend_from_slice(nft_id);
+        key
+    }
+    
+    // ========================================================================
+    // PHYSICS OPERATIONS
+    // ========================================================================
+    
+    /// Get physics properties for an NFT
+    pub fn get_physics(storage: &dyn Storage, nft_id: &[u8; 32]) -> Option<crate::physics::PhysicsProperties> {
+        let key = Self::physics_key(nft_id);
+        storage.get(&key).and_then(|bytes| crate::physics::PhysicsProperties::from_bytes(&bytes))
+    }
+    
+    /// Set physics properties for an NFT
+    /// Only owner can set physics properties
+    pub fn set_physics(
+        storage: &dyn Storage,
+        caller: [u8; 32],
+        nft_id: [u8; 32],
+        physics: crate::physics::PhysicsProperties,
+    ) -> Result<()> {
+        // Verify ownership
+        let owner = Self::get_owner(storage, &nft_id)
+            .ok_or(Drc369Error::NotFound)?;
+        
+        if owner != caller {
+            return Err(Drc369Error::NotOwner);
+        }
+        
+        // Validate physics properties
+        physics.validate()?;
+        
+        // Store physics
+        let key = Self::physics_key(&nft_id);
+        let bytes = physics.to_bytes();
+        storage.put(&key, &bytes);
+        
+        info!(
+            "DRC369: Set physics for NFT {} (simulation_ready: {})",
+            hex::encode(&nft_id[..8]),
+            physics.is_simulation_ready()
+        );
+        
+        Ok(())
+    }
+    
+    /// Check if NFT has physics properties
+    pub fn has_physics(storage: &dyn Storage, nft_id: &[u8; 32]) -> bool {
+        let key = Self::physics_key(nft_id);
+        storage.get(&key).is_some()
     }
     
     // ========================================================================
