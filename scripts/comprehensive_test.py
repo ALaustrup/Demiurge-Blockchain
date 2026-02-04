@@ -4,7 +4,7 @@
 import urllib.request
 import json
 
-RPC_URL = 'http://localhost:9948'
+RPC_URL = 'http://localhost:9944'
 
 def rpc(method, params=None):
     data = json.dumps({'jsonrpc': '2.0', 'method': method, 'params': params or [], 'id': 1}).encode()
