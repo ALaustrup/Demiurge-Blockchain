@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChainStore, selectBlockHeight, selectTps, selectConnectionStatus } from '@/store/chainStore';
 import { WalletConnector } from './WalletConnector';
@@ -11,13 +12,42 @@ import { WalletConnector } from './WalletConnector';
 // Dark-Mode Ethereal Glassmorphism with razor-thin neon accents
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Storage key for dashboard view preference
+const DASHBOARD_VIEW_KEY = 'demiurge_dashboard_view';
+
 export function HeaderBar() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [dashboardView, setDashboardView] = useState<'immersive' | 'classic'>('immersive');
   const connect = useChainStore((state) => state.connect);
   const connectionStatus = useChainStore(selectConnectionStatus);
   const blockHeight = useChainStore(selectBlockHeight);
   const tps = useChainStore(selectTps);
+
+  // Load dashboard view preference
+  useEffect(() => {
+    const saved = localStorage.getItem(DASHBOARD_VIEW_KEY);
+    if (saved === 'classic' || saved === 'immersive') {
+      setDashboardView(saved);
+    }
+  }, []);
+
+  // Toggle dashboard view
+  const toggleDashboardView = () => {
+    const newView = dashboardView === 'immersive' ? 'classic' : 'immersive';
+    setDashboardView(newView);
+    localStorage.setItem(DASHBOARD_VIEW_KEY, newView);
+    
+    // Navigate to the appropriate dashboard if on a dashboard page
+    if (pathname === '/' || pathname === '/dashboard') {
+      router.push(newView === 'immersive' ? '/' : '/dashboard');
+    }
+  };
+
+  // Check if we're on a dashboard page
+  const isOnDashboard = pathname === '/' || pathname === '/dashboard';
 
   // Track scroll for header styling
   useEffect(() => {
@@ -69,8 +99,8 @@ export function HeaderBar() {
       
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-3">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
+          {/* Logo - respects dashboard view preference */}
+          <Link href={dashboardView === 'classic' ? '/dashboard' : '/'} className="flex items-center gap-3 group">
             <div className="relative w-9 h-9 rounded-md overflow-hidden
               bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20
               border border-neon-cyan/30 group-hover:border-neon-cyan/60
@@ -205,6 +235,41 @@ export function HeaderBar() {
               </AnimatePresence>
             </div>
 
+            {/* Dashboard View Toggle */}
+            {isOnDashboard && (
+              <>
+                <div className="w-px h-5 bg-white/10 mx-2" />
+                <button
+                  onClick={toggleDashboardView}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md
+                    bg-white/[0.02] border border-white/[0.06]
+                    hover:border-neon-cyan/30 hover:bg-white/[0.04]
+                    transition-all duration-300 group"
+                  title={`Switch to ${dashboardView === 'immersive' ? 'Classic' : 'Immersive'} view`}
+                >
+                  {/* Toggle Track */}
+                  <div className="relative w-8 h-4 rounded-full bg-void border border-white/10">
+                    {/* Toggle Thumb */}
+                    <motion.div
+                      className="absolute top-0.5 w-3 h-3 rounded-full"
+                      animate={{
+                        left: dashboardView === 'immersive' ? '2px' : '14px',
+                        background: dashboardView === 'immersive' 
+                          ? 'linear-gradient(135deg, #00E5FF, #7B2FFF)' 
+                          : 'linear-gradient(135deg, #6B7280, #9CA3AF)',
+                      }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    />
+                  </div>
+                  {/* Label */}
+                  <span className="font-display text-[9px] tracking-wider text-text-tertiary uppercase
+                    group-hover:text-neon-cyan transition-colors">
+                    {dashboardView === 'immersive' ? '3D' : 'Classic'}
+                  </span>
+                </button>
+              </>
+            )}
+
             {/* Divider */}
             <div className="w-px h-5 bg-white/10 mx-2" />
 
@@ -270,6 +335,39 @@ export function HeaderBar() {
                     <span className="uppercase">{item.label}</span>
                   </Link>
                 ))}
+                
+                {/* Dashboard View Toggle - Mobile */}
+                {isOnDashboard && (
+                  <div className="pt-3 mt-3 border-t border-white/[0.04]">
+                    <button
+                      onClick={toggleDashboardView}
+                      className="w-full flex items-center justify-between px-3 py-3 rounded-md
+                        font-display text-[11px] tracking-wider text-text-secondary
+                        hover:text-neon-cyan hover:bg-white/[0.02]
+                        transition-all duration-300"
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className="text-base">{dashboardView === 'immersive' ? '🌐' : '📋'}</span>
+                        <span className="uppercase">
+                          {dashboardView === 'immersive' ? 'Switch to Classic View' : 'Switch to Immersive View'}
+                        </span>
+                      </span>
+                      {/* Toggle Track */}
+                      <div className="relative w-10 h-5 rounded-full bg-void border border-white/10">
+                        <motion.div
+                          className="absolute top-1 w-3 h-3 rounded-full"
+                          animate={{
+                            left: dashboardView === 'immersive' ? '4px' : '20px',
+                            background: dashboardView === 'immersive' 
+                              ? 'linear-gradient(135deg, #00E5FF, #7B2FFF)' 
+                              : 'linear-gradient(135deg, #6B7280, #9CA3AF)',
+                          }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        />
+                      </div>
+                    </button>
+                  </div>
+                )}
                 
                 <div className="pt-3 mt-3 border-t border-white/[0.04]">
                   <WalletConnector variant="full" />
