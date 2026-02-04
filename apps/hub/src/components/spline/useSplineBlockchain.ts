@@ -64,7 +64,7 @@ export interface BlockchainVariables {
 
 interface UseSplineBlockchainOptions {
   /** Spline scene ref */
-  splineRef: React.RefObject<SplineSceneRef>;
+  splineRef: React.RefObject<SplineSceneRef | null>;
   /** Update interval in ms (default: 2000) */
   updateInterval?: number;
   /** Enable user-specific data (requires auth) */
