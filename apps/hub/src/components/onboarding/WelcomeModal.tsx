@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { demiurgeRpc } from '@/lib/demiurge-rpc';
 
@@ -11,6 +11,9 @@ interface WelcomeModalProps {
   qorId?: string;
 }
 
+// Storage key for tracking claim status locally
+const CLAIM_STORAGE_KEY = 'demiurge_starter_claimed';
+
 export function WelcomeModal({ isOpen, onClose, walletAddress, qorId }: WelcomeModalProps) {
   const [step, setStep] = useState<'checking' | 'welcome' | 'claiming' | 'success' | 'error'>('checking');
   const [claimResult, setClaimResult] = useState<{
@@ -18,26 +21,45 @@ export function WelcomeModal({ isOpen, onClose, walletAddress, qorId }: WelcomeM
     amount: string;
     message: string;
   } | null>(null);
+  const hasCheckedRef = useRef(false);
 
-  // Check on-chain if user has already claimed their starter bonus
+  // Check if already claimed (localStorage + on-chain)
   useEffect(() => {
     if (!isOpen || !walletAddress) return;
+    
+    // Prevent multiple checks in same session
+    if (hasCheckedRef.current) return;
+    hasCheckedRef.current = true;
 
     const checkClaimStatus = async () => {
       try {
+        // First check localStorage (fast, prevents popup flicker)
+        const localClaimed = localStorage.getItem(CLAIM_STORAGE_KEY);
+        if (localClaimed === 'true') {
+          onClose();
+          return;
+        }
+        
+        // Then check on-chain
         const cleanAddress = walletAddress.startsWith('0x') ? walletAddress.slice(2) : walletAddress;
         const hasClaimed = await demiurgeRpc.hasClaimedStarter(cleanAddress);
         
         if (hasClaimed) {
-          // User already claimed - close the modal
+          // User already claimed - save to localStorage and close
+          localStorage.setItem(CLAIM_STORAGE_KEY, 'true');
           onClose();
         } else {
           setStep('welcome');
         }
       } catch (error) {
-        // If check fails, show the welcome screen anyway
+        // If check fails, check localStorage as fallback
         console.warn('Failed to check claim status:', error);
-        setStep('welcome');
+        const localClaimed = localStorage.getItem(CLAIM_STORAGE_KEY);
+        if (localClaimed === 'true') {
+          onClose();
+        } else {
+          setStep('welcome');
+        }
       }
     };
 
@@ -62,7 +84,18 @@ export function WelcomeModal({ isOpen, onClose, walletAddress, qorId }: WelcomeM
       const cleanAddress = walletAddress.startsWith('0x') ? walletAddress.slice(2) : walletAddress;
       const result = await demiurgeRpc.claimStarterBonus(cleanAddress);
       setClaimResult(result);
-      setStep(result.success ? 'success' : 'error');
+      
+      if (result.success) {
+        // Mark as claimed in localStorage to prevent re-showing
+        localStorage.setItem(CLAIM_STORAGE_KEY, 'true');
+        setStep('success');
+      } else {
+        // If RPC says already claimed, also save locally
+        if (result.message.toLowerCase().includes('already claimed')) {
+          localStorage.setItem(CLAIM_STORAGE_KEY, 'true');
+        }
+        setStep('error');
+      }
     } catch (error: any) {
       setClaimResult({
         success: false,

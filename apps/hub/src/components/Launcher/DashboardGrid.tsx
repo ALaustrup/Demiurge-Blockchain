@@ -401,10 +401,14 @@ export function DashboardGrid() {
     };
   }, [connect]);
 
-  // Show welcome modal for new users - modal checks on-chain if already claimed
+  // Show welcome modal for new users - only if not already claimed
   useEffect(() => {
     if (user) {
-      setShowWelcome(true);
+      // Quick check localStorage before showing modal (prevents flicker)
+      const alreadyClaimed = localStorage.getItem('demiurge_starter_claimed') === 'true';
+      if (!alreadyClaimed) {
+        setShowWelcome(true);
+      }
     }
   }, [user]);
 

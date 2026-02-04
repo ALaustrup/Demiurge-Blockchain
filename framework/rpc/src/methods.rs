@@ -271,13 +271,15 @@ impl<S: Storage> RpcMethods<S> {
         }
         
         // Account is eligible for starter bonus
-        // In MVP, return success - actual minting happens via:
-        // 1. Qor Auth minting on account creation
-        // 2. Sudo/governance privileged mint call
-        // 3. Game reward service
-        //
-        // The UI shows success and the balance appears on next page load
-        // after the backend processes the mint.
+        // Mint the CGT to their account by updating the balance in storage
+        let balance_key = Self::balance_key(account);
+        
+        // Write the new balance (converting to the smallest unit for storage)
+        let balance_bytes = STARTER_AMOUNT.to_le_bytes();
+        self.storage.put(&balance_key, &balance_bytes);
+        
+        // Record the claim to prevent re-claiming
+        self.storage.put(&claim_key, &[1u8]);
         
         Ok(FaucetResult {
             success: true,
