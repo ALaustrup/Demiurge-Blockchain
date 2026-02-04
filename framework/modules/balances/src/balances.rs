@@ -21,7 +21,7 @@ impl Module for BalancesModule {
     fn execute(
         &self,
         call: Vec<u8>,
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         // Decode call
         let call_data: BalanceCall = Decode::decode(&mut &call[..])
@@ -46,8 +46,10 @@ impl Module for BalancesModule {
 
 impl BalancesModule {
     /// Transfer balance from one account to another
+    /// 
+    /// Storage uses interior mutability - &dyn Storage works for writes.
     pub fn transfer(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         from: [u8; 32],
         to: [u8; 32],
         amount: u128,
@@ -84,7 +86,7 @@ impl BalancesModule {
 
     /// Mint new tokens (governance only - TODO: add governance check)
     pub fn mint(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         to: [u8; 32],
         amount: u128,
     ) -> Result<()> {
@@ -112,7 +114,7 @@ impl BalancesModule {
 
     /// Burn tokens
     pub fn burn(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         from: [u8; 32],
         amount: u128,
     ) -> Result<()> {
@@ -159,8 +161,8 @@ impl BalancesModule {
         }
     }
 
-    /// Set balance for an account
-    fn set_balance(storage: &mut dyn Storage, account: [u8; 32], balance: u128) -> Result<()> {
+    /// Set balance for an account (uses interior mutability)
+    fn set_balance(storage: &dyn Storage, account: [u8; 32], balance: u128) -> Result<()> {
         let key = Self::balance_key(account);
         let value = balance.encode();
         storage.put(&key, &value);
@@ -168,7 +170,7 @@ impl BalancesModule {
     }
 
     /// Get total supply
-    fn get_total_supply(storage: &dyn Storage) -> Result<u128> {
+    pub fn get_total_supply(storage: &dyn Storage) -> Result<u128> {
         use codec::Decode;
         let key = Self::total_supply_key();
         match storage.get(&key) {
@@ -180,8 +182,8 @@ impl BalancesModule {
         }
     }
 
-    /// Set total supply
-    fn set_total_supply(storage: &mut dyn Storage, supply: u128) -> Result<()> {
+    /// Set total supply (uses interior mutability)
+    fn set_total_supply(storage: &dyn Storage, supply: u128) -> Result<()> {
         let key = Self::total_supply_key();
         let value = supply.encode();
         storage.put(&key, &value);

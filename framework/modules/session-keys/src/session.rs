@@ -1,4 +1,7 @@
 //! Session keys implementation
+//!
+//! Allows users to authorize temporary session keys for gaming and dApp use.
+//! Session keys can perform limited actions without requiring the main private key.
 
 use crate::{SessionKeysError, Result};
 use demiurge_modules::traits::Module;
@@ -7,7 +10,7 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use std::vec::Vec;
 
-/// Session Keys module
+/// Session Keys module - Temporary key authorization for gasless gaming
 pub struct SessionKeysModule;
 
 impl Module for SessionKeysModule {
@@ -22,7 +25,7 @@ impl Module for SessionKeysModule {
     fn execute(
         &self,
         call: Vec<u8>,
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         let call_data: SessionCall = Decode::decode(&mut &call[..])
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
@@ -44,7 +47,7 @@ impl Module for SessionKeysModule {
     fn on_initialize(
         &mut self,
         block_number: u64,
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         // Auto-expire expired session keys
         // Note: In production, we'd use a more efficient approach (indexed by expiry)
@@ -57,8 +60,10 @@ impl Module for SessionKeysModule {
 
 impl SessionKeysModule {
     /// Authorize a session key for a primary account
+    /// 
+    /// Storage uses interior mutability - &dyn Storage works for writes.
     pub fn authorize_session_key(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         primary_account: [u8; 32],
         session_key: [u8; 32],
         duration: u64,
@@ -89,7 +94,7 @@ impl SessionKeysModule {
 
     /// Revoke a session key
     pub fn revoke_session_key(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         primary_account: [u8; 32],
         session_key: [u8; 32],
     ) -> Result<()> {
@@ -140,9 +145,9 @@ impl SessionKeysModule {
         Self::get_session_key_expiry(storage, primary_account, session_key).is_some()
     }
 
-    /// Set session key with expiry block
+    /// Set session key with expiry block (uses interior mutability)
     fn set_session_key(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         primary_account: [u8; 32],
         session_key: [u8; 32],
         expiry_block: u64,
@@ -153,9 +158,9 @@ impl SessionKeysModule {
         Ok(())
     }
 
-    /// Delete session key
+    /// Delete session key (uses interior mutability)
     fn delete_session_key(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         primary_account: [u8; 32],
         session_key: [u8; 32],
     ) {
@@ -167,7 +172,7 @@ impl SessionKeysModule {
     /// Note: This is a simplified implementation. In production, we'd use an index
     /// to efficiently find expired keys without scanning all keys.
     fn cleanup_expired_keys(
-        _storage: &mut dyn Storage,
+        _storage: &dyn Storage,
         _current_block: u64,
     ) -> Result<()> {
         // In a production system, we'd maintain an index of keys by expiry block

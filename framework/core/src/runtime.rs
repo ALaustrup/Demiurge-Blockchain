@@ -37,13 +37,15 @@ impl<S: Storage> Runtime<S> {
     }
 
     /// Execute a transaction
-    pub fn execute_transaction(&mut self, tx: Transaction) -> Result<()> {
+    /// 
+    /// Storage uses interior mutability (RwLock), so we can call write operations
+    /// on &self without requiring mutable access to the Arc.
+    pub fn execute_transaction(&mut self, tx: &Transaction) -> Result<()> {
         // Validate transaction
         tx.validate()?;
 
-        // Get mutable storage reference
-        let storage_ref = Arc::get_mut(&mut self.storage)
-            .ok_or_else(|| crate::Error::InvalidTransaction("Storage is shared, cannot get mutable reference".to_string()))?;
+        // Get storage reference - uses interior mutability
+        let storage = &*self.storage;
 
         // Check session key authorization (if using session key)
         // For now, we'll check if the transaction is from a session key
@@ -58,12 +60,12 @@ impl<S: Storage> Runtime<S> {
 
         if should_consume_energy {
             // Consume energy from sender
-            EnergyModule::consume_energy(storage_ref, tx.from, EnergyConstants::BASE_TX_COST)
+            EnergyModule::consume_energy(storage, tx.from, EnergyConstants::BASE_TX_COST)
                 .map_err(|e| crate::Error::ModuleError(format!("Energy error: {}", e)))?;
         }
 
         // Execute based on transaction type
-        match tx.data {
+        match &tx.data {
             TransactionData::ModuleCall { module, call } => {
                 // Execute module call
                 match module.as_str() {
@@ -74,15 +76,15 @@ impl<S: Storage> Runtime<S> {
                         
                         match balance_call {
                             BalanceCall::Transfer { from, to, amount } => {
-                                BalancesModule::transfer(storage_ref, from, to, amount)
+                                BalancesModule::transfer(storage, from, to, amount)
                                     .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
                             }
                             BalanceCall::Mint { to, amount } => {
-                                BalancesModule::mint(storage_ref, to, amount)
+                                BalancesModule::mint(storage, to, amount)
                                     .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
                             }
                             BalanceCall::Burn { from, amount } => {
-                                BalancesModule::burn(storage_ref, from, amount)
+                                BalancesModule::burn(storage, from, amount)
                                     .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
                             }
                         }
@@ -94,15 +96,15 @@ impl<S: Storage> Runtime<S> {
                         
                         match energy_call {
                             EnergyCall::Consume { account, amount } => {
-                                EnergyModule::consume_energy(storage_ref, account, amount)
+                                EnergyModule::consume_energy(storage, account, amount)
                                     .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
                             }
                             EnergyCall::Regenerate { account } => {
-                                EnergyModule::regenerate_energy(storage_ref, account)
+                                EnergyModule::regenerate_energy(storage, account)
                                     .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
                             }
                             EnergyCall::Sponsor { developer, user } => {
-                                EnergyModule::sponsor_transaction(storage_ref, developer, user)
+                                EnergyModule::sponsor_transaction(storage, developer, user)
                                     .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
                             }
                         }
@@ -114,11 +116,11 @@ impl<S: Storage> Runtime<S> {
                         
                         match session_call {
                             SessionCall::Authorize { primary_account, session_key, duration } => {
-                                SessionKeysModule::authorize_session_key(storage_ref, primary_account, session_key, duration)
+                                SessionKeysModule::authorize_session_key(storage, primary_account, session_key, duration)
                                     .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
                             }
                             SessionCall::Revoke { primary_account, session_key } => {
-                                SessionKeysModule::revoke_session_key(storage_ref, primary_account, session_key)
+                                SessionKeysModule::revoke_session_key(storage, primary_account, session_key)
                                     .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
                             }
                         }
@@ -132,7 +134,7 @@ impl<S: Storage> Runtime<S> {
             }
             TransactionData::Transfer { to, amount } => {
                 // Direct transfer - use balances module
-                BalancesModule::transfer(storage_ref, tx.from, to, amount)
+                BalancesModule::transfer(storage, tx.from, *to, *amount)
                     .map_err(|e| crate::Error::ModuleError(e.to_string()))?;
             }
         }
@@ -142,86 +144,77 @@ impl<S: Storage> Runtime<S> {
 
     /// Execute a block
     /// Returns the calculated state root
+    /// 
+    /// Uses interior mutability - storage operations work through &self.
     pub fn execute_block(&mut self, block: Block) -> Result<[u8; 32]> {
         // Validate block (standalone - parent validation done at import)
         block.validate(None)?;
 
+        // Get storage reference - uses interior mutability
+        let storage = &*self.storage;
+
         // Update block number storage for modules that need it
-        {
-            let storage_ref = Arc::get_mut(&mut self.storage)
-                .ok_or_else(|| crate::Error::InvalidTransaction("Storage is shared, cannot get mutable reference".to_string()))?;
-            
-            // Store current block number for modules
-            let block_key = b"System:BlockNumber";
-            storage_ref.put(block_key, &self.block_number.encode());
-        }
+        let block_key = b"System:BlockNumber";
+        storage.put(block_key, &self.block_number.encode());
 
         // Execute all transactions
-        for tx in block.transactions {
+        for tx in &block.transactions {
             self.execute_transaction(tx)?;
         }
 
         // Call on_initialize for modules (cleanup expired session keys, etc.)
         // Note: This is a simplified approach - in production we'd iterate through registered modules
-        {
-            let storage_ref = Arc::get_mut(&mut self.storage)
-                .ok_or_else(|| crate::Error::InvalidTransaction("Storage is shared, cannot get mutable reference".to_string()))?;
-            
-            let mut session_keys_module = SessionKeysModule;
-            session_keys_module.on_initialize(self.block_number, storage_ref)
-                .map_err(|e| crate::Error::ModuleError(format!("SessionKeys on_initialize error: {}", e)))?;
-        }
+        let mut session_keys_module = SessionKeysModule;
+        session_keys_module.on_initialize(self.block_number, storage)
+            .map_err(|e| crate::Error::ModuleError(format!("SessionKeys on_initialize error: {}", e)))?;
 
         // Calculate state root after execution
-        let state_root = self.calculate_state_root()?;
+        let state_root = self.calculate_state_root();
         
         // Finalize block
         self.block_number += 1;
         
-        // Update block number storage
-        {
-            let storage_ref = Arc::get_mut(&mut self.storage)
-                .ok_or_else(|| crate::Error::InvalidTransaction("Storage is shared, cannot get mutable reference".to_string()))?;
-            
-            let block_key = b"System:BlockNumber";
-            storage_ref.put(block_key, &self.block_number.encode());
-            
-            // Store state root
-            let state_root_key = b"System:StateRoot";
-            storage_ref.put(state_root_key, &state_root);
-        }
+        // Update block number storage and state root
+        storage.put(block_key, &self.block_number.encode());
+        let state_root_key = b"System:StateRoot";
+        storage.put(state_root_key, &state_root);
 
-        // TODO: Storage commit needs mutable access - will need interior mutability or redesign
-        // For now, skip commit
-        // self.storage.commit()?;
+        // Commit storage changes
+        if let Err(e) = storage.commit() {
+            tracing::warn!("Storage commit failed: {:?}", e);
+        }
 
         Ok(state_root)
     }
 
     /// Calculate state root from current storage state
-    fn calculate_state_root(&self) -> Result<[u8; 32]> {
-        use blake2::{Blake2b512, Digest};
-        
-        // Simplified state root calculation
-        // In production, this would iterate through all storage keys and create a Merkle tree
-        // For now, we'll calculate a hash of key storage values
-        
-        let mut hasher = Blake2b512::new();
-        
-        // Hash important system values
-        if let Some(block_number) = self.storage.get(b"System:BlockNumber") {
-            hasher.update(b"block_number");
-            hasher.update(&block_number);
+    /// 
+    /// Uses the storage's state_root() method which computes a Merkle root
+    /// over all key-value pairs.
+    pub fn calculate_state_root(&self) -> [u8; 32] {
+        // Try to get state root from storage's Merkle tree
+        match self.storage.state_root() {
+            Ok(root) => root,
+            Err(_) => {
+                // Fallback to simple hash if Merkle tree fails
+                use blake2::{Blake2b512, Digest};
+                let mut hasher = Blake2b512::new();
+                
+                // Hash important system values
+                if let Some(block_number) = self.storage.get(b"System:BlockNumber") {
+                    hasher.update(b"block_number");
+                    hasher.update(&block_number);
+                }
+                
+                hasher.update(b"state");
+                hasher.update(&self.block_number.to_le_bytes());
+                
+                let hash = hasher.finalize();
+                let mut result = [0u8; 32];
+                result.copy_from_slice(&hash[..32]);
+                result
+            }
         }
-        
-        // Hash balances (simplified - in production, hash all balances)
-        // For now, just hash a placeholder
-        hasher.update(b"state");
-        
-        let hash = hasher.finalize();
-        let mut result = [0u8; 32];
-        result.copy_from_slice(&hash[..32]);
-        Ok(result)
     }
 
     /// Get current block number

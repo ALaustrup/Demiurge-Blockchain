@@ -212,12 +212,14 @@ impl NodeService {
             
             let consensus_clone = self.consensus.clone().unwrap();
             let runtime_clone = self.runtime.clone();
+            let tx_pool_clone = self.tx_pool.clone();
             let block_time = Duration::from_millis(self.config.block_time_ms);
             
             tokio::spawn(async move {
                 Self::block_production_loop(
                     consensus_clone, 
-                    runtime_clone, 
+                    runtime_clone,
+                    tx_pool_clone,
                     block_time,
                     validator_account,
                 ).await;
@@ -415,15 +417,20 @@ impl NodeService {
         Ok(())
     }
 
-    /// Block production loop
+    /// Block production loop - The beating heart of block creation
+    /// 
+    /// Pulls transactions from the pool, executes them through the runtime,
+    /// and produces blocks with proper state roots.
     async fn block_production_loop(
         consensus: Arc<Mutex<ConsensusEngine<StorageBackend>>>,
-        _runtime: Arc<Mutex<Runtime<StorageBackend>>>,
+        runtime: Arc<Mutex<Runtime<StorageBackend>>>,
+        tx_pool: Arc<Mutex<TransactionPool>>,
         block_time: Duration,
         validator_account: [u8; 32],
     ) {
         info!("🔨 Block production loop started for validator {}", hex::encode(validator_account));
         let mut blocks_produced = 0u64;
+        const MAX_TXS_PER_BLOCK: usize = 100;
         
         loop {
             // Wait for block time
@@ -442,16 +449,46 @@ impl NodeService {
             match consensus_guard.select_proposer_weighted() {
                 Ok(proposer) => {
                     if proposer == validator_account {
-                        // We're the proposer - produce a block
-                        let transactions = Vec::new(); // Empty block for now (no tx pool yet)
+                        // We're the proposer - pull transactions from pool
+                        let transactions = {
+                            let pool = tx_pool.lock().await;
+                            pool.get_transactions(MAX_TXS_PER_BLOCK)
+                        };
                         
-                        match consensus_guard.propose_block(transactions, validator_account) {
+                        let tx_count = transactions.len();
+                        
+                        // Execute transactions through runtime (if any)
+                        let state_root = if !transactions.is_empty() {
+                            let mut runtime_guard = runtime.lock().await;
+                            let mut executed_count = 0;
+                            
+                            for tx in &transactions {
+                                match runtime_guard.execute_transaction(tx) {
+                                    Ok(_) => {
+                                        executed_count += 1;
+                                    }
+                                    Err(e) => {
+                                        debug!("Transaction execution failed: {:?}", e);
+                                        // Continue with other transactions
+                                    }
+                                }
+                            }
+                            
+                            if executed_count > 0 {
+                                debug!("Executed {}/{} transactions", executed_count, tx_count);
+                            }
+                            
+                            // Calculate state root from runtime
+                            runtime_guard.calculate_state_root()
+                        } else {
+                            // Empty block - use previous state root or default
+                            [0u8; 32]
+                        };
+                        
+                        // Propose block with transactions
+                        match consensus_guard.propose_block(transactions.clone(), validator_account) {
                             Ok((block, _proof)) => {
-                                // For now, use block hash as state root
-                                // TODO: Properly execute transactions in runtime when storage sharing is fixed
-                                let state_root = block.header.extrinsics_root;
-                                
-                                // Update block with state root and store
+                                // Update block with calculated state root
                                 let mut final_block = block.clone();
                                 final_block.header.state_root = state_root;
                                 
@@ -460,11 +497,23 @@ impl NodeService {
                                     continue;
                                 }
                                 
+                                // Remove executed transactions from pool
+                                if !transactions.is_empty() {
+                                    let tx_hashes: Vec<[u8; 32]> = transactions.iter()
+                                        .map(|tx| tx.hash())
+                                        .collect();
+                                    let mut pool = tx_pool.lock().await;
+                                    pool.remove(&tx_hashes);
+                                }
+                                
                                 blocks_produced += 1;
                                 let block_num = final_block.header.block_number;
                                 
-                                // Log every block for now (can reduce frequency later)
-                                if blocks_produced % 10 == 0 || blocks_produced <= 5 {
+                                // Log block production
+                                if tx_count > 0 {
+                                    info!("⛏️  Block #{} produced with {} txs (total blocks: {})", 
+                                        block_num, tx_count, blocks_produced);
+                                } else if blocks_produced % 10 == 0 || blocks_produced <= 5 {
                                     info!("⛏️  Block #{} produced (total: {})", block_num, blocks_produced);
                                 }
                             }

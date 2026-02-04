@@ -1,4 +1,7 @@
 //! Energy module implementation
+//!
+//! Provides gasless transactions through an energy system.
+//! Energy regenerates over time and is consumed by transactions.
 
 use crate::{EnergyError, Result};
 use demiurge_modules::traits::Module;
@@ -7,7 +10,7 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use std::vec::Vec;
 
-/// Energy module
+/// Energy module - Gasless transaction system
 pub struct EnergyModule;
 
 impl Module for EnergyModule {
@@ -22,7 +25,7 @@ impl Module for EnergyModule {
     fn execute(
         &self,
         call: Vec<u8>,
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         let call_data: EnergyCall = Decode::decode(&mut &call[..])
             .map_err(|e| demiurge_modules::traits::ModuleError::InvalidCall(e.to_string()))?;
@@ -49,7 +52,7 @@ impl Module for EnergyModule {
     fn on_initialize(
         &mut self,
         _block_number: u64,
-        _storage: &mut dyn Storage,
+        _storage: &dyn Storage,
     ) -> std::result::Result<(), demiurge_modules::traits::ModuleError> {
         // Note: Regenerating energy for all accounts on each block is expensive
         // In production, we'd use a lazy regeneration approach (regenerate on access)
@@ -60,8 +63,10 @@ impl Module for EnergyModule {
 
 impl EnergyModule {
     /// Consume energy from an account
+    /// 
+    /// Storage uses interior mutability - &dyn Storage works for writes.
     pub fn consume_energy(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         account: [u8; 32],
         amount: u64,
     ) -> Result<()> {
@@ -88,7 +93,7 @@ impl EnergyModule {
 
     /// Regenerate energy for an account based on blocks passed
     pub fn regenerate_energy(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         account: [u8; 32],
     ) -> Result<()> {
         let current_block = Self::get_current_block(storage);
@@ -113,7 +118,7 @@ impl EnergyModule {
 
     /// Sponsor a user's transaction (developer pays energy cost)
     pub fn sponsor_transaction(
-        storage: &mut dyn Storage,
+        storage: &dyn Storage,
         developer: [u8; 32],
         _user: [u8; 32],
     ) -> Result<()> {
@@ -134,7 +139,6 @@ impl EnergyModule {
     }
 
     /// Get current energy for an account (with lazy regeneration)
-    /// This is public for testing purposes
     pub fn get_energy(storage: &dyn Storage, account: [u8; 32]) -> Result<u64> {
         let key = Self::energy_key(account);
         match storage.get(&key) {
@@ -146,8 +150,8 @@ impl EnergyModule {
         }
     }
 
-    /// Set energy for an account
-    fn set_energy(storage: &mut dyn Storage, account: [u8; 32], energy: u64) -> Result<()> {
+    /// Set energy for an account (uses interior mutability)
+    fn set_energy(storage: &dyn Storage, account: [u8; 32], energy: u64) -> Result<()> {
         let key = Self::energy_key(account);
         let encoded = energy.encode();
         storage.put(&key, &encoded);
@@ -165,8 +169,8 @@ impl EnergyModule {
         }
     }
 
-    /// Set last update block for an account
-    fn set_last_update(storage: &mut dyn Storage, account: [u8; 32], block: u64) {
+    /// Set last update block for an account (uses interior mutability)
+    fn set_last_update(storage: &dyn Storage, account: [u8; 32], block: u64) {
         let key = Self::last_update_key(account);
         let encoded = block.encode();
         storage.put(&key, &encoded);
