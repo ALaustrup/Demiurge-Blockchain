@@ -13,10 +13,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud';
-const JWT_SECRET = process.env.JWT_SECRET || 'demiurge-secret-key';
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'demiurge-secret-key');
 
 interface UserData {
   // Identity
@@ -120,7 +120,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const token = authHeader.slice(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const decoded = payload as {
       user_id: string;
       qor_id: string;
       role: string;
