@@ -136,9 +136,23 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register balances_getBalance: {}", e)))?;
 
-        // balances_transfer (placeholder - requires transaction signing)
-        module.register_async_method("balances_transfer", |_params, _ctx| async move {
-            Err::<String, ErrorObjectOwned>(method_not_found())
+        // balances_transfer - Transfer tokens between accounts
+        module.register_async_method("balances_transfer", |params, ctx| async move {
+            let (from_str, to_str, amount, signature): (String, String, String, String) = params.parse()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Expected: [from_hex, to_hex, amount, signature]") })?;
+            
+            let from: [u8; 32] = hex::decode(&from_str)
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid from address hex") })?
+                .try_into()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("From address must be 32 bytes") })?;
+            
+            let to: [u8; 32] = hex::decode(&to_str)
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid to address hex") })?
+                .try_into()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("To address must be 32 bytes") })?;
+            
+            ctx.balances_transfer(from, to, amount, signature).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register balances_transfer: {}", e)))?;
 
         // balances_claimStarter - Onboarding faucet for new users
