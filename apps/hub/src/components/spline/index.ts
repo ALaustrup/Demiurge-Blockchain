@@ -1,5 +1,6 @@
 // Core Components
 export { SplineScene } from './SplineScene';
+export { DynamicSplineScene } from './DynamicSplineScene';
 export { DemiurgeSplineWorld } from './DemiurgeSplineWorld';
 export { SplineHero } from './SplineHero';
 export { SplineNFTPreview } from './SplineNFTPreview';
@@ -17,5 +18,6 @@ export type {
   SplineKeyEvent,
 } from './SplineScene';
 
+export type { DynamicSplineSceneProps } from './DynamicSplineScene';
 export type { NFTMetadata } from './SplineNFTPreview';
 export type { BlockchainVariables } from './useSplineBlockchain';
