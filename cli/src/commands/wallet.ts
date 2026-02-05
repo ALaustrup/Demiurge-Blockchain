@@ -7,7 +7,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import Table from 'cli-table3';
-import { DemiurgeClient, Wallet } from '@demiurge/sdk';
+import { DemiurgeClient, Wallet, hexToBytes, bytesToHex } from '@demiurge/sdk';
 import { formatOutput, handleError } from '../utils/format';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -170,15 +170,51 @@ export function registerWalletCommands(program: Command) {
         const spinner = ora('Sending transaction...').start();
         
         const rpc = command.optsWithGlobals().rpc;
-        const client = new DemiurgeClient({ rpcUrl: rpc });
         
-        // TODO: Implement transaction building and signing in SDK
-        // const txHash = await client.transfer(to, amount, senderWallet);
+        // Convert amount to Sparks (1 CGT = 1e18 Sparks)
+        const amountFloat = parseFloat(amount);
+        const amountSparks = BigInt(Math.floor(amountFloat * 1e18)).toString();
+        
+        // Build message to sign: from + to + amount (as bytes)
+        const fromBytes = hexToBytes(fromAddress);
+        const toBytes = hexToBytes(to);
+        const amountBytes = new TextEncoder().encode(amountSparks);
+        
+        const message = new Uint8Array(fromBytes.length + toBytes.length + amountBytes.length);
+        message.set(fromBytes, 0);
+        message.set(toBytes, fromBytes.length);
+        message.set(amountBytes, fromBytes.length + toBytes.length);
+        
+        // Sign the message
+        const signature = senderWallet.sign(message);
+        const signatureHex = bytesToHex(signature);
+        
+        // Call RPC method
+        const response = await fetch(rpc, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'balances_transfer',
+            params: [fromAddress, to, amountSparks, signatureHex],
+          }),
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+          spinner.fail('Transaction failed');
+          console.log(chalk.red('\n❌ Error:'), result.error.message || result.error);
+          process.exit(1);
+        }
         
         spinner.succeed('Transaction submitted');
-        console.log(chalk.green('\n✅ Transaction sent'));
-        console.log(chalk.white('TX Hash:'), chalk.gray('0x...'));
-        console.log(chalk.gray('\nNote: Full transaction support coming soon'));
+        console.log(chalk.green('\n✅ Transaction sent successfully!'));
+        console.log(chalk.white('TX Hash:'), chalk.cyan(result.result?.tx_hash || 'pending'));
+        console.log(chalk.white('Amount:'), chalk.green(`${amount} CGT`));
+        console.log(chalk.white('From:'), chalk.gray(fromAddress));
+        console.log(chalk.white('To:'), chalk.gray(to));
       } catch (error) {
         handleError(error);
       }

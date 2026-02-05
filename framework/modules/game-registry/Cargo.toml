@@ -10,7 +10,7 @@ license = "MIT"
 [dependencies]
 demiurge-core = { path = "../../core" }
 demiurge-storage = { path = "../../storage" }
-demiurge-balances = { path = "../balances" }
+demiurge-module-balances = { path = "../balances" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

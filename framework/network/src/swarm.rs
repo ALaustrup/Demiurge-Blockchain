@@ -335,13 +335,17 @@ impl SwarmManager {
         }
         
         // Connect to bootstrap peers
-        for addr in bootstrap_peers {
+        let has_bootstrap_peers = !bootstrap_peers.is_empty();
+        for addr in &bootstrap_peers {
             info!("Connecting to bootstrap peer: {}", addr);
             match swarm.dial(addr.clone()) {
                 Ok(_) => debug!("Dialing {}", addr),
                 Err(e) => warn!("Failed to dial {}: {:?}", addr, e),
             }
         }
+        
+        // Track if Kademlia bootstrap has been triggered
+        let mut kademlia_bootstrap_triggered = false;
         
         // Main event loop
         loop {
@@ -353,6 +357,23 @@ impl SwarmManager {
             tokio::select! {
                 // Handle swarm events
                 event = swarm.select_next_some() => {
+                    // Check if this is a connection established event - trigger Kademlia bootstrap
+                    if let SwarmEvent::ConnectionEstablished { .. } = &event {
+                        if has_bootstrap_peers && !kademlia_bootstrap_triggered {
+                            info!("First peer connected, triggering Kademlia DHT bootstrap...");
+                            match swarm.behaviour_mut().kademlia.bootstrap() {
+                                Ok(_) => {
+                                    info!("Kademlia bootstrap query started successfully");
+                                    kademlia_bootstrap_triggered = true;
+                                }
+                                Err(e) => {
+                                    warn!("Failed to start Kademlia bootstrap: {:?}", e);
+                                    // Will retry on next connection
+                                }
+                            }
+                        }
+                    }
+                    
                     Self::handle_swarm_event(&mut swarm, event, &event_tx).await;
                 }
                 

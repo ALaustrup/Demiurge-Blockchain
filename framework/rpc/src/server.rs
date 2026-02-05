@@ -54,6 +54,9 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         // Register DRC-369 NFT methods
         Self::register_drc369_methods(&mut module)?;
         
+        // Register CVP (Consensus-Verified Polymorphism) methods
+        Self::register_cvp_methods(&mut module)?;
+        
         // Configure server to support both HTTP and WebSocket
         // ServerBuilder::default() should support both, but we ensure HTTP is enabled
         // This allows curl (HTTP POST) for testing AND WebSocket for UI clients
@@ -380,6 +383,60 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
             ctx.drc369_mint(mint_request).await
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register drc369_mint: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// Register CVP (Consensus-Verified Polymorphism) RPC methods
+    fn register_cvp_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
+        // cvp_getStatus - Get CVP system status
+        module.register_async_method("cvp_getStatus", |_params, ctx| async move {
+            ctx.cvp_get_status().await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register cvp_getStatus: {}", e)))?;
+
+        // cvp_getBlockProof - Get CVP proof for a block
+        module.register_async_method("cvp_getBlockProof", |params, ctx| async move {
+            let block_number: u64 = params.one()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid block number") })?;
+            ctx.cvp_get_block_proof(block_number).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register cvp_getBlockProof: {}", e)))?;
+
+        // cvp_getBytecode - Get CVP-protected bytecode for a contract
+        module.register_async_method("cvp_getBytecode", |params, ctx| async move {
+            let contract_id: String = params.one()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid contract_id") })?;
+            ctx.cvp_get_bytecode(contract_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register cvp_getBytecode: {}", e)))?;
+
+        // cvp_getContractInfo - Get contract info including CVP protection status
+        module.register_async_method("cvp_getContractInfo", |params, ctx| async move {
+            let contract_id: String = params.one()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid contract_id") })?;
+            ctx.cvp_get_contract_info(contract_id).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register cvp_getContractInfo: {}", e)))?;
+
+        // cvp_getThreats - Get detected threat events
+        module.register_async_method("cvp_getThreats", |params, ctx| async move {
+            let query: Option<crate::methods::CvpThreatQuery> = params.one().ok();
+            ctx.cvp_get_threats(query).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register cvp_getThreats: {}", e)))?;
+
+        // cvp_getThreatStats - Get aggregated threat statistics
+        module.register_async_method("cvp_getThreatStats", |_params, ctx| async move {
+            ctx.cvp_get_threat_stats().await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register cvp_getThreatStats: {}", e)))?;
+
+        // cvp_getScheduledMutations - Get pending scheduled mutations
+        module.register_async_method("cvp_getScheduledMutations", |_params, ctx| async move {
+            ctx.cvp_get_scheduled_mutations().await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register cvp_getScheduledMutations: {}", e)))?;
 
         Ok(())
     }

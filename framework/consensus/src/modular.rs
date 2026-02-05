@@ -349,6 +349,47 @@ impl ConsensusOrchestrator {
         Ok(())
     }
     
+    /// Schedule a governance-approved switch
+    /// 
+    /// This method should be called when a governance proposal for consensus
+    /// switching has passed and been executed. It validates the proposal_id
+    /// is provided and schedules the switch.
+    pub fn schedule_governance_switch(
+        &mut self,
+        target_id: MechanismId,
+        switch_at_block: u64,
+        proposal_id: [u8; 32],
+        required_validators: usize,
+    ) -> Result<(), MechanismError> {
+        // Validate proposal_id is non-zero (governance approved)
+        if proposal_id == [0u8; 32] {
+            return Err(MechanismError::InvalidConfig(
+                "Governance-triggered switch requires valid proposal ID".to_string()
+            ));
+        }
+        
+        tracing::info!(
+            "Governance-approved consensus switch: proposal={}",
+            hex::encode(&proposal_id[..8])
+        );
+        
+        // Use the standard schedule_switch with the proposal ID
+        self.schedule_switch(target_id, switch_at_block, Some(proposal_id), required_validators)
+    }
+    
+    /// Check if a pending switch is governance-approved
+    pub fn is_switch_governance_approved(&self) -> bool {
+        self.pending_switch
+            .as_ref()
+            .map(|s| s.proposal_id.is_some())
+            .unwrap_or(false)
+    }
+    
+    /// Get the governance proposal ID for the pending switch
+    pub fn pending_switch_proposal_id(&self) -> Option<[u8; 32]> {
+        self.pending_switch.as_ref().and_then(|s| s.proposal_id)
+    }
+    
     /// Signal that a validator is ready for the switch
     pub fn validator_ready(&mut self, _validator: [u8; 32]) {
         if let Some(ref mut switch) = self.pending_switch {

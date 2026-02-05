@@ -7,8 +7,8 @@
 
 use crate::{NodeConfig, GenesisConfig};
 use demiurge_core::{Runtime, Block, Transaction};
-use demiurge_storage::StorageBackend;
-use demiurge_consensus::{ConsensusEngine, Validator, BlockProof};
+use demiurge_storage::{StorageBackend, Storage};
+use demiurge_consensus::{ConsensusEngine, Validator, BlockProof, BlockSignature};
 use demiurge_network::{NetworkService, SwarmManager, NetworkEvent, TransactionPool};
 use demiurge_rpc::{RpcServer, RpcMethods};
 use anyhow::Result;
@@ -67,7 +67,7 @@ impl NodeService {
     }
     
     /// Load genesis configuration (call before start())
-    pub fn load_genesis(&mut self, genesis_config: GenesisConfig) -> Result<()> {
+    pub async fn load_genesis(&mut self, genesis_config: GenesisConfig) -> Result<()> {
         info!("Loading genesis configuration: chain_id={}", genesis_config.chain_id);
         info!("Genesis validators: {}", genesis_config.validators.len());
         for (i, validator) in genesis_config.validators.iter().enumerate() {
@@ -77,6 +77,58 @@ impl NodeService {
                 validator.stake
             );
         }
+        
+        // Initialize genesis balances in storage
+        if !genesis_config.balances.is_empty() {
+            info!("Initializing {} genesis balances...", genesis_config.balances.len());
+            
+            // Get storage reference from runtime
+            let runtime_guard = self.runtime.lock().await;
+            let storage = &runtime_guard.storage;
+            
+            for (address_hex, amount_str) in &genesis_config.balances {
+                // Skip treasury for now (handled separately)
+                if address_hex == "treasury" {
+                    info!("  Treasury: {} (reserved)", amount_str);
+                    continue;
+                }
+                
+                // Parse address
+                let address: [u8; 32] = match hex::decode(address_hex) {
+                    Ok(bytes) if bytes.len() == 32 => {
+                        bytes.try_into().unwrap()
+                    }
+                    _ => {
+                        warn!("Invalid genesis balance address: {}", address_hex);
+                        continue;
+                    }
+                };
+                
+                // Parse amount
+                let amount: u128 = match amount_str.parse() {
+                    Ok(a) => a,
+                    Err(_) => {
+                        warn!("Invalid genesis balance amount for {}: {}", address_hex, amount_str);
+                        continue;
+                    }
+                };
+                
+                // Write balance to storage using the same key format as balances module
+                let mut key = b"Balances:Account:".to_vec();
+                key.extend_from_slice(&address);
+                
+                use codec::Encode;
+                storage.put(&key, &amount.encode());
+                
+                info!("  Balance set: {} = {} sparks", 
+                    &address_hex[..16], // First 16 chars for readability
+                    amount
+                );
+            }
+            
+            info!("✅ Genesis balances initialized");
+        }
+        
         self.genesis_config = Some(genesis_config);
         Ok(())
     }
@@ -284,8 +336,9 @@ impl NodeService {
         // Spawn network event handler
         let consensus = self.consensus.clone();
         let tx_pool = self.tx_pool.clone();
+        let runtime = self.runtime.clone();
         tokio::spawn(async move {
-            Self::network_event_loop(swarm, consensus, tx_pool).await;
+            Self::network_event_loop(swarm, consensus, tx_pool, runtime).await;
         });
         
         info!("✅ P2P network started - The Nervous System is alive");
@@ -297,6 +350,7 @@ impl NodeService {
         swarm: Arc<SwarmManager>,
         consensus: Option<Arc<Mutex<ConsensusEngine<StorageBackend>>>>,
         tx_pool: Arc<Mutex<TransactionPool>>,
+        runtime: Arc<Mutex<Runtime<StorageBackend>>>,
     ) {
         info!("Network event loop started");
         
@@ -326,7 +380,37 @@ impl NodeService {
                                 if let Err(e) = consensus_guard.store_block(&block) {
                                     warn!("Failed to store received block: {:?}", e);
                                 } else {
-                                    debug!("Block #{} imported successfully", block.header.block_number);
+                                    debug!("Block #{} stored successfully", block.header.block_number);
+                                    
+                                    // CRITICAL FIX: Execute transactions through runtime
+                                    // This ensures non-proposers update their state correctly
+                                    drop(consensus_guard); // Release consensus lock before acquiring runtime lock
+                                    
+                                    match runtime.lock().await.execute_block(block.clone()) {
+                                        Ok(computed_state_root) => {
+                                            // Verify state root matches (critical for consensus)
+                                            if computed_state_root != block.header.state_root {
+                                                warn!(
+                                                    "⚠️ State root mismatch for block #{}! Expected: {:?}, Got: {:?}",
+                                                    block.header.block_number,
+                                                    hex::encode(&block.header.state_root),
+                                                    hex::encode(&computed_state_root)
+                                                );
+                                                // In production, this would trigger a reorg or sync request
+                                            } else {
+                                                info!(
+                                                    "✅ Block #{} executed and verified (state root matches)",
+                                                    block.header.block_number
+                                                );
+                                            }
+                                        }
+                                        Err(e) => {
+                                            warn!(
+                                                "Failed to execute block #{}: {:?}",
+                                                block.header.block_number, e
+                                            );
+                                        }
+                                    }
                                     
                                     // Remove block's transactions from the pool
                                     let tx_hashes: Vec<[u8; 32]> = block.transactions.iter()
@@ -495,6 +579,24 @@ impl NodeService {
                                 if let Err(e) = consensus_guard.store_block(&final_block) {
                                     warn!("Failed to store block: {:?}", e);
                                     continue;
+                                }
+                                
+                                // Finalize block with self-signature (single-validator mode)
+                                // In multi-validator mode, we'd collect signatures from other validators
+                                let self_signature = BlockSignature {
+                                    validator: validator_account,
+                                    proof: _proof.clone(),
+                                };
+                                
+                                match consensus_guard.finalize_block(&final_block, vec![self_signature]) {
+                                    Ok(_) => {
+                                        debug!("Block #{} finalized", final_block.header.block_number);
+                                    }
+                                    Err(e) => {
+                                        // Finalization failure in single-validator is acceptable
+                                        // (threshold may require >1 validator)
+                                        debug!("Block finalization skipped: {:?}", e);
+                                    }
                                 }
                                 
                                 // Remove executed transactions from pool

@@ -712,6 +712,120 @@ impl<S: Storage> RpcMethods<S> {
         }
     }
     
+    /// Transfer a DRC-369 token to a new owner
+    /// 
+    /// Parameters:
+    /// - token_id: The token to transfer
+    /// - from: Current owner address (32 bytes hex)
+    /// - to: New owner address (32 bytes hex)
+    /// - signature: Transaction signature from current owner
+    pub async fn drc369_transfer(
+        &self,
+        token_id: String,
+        from: String,
+        to: String,
+        signature: String,
+    ) -> Result<Drc369TransferResult, RpcError> {
+        use blake2::{Blake2b512, Digest};
+        
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        
+        // Parse addresses
+        let from_bytes: [u8; 32] = hex::decode(&from)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        let to_bytes: [u8; 32] = hex::decode(&to)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Verify signature format
+        if signature.len() < 64 || hex::decode(&signature).is_err() {
+            return Err(RpcError::InvalidTransaction("Invalid signature format".to_string()));
+        }
+        
+        // Check if token exists and verify ownership
+        let owner_key = Self::drc369_owner_key(token_id_u256);
+        let current_owner = match self.storage.get(&owner_key) {
+            Some(value) if value.len() == 32 => {
+                let mut arr = [0u8; 32];
+                arr.copy_from_slice(&value);
+                arr
+            }
+            _ => return Err(RpcError::InvalidTransaction("Token does not exist".to_string())),
+        };
+        
+        // Verify sender is the owner
+        if current_owner != from_bytes {
+            return Err(RpcError::InvalidTransaction(
+                format!("Not token owner. Owner: {}, Sender: {}", 
+                    hex::encode(&current_owner[..8]), 
+                    hex::encode(&from_bytes[..8]))
+            ));
+        }
+        
+        // Check if token is soulbound
+        let soulbound_key = Self::drc369_soulbound_key(token_id_u256);
+        if let Some(value) = self.storage.get(&soulbound_key) {
+            if !value.is_empty() && value[0] != 0 {
+                return Err(RpcError::InvalidTransaction("Token is soulbound and cannot be transferred".to_string()));
+            }
+        }
+        
+        // Execute transfer - update owner
+        self.storage.put(&owner_key, &to_bytes);
+        
+        // Update balance counts
+        let from_balance_key = Self::drc369_balance_key(from_bytes);
+        let to_balance_key = Self::drc369_balance_key(to_bytes);
+        
+        // Decrement sender balance
+        if let Some(balance_bytes) = self.storage.get(&from_balance_key) {
+            if balance_bytes.len() >= 8 {
+                let current = u64::from_le_bytes(balance_bytes[..8].try_into().unwrap());
+                if current > 0 {
+                    self.storage.put(&from_balance_key, &(current - 1).to_le_bytes());
+                }
+            }
+        }
+        
+        // Increment recipient balance
+        let new_to_balance = if let Some(balance_bytes) = self.storage.get(&to_balance_key) {
+            if balance_bytes.len() >= 8 {
+                u64::from_le_bytes(balance_bytes[..8].try_into().unwrap()) + 1
+            } else {
+                1
+            }
+        } else {
+            1
+        };
+        self.storage.put(&to_balance_key, &new_to_balance.to_le_bytes());
+        
+        // Generate transfer transaction hash
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"DRC369:Transfer:");
+        hasher.update(&token_id_u256);
+        hasher.update(&from_bytes);
+        hasher.update(&to_bytes);
+        hasher.update(&std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis()
+            .to_le_bytes());
+        let hash = hasher.finalize();
+        let mut tx_hash = [0u8; 32];
+        tx_hash.copy_from_slice(&hash[..32]);
+        
+        Ok(Drc369TransferResult {
+            tx_hash: hex::encode(tx_hash),
+            token_id: token_id.clone(),
+            from: from.clone(),
+            to: to.clone(),
+            status: "confirmed".to_string(),
+        })
+    }
+    
     /// Get DRC-369 dynamic state for a token
     /// 
     /// Returns the current value of a dynamic state key for the token.
@@ -2122,6 +2236,21 @@ pub struct Drc369SetRoyaltyResult {
     pub token_id: String,
     pub recipient: String,
     pub percentage_bps: u16,
+}
+
+/// Result of a DRC-369 token transfer
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Drc369TransferResult {
+    /// Transaction hash
+    pub tx_hash: String,
+    /// Token ID that was transferred
+    pub token_id: String,
+    /// Previous owner address
+    pub from: String,
+    /// New owner address
+    pub to: String,
+    /// Status: "confirmed", "pending", "failed"
+    pub status: String,
 }
 
 /// Royalty calculation result

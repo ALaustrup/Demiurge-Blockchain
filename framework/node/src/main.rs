@@ -143,7 +143,7 @@ async fn main() -> anyhow::Result<()> {
         let genesis_config = GenesisConfig::load_from_file(genesis_path)?;
         info!("Loaded genesis config: chain_id={}, validators={}", 
             genesis_config.chain_id, genesis_config.validators.len());
-        node.load_genesis(genesis_config)?;
+        node.load_genesis(genesis_config).await?;
     }
     
     // Load validator key and register as validator if provided
