@@ -107,7 +107,7 @@ export class WebSpeechFallbackClient {
       this.recognition.interimResults = true;
       this.recognition.lang = this.config.lang || 'en-US';
 
-      this.recognition.onresult = (event: SpeechRecognitionEvent) => {
+      this.recognition.onresult = (event: any) => {
         const lastResult = event.results[event.results.length - 1];
         const transcript = lastResult[0].transcript;
         const isFinal = lastResult.isFinal;
@@ -127,7 +127,7 @@ export class WebSpeechFallbackClient {
         this.events.onSpeechEnd?.();
       };
 
-      this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      this.recognition.onerror = (event: any) => {
         if (event.error !== 'no-speech' && event.error !== 'aborted') {
           this.events.onError?.(new Error(`Speech recognition error: ${event.error}`));
         }

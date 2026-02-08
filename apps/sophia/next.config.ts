@@ -2,15 +2,8 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   reactStrictMode: true,
-  turbopack: {
-    resolveAlias: {
-      '@styles/*': './styles/*',
-      '@components/*': './components/*',
-      '@lib/*': './lib/*',
-      '@hooks/*': './lib/hooks/*',
-      '@types/*': './lib/types/*',
-    },
-  },
+  // Use webpack mode for Tailwind v3 compatibility
+  // turbopack: {},
   
   /* Environment variables */
   env: {
