@@ -41,11 +41,40 @@ async function callLLM(
   enableTools: boolean = true,
   stream: boolean = false,
 ): Promise<{ text?: string; toolCalls?: any[]; error?: string; stream?: ReadableStream }> {
+  const groqKey = process.env.GROQ_API_KEY;
   const grokKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
 
-  // Grok (OpenAI-compatible)
+  // Groq (fastest inference — OpenAI-compatible)
+  if (groqKey) {
+    try {
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          max_tokens: 2048,
+          temperature: 0.7,
+          stream,
+          messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          tools: enableTools ? TOOL_DEFINITIONS : undefined,
+          tool_choice: enableTools ? 'auto' : undefined,
+        }),
+      });
+      if (resp.ok) {
+        if (stream && resp.body) {
+          return { stream: transformOpenAIStream(resp.body) };
+        }
+        const data = await resp.json();
+        const choice = data.choices[0];
+        if (choice.message.tool_calls) return { toolCalls: choice.message.tool_calls };
+        return { text: choice.message.content };
+      }
+    } catch (e) { console.warn('Groq failed:', e); }
+  }
+
+  // Grok / xAI (OpenAI-compatible)
   if (grokKey) {
     try {
       const resp = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -364,12 +393,13 @@ function sseHeaders(): HeadersInit {
 
 // Health check
 export async function GET() {
+  const hasGroq = !!process.env.GROQ_API_KEY;
   const hasGrok = !!(process.env.XAI_API_KEY || process.env.GROK_API_KEY);
   const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
   return NextResponse.json({
-    status: hasGrok || hasAnthropic || hasOpenAI ? 'ready' : 'no-api-key',
-    providers: { grok: hasGrok, anthropic: hasAnthropic, openai: hasOpenAI },
+    status: hasGroq || hasGrok || hasAnthropic || hasOpenAI ? 'ready' : 'no-api-key',
+    providers: { groq: hasGroq, grok: hasGrok, anthropic: hasAnthropic, openai: hasOpenAI },
     tools: TOOL_DEFINITIONS.map((t) => t.function.name),
     toolCount: TOOL_DEFINITIONS.length,
   });
