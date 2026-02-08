@@ -370,6 +370,26 @@ async function callLLM(
         }
         
         return { text: choice.message.content };
+      } else if (response.status === 400 && enableTools) {
+        // Tool call format error — retry without tools
+        console.warn('Groq tool_use_failed, retrying without tools');
+        const retry = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`,
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            max_tokens: maxTokens,
+            temperature,
+            messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          }),
+        });
+        if (retry.ok) {
+          const data = await retry.json();
+          return { text: data.choices[0].message.content };
+        }
       } else {
         const errBody = await response.text();
         console.warn(`Groq API returned ${response.status}:`, errBody.slice(0, 500));

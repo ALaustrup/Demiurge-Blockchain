@@ -70,6 +70,30 @@ async function callLLM(
         const choice = data.choices[0];
         if (choice.message.tool_calls) return { toolCalls: choice.message.tool_calls };
         return { text: choice.message.content };
+      } else if (resp.status === 400 && enableTools) {
+        // Tool call format error — retry without tools
+        console.warn('Groq tool_use_failed, retrying without tools');
+        const retry = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            max_tokens: 2048,
+            temperature: 0.7,
+            stream,
+            messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          }),
+        });
+        if (retry.ok) {
+          if (stream && retry.body) {
+            return { stream: transformOpenAIStream(retry.body) };
+          }
+          const data = await retry.json();
+          return { text: data.choices[0].message.content };
+        }
+      } else {
+        const errBody = await resp.text();
+        console.warn(`Groq API returned ${resp.status}:`, errBody.slice(0, 500));
       }
     } catch (e) { console.warn('Groq failed:', e); }
   }
