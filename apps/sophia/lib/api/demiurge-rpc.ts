@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { DemiurgeRPCRequest, DemiurgeRPCResponse } from "@types/index";
+import type { DemiurgeRPCRequest, DemiurgeRPCResponse } from "@lib/types/index";
 
 const rpcUrl = process.env.NEXT_PUBLIC_DEMIURGE_RPC_URL || "http://localhost:9944";
 
