@@ -252,7 +252,7 @@ export const SophiaChat: React.FC<SophiaChatProps> = ({
       rec.interimResults = false;
       rec.lang = "en-US";
       setVoiceActive(true);
-      rec.onresult = (e: SpeechRecognitionEvent) => {
+      rec.onresult = (e: any) => {
         setVoiceActive(false);
         const t = e.results[0][0].transcript;
         if (t.trim()) handleSend(t.trim());

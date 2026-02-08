@@ -327,7 +327,7 @@ export function SophiaChatPanel({ isOpen, onClose }: SophiaChatPanelProps) {
 
       setVoiceActive(true);
 
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
+      recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setVoiceActive(false);
         if (transcript.trim()) {

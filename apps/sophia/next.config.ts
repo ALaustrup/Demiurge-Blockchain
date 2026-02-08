@@ -2,7 +2,15 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   reactStrictMode: true,
-  turbopack: {},
+  turbopack: {
+    resolveAlias: {
+      '@styles/*': './styles/*',
+      '@components/*': './components/*',
+      '@lib/*': './lib/*',
+      '@hooks/*': './lib/hooks/*',
+      '@types/*': './lib/types/*',
+    },
+  },
   
   /* Environment variables */
   env: {
