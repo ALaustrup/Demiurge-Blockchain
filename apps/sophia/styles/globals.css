@@ -1,9 +1,35 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Custom theme tokens for Tailwind v4 */
+@theme {
+  --color-primary-50: #fdf3ff;
+  --color-primary-100: #fce7ff;
+  --color-primary-200: #f8d5ff;
+  --color-primary-300: #f3b3ff;
+  --color-primary-400: #ec7eff;
+  --color-primary-500: #e040fb;
+  --color-primary-600: #d500f9;
+  --color-primary-700: #b200e3;
+  --color-primary-800: #9100d4;
+  --color-primary-900: #7c3aed;
+  --color-primary-950: #600fb2;
+
+  --color-navy-50: #f8fafc;
+  --color-navy-100: #f1f5f9;
+  --color-navy-200: #e2e8f0;
+  --color-navy-300: #cbd5e1;
+  --color-navy-400: #94a3b8;
+  --color-navy-500: #64748b;
+  --color-navy-600: #475569;
+  --color-navy-700: #334155;
+  --color-navy-800: #1e293b;
+  --color-navy-900: #0f172a;
+  --color-navy-950: #020617;
+}
 
 * {
-  @apply transition-colors duration-200;
+  transition-property: color, background-color, border-color;
+  transition-duration: 200ms;
 }
 
 html {
@@ -12,28 +38,30 @@ html {
 }
 
 body {
-  @apply bg-navy-900 text-gray-100;
+  background-color: var(--color-navy-900);
+  color: #f3f4f6;
   font-family: system-ui, -apple-system, sans-serif;
 }
 
 /* Scrollbar styles */
 ::-webkit-scrollbar {
-  @apply w-2;
+  width: 0.5rem;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-navy-800;
+  background-color: var(--color-navy-800);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary-600 rounded-full;
+  background-color: var(--color-primary-600);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-primary-500;
+  background-color: var(--color-primary-500);
 }
 
-/* Enhanced Glass morphism utilities */
+/* Glass morphism utilities */
 .glass {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(12px);
@@ -50,7 +78,6 @@ body {
   border-radius: 1rem;
 }
 
-/* Premium glass variant */
 .glass-premium {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
   backdrop-filter: blur(16px) saturate(180%);
@@ -69,10 +96,7 @@ body {
 .glass-reflective::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.15) 0%, transparent 50%);
   pointer-events: none;
   opacity: 0;
@@ -81,7 +105,10 @@ body {
 
 /* Gradient text */
 .gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-cyan-400;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(to right, var(--color-primary-400), #22d3ee);
 }
 
 /* Animated gradient */
@@ -91,18 +118,12 @@ body {
 }
 
 @keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-/* Glow effect - enhanced */
+/* Glow effects */
 .glow-primary {
   box-shadow: 0 0 20px rgba(124, 58, 237, 0.4), 0 0 40px rgba(124, 58, 237, 0.2);
 }
@@ -115,68 +136,39 @@ body {
   box-shadow: 0 0 20px rgba(6, 182, 212, 0.4), 0 0 40px rgba(6, 182, 212, 0.2);
 }
 
-.glow-cyan-lg {
-  box-shadow: 0 0 40px rgba(6, 182, 212, 0.6), 0 0 80px rgba(6, 182, 212, 0.3);
-}
-
 /* Form inputs */
-input:focus {
-  @apply outline-none ring-2 ring-primary-500/50;
+input:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.5);
 }
 
-textarea:focus {
-  @apply outline-none ring-2 ring-primary-500/50;
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.5);
 }
 
-/* Buttons */
-button {
-  @apply focus:outline-none focus:ring-2 focus:ring-primary-500/50;
+a:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.5);
+  border-radius: 0.25rem;
 }
 
-/* Links */
-a {
-  @apply focus:outline-none focus:ring-2 focus:ring-primary-500/50 rounded;
-}
-
-/* Animation utilities */
+/* Animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideIn {
-  from {
-    transform: translateY(10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes pulse-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 40px rgba(124, 58, 237, 0.8);
-  }
+  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.5); }
+  50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.8); }
 }
 
-.fade-in {
-  animation: fadeIn 0.5s ease-in;
-}
-
-.slide-in {
-  animation: slideIn 0.5s ease-out;
-}
-
-.pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
+.fade-in { animation: fadeIn 0.5s ease-in; }
+.slide-in { animation: slideIn 0.5s ease-out; }
+.pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
