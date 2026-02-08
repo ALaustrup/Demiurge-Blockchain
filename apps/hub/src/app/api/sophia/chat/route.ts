@@ -370,6 +370,9 @@ async function callLLM(
         }
         
         return { text: choice.message.content };
+      } else {
+        const errBody = await response.text();
+        console.warn(`Groq API returned ${response.status}:`, errBody.slice(0, 500));
       }
     } catch (e) {
       console.warn('Groq API failed:', e);
@@ -499,6 +502,7 @@ async function callLLM(
     }
   }
 
+  console.warn('No LLM provider succeeded. Keys present:', { groq: !!groqKey, grok: !!grokKey, anthropic: !!anthropicKey, openai: !!openaiKey });
   return { error: 'No LLM API key configured. Set GROQ_API_KEY, XAI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.' };
 }
 
