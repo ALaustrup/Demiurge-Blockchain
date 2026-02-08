@@ -34,7 +34,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onEnter }) => {
       y: 0,
       transition: {
         duration: 0.8,
-        ease: "easeOut",
+        ease: "easeOut" as const,
       },
     },
   };
@@ -46,7 +46,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onEnter }) => {
       opacity: 1,
       transition: {
         duration: 1,
-        ease: "easeOut",
+        ease: "easeOut" as const,
       },
     },
   };
@@ -72,7 +72,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onEnter }) => {
       scale: 1,
       transition: {
         duration: 0.8,
-        ease: "easeOut",
+        ease: "easeOut" as const,
       },
     },
     hover: {
