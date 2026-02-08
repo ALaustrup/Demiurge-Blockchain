@@ -1,3 +1,5 @@
+import type { SystemCard } from '@lib/types/index';
+
 export const SYSTEMS: SystemCard[] = [
   {
     id: "mining",
@@ -145,4 +147,4 @@ Always respond in JSON format with these fields:
   "requires_2fa": false
 }`;
 
-type SystemCard = typeof SYSTEMS[number];
+// SystemCard type imported from @lib/types
