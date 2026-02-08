@@ -45,7 +45,7 @@ export const NFTPortalSystem: React.FC = () => {
             {
               type: "auth:token",
               token: localStorage.getItem("auth_token"),
-              qorId: user?.qorId,
+              qorId: (user as any)?.qorId,
             },
             process.env.NEXT_PUBLIC_DEMIURGE_URL!
           );
