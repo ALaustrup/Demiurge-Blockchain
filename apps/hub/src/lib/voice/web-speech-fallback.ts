@@ -12,6 +12,14 @@
 
 import type { VoiceConnectionState } from './types';
 
+// Web Speech API types — only available in browser context
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export interface WebSpeechFallbackEvents {
   onConnectionStateChange?: (state: VoiceConnectionState) => void;
   onSpeechStart?: () => void;
@@ -49,9 +57,9 @@ export class WebSpeechFallbackClient {
   private events: WebSpeechFallbackEvents;
   private connectionState: VoiceConnectionState = 'disconnected';
 
-  private recognition: SpeechRecognition | null = null;
-  private synthesis: SpeechSynthesis | null = null;
-  private selectedVoice: SpeechSynthesisVoice | null = null;
+  private recognition: any = null;
+  private synthesis: any = null;
+  private selectedVoice: any = null;
   private isListening: boolean = false;
   private isSpeaking: boolean = false;
   private conversationHistory: { role: string; content: string }[] = [];
@@ -154,7 +162,7 @@ export class WebSpeechFallbackClient {
     if (!this.synthesis) return;
 
     // Voices may load asynchronously
-    const getVoices = (): Promise<SpeechSynthesisVoice[]> => {
+    const getVoices = (): Promise<any[]> => {
       return new Promise((resolve) => {
         const voices = this.synthesis!.getVoices();
         if (voices.length > 0) {
