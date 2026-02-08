@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { AuthResponse, User } from "@types/index";
+import type { AuthResponse, User } from "@lib/types/index";
 
 const authUrl = process.env.NEXT_PUBLIC_QOR_AUTH_URL || "http://localhost:3001";
 

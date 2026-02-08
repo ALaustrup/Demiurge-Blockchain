@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { qorAuth } from "@lib/api/qor-auth";
-import type { Session, User, AuthResponse } from "@types/index";
+import type { Session, User, AuthResponse } from "@lib/types/index";
 
 interface AuthContextType extends Session {
   login: (username: string, password: string) => Promise<void>;
