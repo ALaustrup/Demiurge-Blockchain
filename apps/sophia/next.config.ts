@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  turbopack: {},
   
   /* Environment variables */
   env: {
@@ -61,7 +61,7 @@ const config: NextConfig = {
   },
 
   /* Webpack configuration for optimizations */
-  webpack: (config, { isServer }) => {
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
     return config;
   },
 };
