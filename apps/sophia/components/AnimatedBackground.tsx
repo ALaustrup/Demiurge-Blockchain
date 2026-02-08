@@ -122,7 +122,7 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
 
       // Draw mouse trail with glow
       ctx.globalAlpha = 1;
-      mouseTrail.forEach((point, index) => {
+      mouseTrail.forEach((point, _index) => {
         point.opacity -= 0.02;
 
         // Glow
