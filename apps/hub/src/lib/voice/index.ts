@@ -43,3 +43,12 @@ export {
   type WebRTCClientConfig,
   type WebRTCClientEvents,
 } from './webrtc-client';
+
+// Web Speech API Fallback (for when Grok Voice API is unavailable)
+export {
+  WebSpeechFallbackClient,
+  getWebSpeechFallback,
+  resetWebSpeechFallback,
+  type WebSpeechFallbackConfig,
+  type WebSpeechFallbackEvents,
+} from './web-speech-fallback';

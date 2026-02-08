@@ -591,15 +591,111 @@ class ExplorerService {
   }
 }
 
-// Export singleton
-export const explorerService = new ExplorerService();
-
 // Export WebSocket URL for subscriptions
 export function getWebSocketUrl(): string {
   // Convert HTTP URL to WebSocket URL
   const rpcUrl = RPC_URL || 'http://localhost:9944';
   return rpcUrl.replace('http://', 'ws://').replace('https://', 'wss://');
 }
+
+/**
+ * Subscribe to new blocks via WebSocket.
+ * Returns unsubscribe function.
+ */
+export function subscribeToBlocks(
+  callback: (block: { number: number; hash: string; timestamp: number; transaction_count: number; author: string }) => void
+): () => void {
+  const wsUrl = getWebSocketUrl();
+  const ws = new WebSocket(wsUrl);
+  let subId: number | null = null;
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method: 'chain_subscribeNewBlocks',
+      params: [],
+    }));
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.result && typeof data.result === 'number') {
+        subId = data.result;
+      }
+      if (data.method === 'chain_newBlock' && data.params?.result) {
+        callback(data.params.result);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  };
+
+  return () => {
+    if (subId !== null && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        id: Date.now(),
+        method: 'chain_unsubscribeNewBlocks',
+        params: [subId],
+      }));
+    }
+    ws.close();
+  };
+}
+
+/**
+ * Subscribe to new transactions via WebSocket.
+ * Returns unsubscribe function.
+ */
+export function subscribeToTransactions(
+  callback: (tx: { hash: string; from: string; to?: string; nonce: number; status: string; block_number?: number }) => void
+): () => void {
+  const wsUrl = getWebSocketUrl();
+  const ws = new WebSocket(wsUrl);
+  let subId: number | null = null;
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method: 'chain_subscribeNewPendingTransactions',
+      params: [],
+    }));
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.result && typeof data.result === 'number') {
+        subId = data.result;
+      }
+      const method = data.method;
+      const params = data.params?.result ?? data.params;
+      if ((method === 'chain_pendingTransaction' || method === 'chain_newPendingTransaction') && params) {
+        callback(params);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  };
+
+  return () => {
+    if (subId !== null && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        id: Date.now(),
+        method: 'chain_unsubscribePendingTransactions',
+        params: [subId],
+      }));
+    }
+    ws.close();
+  };
+}
+
+// Export singleton
+export const explorerService = new ExplorerService();
 
 // Re-export RPC_URL for convenience
 export { RPC_URL };

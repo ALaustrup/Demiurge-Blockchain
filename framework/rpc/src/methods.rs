@@ -65,6 +65,16 @@ impl<S: Storage> RpcMethods<S> {
         self.tx_pool.clone()
     }
 
+    // ========== Network Methods ==========
+
+    /// Get connected P2P peers (for mesh verification)
+    /// Returns peer IDs and connection info when network is available.
+    pub async fn network_get_peers(&self) -> Result<Vec<PeerInfoResponse>, RpcError> {
+        // Network is not yet wired to RPC methods - return empty for now.
+        // Node service can inject network via set_network when available.
+        Ok(vec![])
+    }
+
     // ========== Chain Methods ==========
 
     /// Get chain health status
@@ -2479,6 +2489,16 @@ impl<S: Storage> RpcMethods<S> {
 }
 
 // ========== Response Types ==========
+
+/// P2P peer info for network_getPeers response
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PeerInfoResponse {
+    pub peer_id: String,
+    pub address: String,
+    pub connected: bool,
+    pub last_seen: u64,
+    pub block_height: u64,
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ChainHealth {

@@ -19,6 +19,14 @@ import {
   executeGetNFTInfo,
   executeGetNetworkStats,
   executeSendToAgent,
+  executeExplainGnosticConcept,
+  executeMintNFT,
+  executeQueryMyNFTs,
+  executeTroubleshoot,
+  executeGetStartedGuide,
+  executeExplainCode,
+  executeDeployAgent,
+  executeGetGovernanceInfo,
 } from '@/lib/sophia';
 
 // RPC endpoint for blockchain queries
@@ -139,6 +147,131 @@ const TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'explainGnosticConcept',
+      description: 'Look up a Gnostic term or Demiurge concept and explain its theological meaning and protocol mapping. Use when users ask about naming, philosophy, or Gnostic theology.',
+      parameters: {
+        type: 'object',
+        properties: {
+          term: { type: 'string', description: 'Gnostic term or Demiurge concept (e.g. "Sophia", "Archon", "Pleroma", "CGT")' },
+        },
+        required: ['term'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'mintNFT',
+      description: 'Mint a DRC-369 NFT on the Demiurge chain for a user or as a Sophia memory artifact. Always confirm with user before executing.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Name of the NFT' },
+          description: { type: 'string', description: 'Description of the NFT' },
+          metadata: { type: 'object', description: 'Additional metadata as key-value pairs' },
+          recipient: { type: 'string', description: 'Recipient address (use "sophia" for Sophia memory NFTs)' },
+          soulbound: { type: 'boolean', description: 'Whether the NFT is soulbound (non-transferable)', default: false },
+        },
+        required: ['name', 'description', 'recipient'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'queryMyNFTs',
+      description: 'Query DRC-369 NFTs owned by an address. Returns a list of NFTs with metadata.',
+      parameters: {
+        type: 'object',
+        properties: {
+          address: { type: 'string', description: 'Address to query NFTs for (defaults to connected user)' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'troubleshoot',
+      description: 'Run a guided diagnostic flow for a common issue. Chains multiple RPC checks and presents a report.',
+      parameters: {
+        type: 'object',
+        properties: {
+          issue: {
+            type: 'string',
+            enum: ['transaction_failed', 'cannot_connect', 'nft_not_showing', 'staking_rewards_missing', 'wallet_issue', 'general'],
+            description: 'The type of issue to troubleshoot',
+          },
+          context: { type: 'string', description: 'Additional context (error messages, addresses, tx hashes)' },
+        },
+        required: ['issue'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getStartedGuide',
+      description: 'Interactive onboarding guide for new users, developers, or validators. Walks through setup step by step.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', enum: ['user', 'developer', 'validator'], description: 'Onboarding path' },
+          step: { type: 'number', description: 'Current step number (starts at 0)' },
+        },
+        required: ['path'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'explainCode',
+      description: 'Explain a Demiurge SDK code snippet — what it does, how it interacts with the chain, and best practices.',
+      parameters: {
+        type: 'object',
+        properties: {
+          code: { type: 'string', description: 'The code snippet to explain' },
+          language: { type: 'string', description: 'Programming language', default: 'typescript' },
+        },
+        required: ['code'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'deployAgent',
+      description: 'Help users deploy a new AI agent to the Demiurge network through an interactive wizard.',
+      parameters: {
+        type: 'object',
+        properties: {
+          step: { type: 'string', enum: ['start', 'configure', 'register', 'status'], description: 'Wizard step' },
+          config: { type: 'object', description: 'Agent configuration from previous steps' },
+        },
+        required: ['step'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getGovernanceInfo',
+      description: 'Get governance information: proposals, validator changes, commission impacts. Helps users understand and participate in chain governance.',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['list_proposals', 'proposal_detail', 'validator_changes', 'commission_impact'], description: 'Type of governance info' },
+          proposalId: { type: 'string', description: 'Proposal ID (for proposal_detail)' },
+          validatorAddress: { type: 'string', description: 'Validator address (for commission_impact)' },
+        },
+        required: ['action'],
+      },
+    },
+  },
 ];
 
 // Execute a tool call
@@ -160,6 +293,22 @@ async function executeTool(name: string, args: any): Promise<any> {
       return executeGetNetworkStats(RPC_ENDPOINT);
     case 'sendToAgent':
       return executeSendToAgent(args, AGENT_REGISTRY_URL);
+    case 'explainGnosticConcept':
+      return executeExplainGnosticConcept(args);
+    case 'mintNFT':
+      return executeMintNFT(args, RPC_ENDPOINT);
+    case 'queryMyNFTs':
+      return executeQueryMyNFTs(args, RPC_ENDPOINT);
+    case 'troubleshoot':
+      return executeTroubleshoot(args, RPC_ENDPOINT);
+    case 'getStartedGuide':
+      return executeGetStartedGuide(args);
+    case 'explainCode':
+      return executeExplainCode(args);
+    case 'deployAgent':
+      return executeDeployAgent(args);
+    case 'getGovernanceInfo':
+      return executeGetGovernanceInfo(args, RPC_ENDPOINT);
     default:
       return { success: false, error: `Unknown tool: ${name}` };
   }
@@ -320,13 +469,30 @@ async function callLLM(
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, maxTokens = 2048, temperature = 0.7, systemPrompt, enableTools = true } = await request.json();
+    const { messages, maxTokens = 2048, temperature = 0.7, systemPrompt, enableTools = true, pageContext, walletContext } = await request.json();
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Messages array required' }, { status: 400 });
     }
 
-    const fullSystemPrompt = systemPrompt || SOPHIA_FULL_SYSTEM_PROMPT;
+    // Build system prompt with page context awareness
+    let fullSystemPrompt = systemPrompt || SOPHIA_FULL_SYSTEM_PROMPT;
+
+    if (pageContext) {
+      fullSystemPrompt += `\n\nCURRENT PAGE CONTEXT:
+The user is currently viewing: ${pageContext.route || 'unknown'}
+Page title: ${pageContext.pageTitle || 'unknown'}
+${pageContext.data ? `Page data: ${JSON.stringify(pageContext.data)}` : ''}
+Use this context to provide relevant assistance. For example, if they're on /explorer/block/123, you already know which block they're looking at.`;
+    }
+
+    if (walletContext) {
+      fullSystemPrompt += `\n\nWALLET CONTEXT:
+Active account: ${walletContext.activeAccount || 'none'}
+Network: ${walletContext.network || 'unknown'}
+Locked: ${walletContext.isLocked ? 'yes' : 'no'}
+The user is interacting through the wallet extension.`;
+    }
     let conversationMessages = [...messages];
     let iterations = 0;
     const maxIterations = 5; // Prevent infinite loops

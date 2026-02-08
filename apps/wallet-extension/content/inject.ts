@@ -26,6 +26,8 @@ function mapMethodToMessage(method: string): { type: string; needsApproval: bool
       return { type: 'GET_BALANCE', needsApproval: false };
     case 'demiurge_signMessage':
       return { type: 'SIGN_MESSAGE', needsApproval: true };
+    case 'demiurge_signTransaction':
+      return { type: 'SIGN_TRANSACTION', needsApproval: true };
     case 'demiurge_sendTransaction':
       return { type: 'SEND_TRANSACTION', needsApproval: true };
     case 'demiurge_chainId':
@@ -60,6 +62,7 @@ async function forwardToBackground(
     case 'demiurge_signMessage':
       payload = { message: params[0], account: params[1] };
       break;
+    case 'demiurge_signTransaction':
     case 'demiurge_sendTransaction':
       payload = { transaction: params[0] };
       break;
@@ -95,6 +98,9 @@ async function forwardToBackground(
           break;
         case 'demiurge_signMessage':
           result = response.data?.signature;
+          break;
+        case 'demiurge_signTransaction':
+          result = response.data;
           break;
         case 'demiurge_sendTransaction':
           result = response.data?.hash;

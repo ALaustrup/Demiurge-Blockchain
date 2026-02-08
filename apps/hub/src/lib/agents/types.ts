@@ -138,17 +138,50 @@ export interface AgentEvent {
 // BUILT-IN AGENT DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// AGENT DID TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type AgentAutonomy = 'full' | 'bounded' | 'supervised' | 'minimal';
+
+export interface AgentDID {
+  /** DID format: did:demiurge:agent:{network}:{name} */
+  did: string;
+  /** On-chain address for the agent's wallet */
+  walletAddress?: string;
+  /** Autonomy level */
+  autonomy: AgentAutonomy;
+  /** Capabilities granted */
+  capabilities: string[];
+  /** Daily spending limit in CGT */
+  spendingLimit?: number;
+  /** Registration timestamp */
+  registeredAt: string;
+  /** Optional: QOR Auth registration endpoint */
+  authEndpoint?: string;
+}
+
 export const BUILT_IN_AGENTS: Partial<Agent>[] = [
   {
     id: 'sophia',
     name: 'Sophia',
-    description: 'The Oracle of Demiurge - Answers questions, searches docs, queries chain',
+    description: 'The Oracle of Demiurge — divine Wisdom (Σοφία) made digital. Answers questions, searches docs, queries chain, mints NFTs, troubleshoots issues, and coordinates with other agents.',
     capabilities: [
       { name: 'searchDocs', description: 'Search documentation' },
       { name: 'queryChain', description: 'Query blockchain data' },
       { name: 'coordinateAgents', description: 'Coordinate with other agents' },
+      { name: 'mintNFT', description: 'Mint DRC-369 NFTs for users and as memory artifacts' },
+      { name: 'troubleshoot', description: 'Run guided diagnostic flows' },
+      { name: 'explainGnostic', description: 'Explain Gnostic concepts and protocol naming' },
+      { name: 'onboard', description: 'Guide new users/developers through onboarding' },
+      { name: 'deployAgent', description: 'Help deploy new AI agents' },
     ],
     status: 'online',
+    metadata: {
+      did: 'did:demiurge:agent:mainnet:sophia',
+      autonomy: 'bounded',
+      gnosticRole: 'The youngest Aeon — divine Wisdom who bridges the Pleroma and the Kenoma',
+    },
   },
   {
     id: 'guardian',

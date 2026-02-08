@@ -151,24 +151,9 @@ services:
       - node4
     restart: unless-stopped
 
-  # Block Explorer (optional)
-  explorer:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.explorer
-    container_name: demiurge-explorer
-    ports:
-      - "3000:3000"
-    environment:
-      - RPC_URL=ws://rpc-proxy:80
-      - NEXT_PUBLIC_RPC_URL=ws://localhost:9940
-      - NODE_ENV=development
-    networks:
-      testnet:
-        ipv4_address: 172.28.0.50
-    depends_on:
-      - rpc-proxy
-    restart: unless-stopped
+  # Block Explorer - run apps/hub separately; Dockerfile.explorer not yet in repo
+  # explorer: ...
+  # Use: cd apps/hub && npm run dev (connect to ws://localhost:9940)
 
   # Prometheus for metrics collection
   prometheus:
@@ -199,7 +184,6 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=demiurge
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
-      - ./testnet/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana-data:/var/lib/grafana
     networks:
       testnet:

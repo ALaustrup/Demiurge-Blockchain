@@ -149,6 +149,18 @@ class DemiurgeProvider {
     });
   }
 
+  // Sign a transaction (returns signed tx for external submission)
+  async signTransaction(transaction: {
+    to: string;
+    value: string;
+    data?: string;
+  }): Promise<{ tx: string; signature: string }> {
+    return this.request({
+      method: 'demiurge_signTransaction',
+      params: [transaction],
+    });
+  }
+
   // Sign and send a transaction
   async sendTransaction(transaction: {
     to: string;

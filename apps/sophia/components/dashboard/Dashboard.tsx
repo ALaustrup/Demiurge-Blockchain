@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { AnimatedBackground } from "@components/AnimatedBackground";
 import { GlassPanel } from "@components/GlassPanel";
-import { SophiaChat } from "@components/SophiaChat";
 import { useAuth } from "@lib/contexts/AuthContext";
 import Link from "next/link";
 
 export const Dashboard: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
-  const [sophiaOpen, setSophiaOpen] = useState(false);
 
   const systems = [
     {
@@ -246,12 +244,6 @@ export const Dashboard: React.FC = () => {
         transition={{ duration: 15, repeat: Infinity, delay: 2 }}
       />
 
-      {/* Sophia Chat */}
-      <SophiaChat
-        isOpen={sophiaOpen}
-        onClose={() => setSophiaOpen(false)}
-        position="bottom-right"
-      />
     </div>
   );
 };

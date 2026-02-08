@@ -87,9 +87,17 @@ export function registerValidatorCommands(program: Command) {
         const rpc = command.optsWithGlobals().rpc;
         const client = createRpcClient(rpc);
         
-        const validators = await client.call<ValidatorInfo[]>('consensus_getValidators', [
-          { includeInactive: options.all, limit: parseInt(options.limit) }
-        ]);
+        const raw = await client.call<Array<{ account: string; stake: string; commission: number; active: boolean; nominators?: number }>>(
+          'consensus_getValidators',
+          []
+        );
+        const validators = raw.map((v) => ({
+          address: v.account,
+          stake: v.stake,
+          commission: v.commission,
+          status: v.active ? 'active' as const : 'inactive' as const,
+          nominators: v.nominators ?? 0,
+        }));
         
         spinner.succeed(`Retrieved ${validators.length} validators`);
         
@@ -344,6 +352,55 @@ export function registerValidatorCommands(program: Command) {
         warningBox('Unbonding Period',
           'Your stake will be available to withdraw after the unbonding period (typically 7 days).'
         );
+      } catch (error) {
+        handleError(error);
+      }
+    });
+
+  // Query pending rewards (read-only)
+  validator
+    .command('rewards')
+    .description('Query pending staking rewards')
+    .option('-a, --address <address>', 'Address to check (uses wallet address if not specified)')
+    .option('-w, --wallet <file>', 'Wallet file (used if --address not provided)')
+    .option('-v, --validator <address>', 'Filter by validator')
+    .action(async (options, command) => {
+      try {
+        let address = options.address;
+
+        if (!address && options.wallet) {
+          const wallet = loadWallet(options.wallet);
+          address = wallet.address();
+        }
+
+        if (!address) {
+          throw new Error('Either --address or --wallet must be provided');
+        }
+
+        const spinner = ora('Fetching pending rewards...').start();
+
+        const rpc = command.optsWithGlobals().rpc;
+        const client = createRpcClient(rpc);
+
+        const rewards = await client.call<{ total: string; breakdown: { validator: string; amount: string }[] }>(
+          'consensus_getPendingRewards',
+          [address, options.validator]
+        );
+
+        spinner.succeed('Rewards retrieved');
+
+        console.log(chalk.cyan('\n💰 Pending Rewards\n'));
+        console.log(chalk.white('Address:'), chalk.gray(formatAddress(address, 12)));
+
+        if (rewards.breakdown && rewards.breakdown.length > 0) {
+          rewards.breakdown.forEach((r) => {
+            console.log(chalk.white(`  ${formatAddress(r.validator, 8)}:`), chalk.green(formatCGT(r.amount)), chalk.cyan('CGT'));
+          });
+          console.log('');
+        }
+
+        console.log(chalk.white('Total:'), chalk.green.bold(formatCGT(rewards.total)), chalk.cyan('CGT'));
+        console.log('');
       } catch (error) {
         handleError(error);
       }

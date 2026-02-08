@@ -12,6 +12,7 @@ import type {
   SignMessagePayload,
   SendTransactionPayload,
   WalletStateResponse,
+  SophiaQueryPayload,
 } from '../shared/messages';
 import { createResponse } from '../shared/messages';
 import type { Account, EncryptedKeystore, PendingRequest, WalletState } from '../shared/types';
@@ -134,6 +135,9 @@ async function handleMessage(
       case 'SIGN_MESSAGE':
         return await handleSignMessage(payload as SignMessagePayload, origin);
 
+      case 'SIGN_TRANSACTION':
+        return await handleSignTransaction(payload as SendTransactionPayload, origin);
+
       case 'SEND_TRANSACTION':
         return await handleSendTransaction(payload as SendTransactionPayload, origin);
 
@@ -146,13 +150,20 @@ async function handleMessage(
 
       // Request handling
       case 'REQUEST_GET_PENDING':
+      case 'GET_PENDING_REQUESTS':
         return createResponse(true, walletState.pendingRequests);
 
       case 'REQUEST_APPROVE':
+      case 'APPROVE_REQUEST':
         return await handleRequestApprove(payload as { requestId: string });
 
       case 'REQUEST_REJECT':
+      case 'REJECT_REQUEST':
         return handleRequestReject(payload as { requestId: string; reason?: string });
+
+      // Sophia AI
+      case 'SOPHIA_QUERY':
+        return await handleSophiaQuery(payload as SophiaQueryPayload);
 
       default:
         return createResponse(false, undefined, `Unknown message type: ${type}`);
@@ -347,6 +358,35 @@ async function handleSignMessage(payload: SignMessagePayload, origin?: string): 
   });
 }
 
+// Sign transaction (without sending)
+async function handleSignTransaction(payload: SendTransactionPayload, origin?: string): Promise<MessageResponse> {
+  if (walletState.isLocked) {
+    return createResponse(false, undefined, 'Wallet is locked');
+  }
+
+  const { transaction } = payload;
+  const from = payload.account || walletState.activeAccount;
+
+  if (!from) {
+    return createResponse(false, undefined, 'No account selected');
+  }
+
+  const messageBytes = new TextEncoder().encode(
+    `${from}${transaction.to}${transaction.value}`
+  );
+  const signature = await keyring.signMessage(from, messageBytes);
+  const signatureHex = Array.from(signature).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  const txData = JSON.stringify({ from, to: transaction.to, value: transaction.value, data: transaction.data });
+  const txHex = Array.from(new TextEncoder().encode(txData))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  return createResponse(true, {
+    tx: txHex,
+    signature: signatureHex,
+  });
+}
+
 // Send transaction
 async function handleSendTransaction(payload: SendTransactionPayload, origin?: string): Promise<MessageResponse> {
   if (walletState.isLocked) {
@@ -447,6 +487,51 @@ function handleRequestReject(payload: { requestId: string; reason?: string }): M
 
   walletState.pendingRequests.splice(index, 1);
   return createResponse(true, { rejected: true, reason: payload.reason });
+}
+
+// Sophia AI query handler
+async function handleSophiaQuery(payload: SophiaQueryPayload): Promise<MessageResponse> {
+  try {
+    // Determine the Sophia API endpoint based on network config
+    const hubUrl = walletState.network === 'mainnet'
+      ? 'https://hub.demiurge.cloud'
+      : 'http://localhost:3000';
+
+    const response = await fetch(`${hubUrl}/api/sophia/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: 'user',
+            content: payload.message,
+          },
+        ],
+        // Pass wallet context so Sophia knows the user's state
+        systemPrompt: undefined, // Use default
+        enableTools: true,
+        walletContext: {
+          activeAccount: walletState.activeAccount,
+          network: walletState.network,
+          isLocked: walletState.isLocked,
+          ...(payload.context || {}),
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      return createResponse(false, undefined, `Sophia API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return createResponse(true, {
+      text: data.text || 'Sophia did not return a response.',
+      toolsUsed: data.toolsUsed || 0,
+    });
+  } catch (error) {
+    return createResponse(false, undefined, `Failed to reach Sophia: ${(error as Error).message}`);
+  }
 }
 
 // Listen for messages

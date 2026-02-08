@@ -68,6 +68,24 @@ enum Commands {
         #[arg(short, long)]
         file: String,
     },
+    /// Rotate validator key (copy old to new, keep old as backup)
+    RotateKey {
+        /// Path to current key file
+        #[arg(long)]
+        old: String,
+        /// Path for new key file
+        #[arg(long)]
+        new: String,
+    },
+    /// Export key to different format
+    ExportKey {
+        /// Key file path
+        #[arg(short, long)]
+        file: String,
+        /// Export format: json or mnemonic
+        #[arg(short, long, default_value = "json")]
+        format: String,
+    },
 }
 
 #[tokio::main]
@@ -79,6 +97,8 @@ async fn main() -> anyhow::Result<()> {
         return match command {
             Commands::GenerateKey { output } => generate_key(output),
             Commands::ShowKey { file } => show_key(&file),
+            Commands::RotateKey { old, new } => rotate_key(&old, &new),
+            Commands::ExportKey { file, format } => export_key(&file, &format),
         };
     }
 
@@ -239,5 +259,32 @@ fn show_key(file: &str) -> anyhow::Result<()> {
     println!("Public Key: {}", key.get("public_key").and_then(|v| v.as_str()).unwrap_or("unknown"));
     println!("Address: {}", key.get("address").and_then(|v| v.as_str()).unwrap_or("unknown"));
     
+    Ok(())
+}
+
+/// Rotate validator key - copy old to new file
+fn rotate_key(old_path: &str, new_path: &str) -> anyhow::Result<()> {
+    let contents = std::fs::read_to_string(old_path)?;
+    std::fs::write(new_path, &contents)?;
+    eprintln!("✅ Key copied from {} to {}", old_path, new_path);
+    eprintln!("   Generate a new key with: demiurge-node generate-key --output <path>");
+    Ok(())
+}
+
+/// Export key to json or mnemonic format
+fn export_key(file: &str, format: &str) -> anyhow::Result<()> {
+    let contents = std::fs::read_to_string(file)?;
+    let key: serde_json::Value = serde_json::from_str(&contents)?;
+    
+    match format.to_lowercase().as_str() {
+        "json" => println!("{}", serde_json::to_string_pretty(&key)?),
+        "mnemonic" => {
+            // Ed25519 keys don't have standard mnemonic - output placeholder
+            // In production, use BIP39 with proper derivation
+            eprintln!("Note: Ed25519 keys use a different format. Mnemonic export not fully supported.");
+            println!("{}", key.to_string());
+        }
+        _ => return Err(anyhow::anyhow!("Format must be 'json' or 'mnemonic'")),
+    }
     Ok(())
 }

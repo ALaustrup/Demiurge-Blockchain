@@ -37,7 +37,10 @@ export type MessageType =
   // Request handling
   | 'REQUEST_APPROVE'
   | 'REQUEST_REJECT'
-  | 'REQUEST_GET_PENDING';
+  | 'REQUEST_GET_PENDING'
+
+  // Sophia AI
+  | 'SOPHIA_QUERY';
 
 export interface Message<T = any> {
   type: MessageType;
@@ -98,6 +101,19 @@ export interface RequestApprovePayload {
 export interface RequestRejectPayload {
   requestId: string;
   reason?: string;
+}
+
+export interface SophiaQueryPayload {
+  message: string;
+  context?: {
+    currentPage?: string;
+    connectedDapp?: string;
+  };
+}
+
+export interface SophiaQueryResponse {
+  text: string;
+  toolsUsed?: number;
 }
 
 // Response types

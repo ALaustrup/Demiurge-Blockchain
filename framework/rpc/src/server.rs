@@ -60,6 +60,9 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         // Register chain methods
         Self::register_chain_methods(&mut module)?;
         
+        // Register network methods
+        Self::register_network_methods(&mut module)?;
+        
         // Register balance methods
         Self::register_balance_methods(&mut module)?;
         
@@ -248,6 +251,102 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
             ctx.consensus_get_status().await
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getStatus: {}", e)))?;
+
+        // consensus_registerValidator
+        module.register_async_method("consensus_registerValidator", |params, ctx| async move {
+            let request: crate::methods::ValidatorRegistrationRequest = params.one()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid request") })?;
+            ctx.consensus_register_validator(request).await
+                .map(|r| serde_json::json!({ "hash": r.tx_hash }))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_registerValidator: {}", e)))?;
+
+        // consensus_stake
+        module.register_async_method("consensus_stake", |params, ctx| async move {
+            let request: crate::methods::StakeRequest = params.one()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid request") })?;
+            ctx.consensus_stake(request).await
+                .map(|r| serde_json::json!({ "hash": r.tx_hash }))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_stake: {}", e)))?;
+
+        // consensus_unstake
+        module.register_async_method("consensus_unstake", |params, ctx| async move {
+            let request: crate::methods::UnstakeRequest = params.one()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid request") })?;
+            ctx.consensus_unstake(request).await
+                .map(|r| serde_json::json!({ "hash": r.tx_hash, "unlockTime": r.unlock_time }))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_unstake: {}", e)))?;
+
+        // consensus_claimRewards
+        module.register_async_method("consensus_claimRewards", |params, ctx| async move {
+            let request: crate::methods::ClaimRewardsRequest = params.one()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid request") })?;
+            ctx.consensus_claim_rewards(request).await
+                .map(|r| serde_json::json!({ "hash": r.tx_hash, "amount": r.amount }))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_claimRewards: {}", e)))?;
+
+        // consensus_getPendingRewards
+        module.register_async_method("consensus_getPendingRewards", |params, ctx| async move {
+            let (address, validator): (String, Option<String>) = params.parse()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Expected [address, validator?]") })?;
+            ctx.consensus_get_pending_rewards(address, validator).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getPendingRewards: {}", e)))?;
+
+        // consensus_getStakingStatus
+        module.register_async_method("consensus_getStakingStatus", |params, ctx| async move {
+            let address: String = params.one()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid address") })?;
+            ctx.consensus_get_staking_status(address).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getStakingStatus: {}", e)))?;
+
+        // consensus_updateCommission
+        module.register_async_method("consensus_updateCommission", |params, ctx| async move {
+            let request: crate::methods::UpdateCommissionRequest = params.one()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid request") })?;
+            ctx.consensus_update_commission(request).await
+                .map(|r| serde_json::json!({ "hash": r.tx_hash }))
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_updateCommission: {}", e)))?;
+
+        // consensus_getValidatorInfo (combines getValidator + getStakingPool for CLI)
+        module.register_async_method("consensus_getValidatorInfo", |params, ctx| async move {
+            let account_str: String = params.one().map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid account") })?;
+            let account = hex::decode(&account_str)
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Invalid account hex") })?
+                .try_into()
+                .map_err(|_| -> ErrorObjectOwned { invalid_params("Account must be 32 bytes") })?;
+            let validator = ctx.consensus_get_validator(account).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))?;
+            let pool = ctx.consensus_get_staking_pool(account).await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))?;
+            let status = validator.as_ref().map(|v| if v.active { "active" } else { "inactive" }).unwrap_or("inactive");
+            let nominators = pool.as_ref().map(|p| p.nominators.len()).unwrap_or(0);
+            Ok(serde_json::json!({
+                "address": account_str,
+                "stake": validator.as_ref().map(|v| v.stake.clone()).unwrap_or_else(|| "0".to_string()),
+                "commission": validator.as_ref().map(|v| v.commission).unwrap_or(0),
+                "status": status,
+                "nominators": nominators,
+                "rewardsEarned": "0",
+                "blocksProduced": 0
+            }))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_getValidatorInfo: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// Register network RPC methods
+    fn register_network_methods(module: &mut RpcModule<Arc<RpcMethods<S>>>) -> Result<()> {
+        // network_getPeers - P2P mesh verification
+        module.register_async_method("network_getPeers", |_params, ctx| async move {
+            ctx.network_get_peers().await
+                .map_err(|e: RpcError| ErrorObjectOwned::from(e))
+        }).map_err(|e| RpcError::ServerError(format!("Failed to register network_getPeers: {}", e)))?;
 
         Ok(())
     }

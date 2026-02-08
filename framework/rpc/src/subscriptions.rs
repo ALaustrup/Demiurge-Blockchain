@@ -377,6 +377,19 @@ impl SubscriptionManager {
         let _ = self.transaction_sender.send(notification);
     }
 
+    /// Notify all subscribers of a transaction included in a block
+    pub fn notify_new_transaction(&self, tx: &Transaction, block_number: u64) {
+        let notification = TransactionNotification {
+            hash: hex::encode(tx.hash()),
+            from: hex::encode(tx.from),
+            to: None,
+            nonce: tx.nonce,
+            status: "included".to_string(),
+            block_number: Some(block_number),
+        };
+        let _ = self.transaction_sender.send(notification);
+    }
+
     /// Notify subscribers of a balance change
     pub fn notify_balance_change(&self, notification: BalanceNotification) {
         let _ = self.balance_sender.send(notification);
