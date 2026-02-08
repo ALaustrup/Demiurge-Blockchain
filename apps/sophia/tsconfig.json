@@ -30,7 +30,8 @@
       "@components/*": ["./components/*"],
       "@lib/*": ["./lib/*"],
       "@hooks/*": ["./lib/hooks/*"],
-      "@types/*": ["./lib/types/*"]
+      "@types/*": ["./lib/types/*"],
+      "@styles/*": ["./styles/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
