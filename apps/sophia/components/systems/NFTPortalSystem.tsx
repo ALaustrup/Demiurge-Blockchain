@@ -8,8 +8,10 @@ import { useAuth } from "@lib/contexts/AuthContext";
 import Link from "next/link";
 
 interface PortalMessage {
-  type: "auth" | "data" | "error";
-  payload: any;
+  type: "auth" | "data" | "error" | "portal:ready" | "portal:action" | string;
+  payload?: any;
+  token?: string;
+  qorId?: string;
 }
 
 export const NFTPortalSystem: React.FC = () => {
