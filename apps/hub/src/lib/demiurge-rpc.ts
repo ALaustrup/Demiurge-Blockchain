@@ -624,11 +624,12 @@ export class DemiurgeRpcClient {
   }
 }
 
-// Export singleton instance
+// Export RPC URL configuration
 // Default to rpc.demiurge.cloud for production, fallback to localhost for development
-export const demiurgeRpc = new DemiurgeRpcClient(
-  process.env.NEXT_PUBLIC_DEMIURGE_RPC_URL || 
+export const RPC_URL = process.env.NEXT_PUBLIC_DEMIURGE_RPC_URL || 
   (typeof window !== 'undefined' && window.location?.hostname === 'localhost' 
     ? 'http://localhost:9944' 
-    : 'https://rpc.demiurge.cloud')
-);
+    : 'https://rpc.demiurge.cloud');
+
+// Export singleton instance
+export const demiurgeRpc = new DemiurgeRpcClient(RPC_URL);

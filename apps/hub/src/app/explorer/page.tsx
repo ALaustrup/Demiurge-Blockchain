@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { explorerService } from '@/lib/explorer-service';
+import { explorerService, getWebSocketUrl } from '@/lib/explorer-service';
+import { useNewBlocks, useNewTransactions, useRealtimeStats } from '@/hooks/useBlockchainSubscriptions';
 import type { 
   NetworkStats, 
   NetworkCharts, 
@@ -401,6 +402,18 @@ export default function ExplorerPage() {
   const [validators, setValidators] = useState<ValidatorSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [useRealtime, setUseRealtime] = useState(true);
+
+  // WebSocket URL for subscriptions
+  const wsUrl = useMemo(() => getWebSocketUrl(), []);
+  
+  // Real-time subscriptions
+  const { blocks: realtimeBlocks, status: blocksStatus } = useNewBlocks(wsUrl, 10);
+  const { transactions: realtimeTxs, status: txStatus } = useNewTransactions(wsUrl, 10);
+  const { blockHeight, tps, blockTime, status: statsStatus } = useRealtimeStats(wsUrl);
+  
+  // Determine if we're connected to real-time data
+  const isRealtimeConnected = blocksStatus === 'connected';
 
   const loadData = useCallback(async () => {
     try {
@@ -414,8 +427,13 @@ export default function ExplorerPage() {
 
       setStats(statsData);
       setCharts(chartsData);
-      setBlocks(blocksData);
-      setTransactions(txData);
+      
+      // Only use polled data if not connected to real-time
+      if (!isRealtimeConnected || !useRealtime) {
+        setBlocks(blocksData);
+        setTransactions(txData);
+      }
+      
       setValidators(validatorsData);
       setLastUpdate(new Date());
     } catch (error) {
@@ -423,14 +441,57 @@ export default function ExplorerPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isRealtimeConnected, useRealtime]);
+
+  // Merge real-time data with polled data
+  useEffect(() => {
+    if (useRealtime && isRealtimeConnected && realtimeBlocks.length > 0) {
+      setBlocks(prev => {
+        // Merge realtime blocks with existing, dedupe by number
+        const merged = [...realtimeBlocks];
+        prev.forEach(b => {
+          if (!merged.find(m => m.number === b.number)) {
+            merged.push(b);
+          }
+        });
+        return merged.sort((a, b) => b.number - a.number).slice(0, 10);
+      });
+      setLastUpdate(new Date());
+    }
+  }, [realtimeBlocks, isRealtimeConnected, useRealtime]);
+
+  useEffect(() => {
+    if (useRealtime && isRealtimeConnected && realtimeTxs.length > 0) {
+      setTransactions(prev => {
+        const merged = [...realtimeTxs];
+        prev.forEach(t => {
+          if (!merged.find(m => m.hash === t.hash)) {
+            merged.push(t);
+          }
+        });
+        return merged.slice(0, 10);
+      });
+    }
+  }, [realtimeTxs, isRealtimeConnected, useRealtime]);
+
+  // Update stats with real-time data
+  useEffect(() => {
+    if (useRealtime && isRealtimeConnected && blockHeight > 0) {
+      setStats(prev => prev ? {
+        ...prev,
+        blockHeight,
+        tps: tps || prev.tps,
+        blockTime: blockTime || prev.blockTime,
+      } : prev);
+    }
+  }, [blockHeight, tps, blockTime, isRealtimeConnected, useRealtime]);
 
   useEffect(() => {
     loadData();
-    // Refresh every 10 seconds
-    const interval = setInterval(loadData, 10000);
+    // Refresh every 30 seconds when using real-time, 10 seconds otherwise
+    const interval = setInterval(loadData, useRealtime && isRealtimeConnected ? 30000 : 10000);
     return () => clearInterval(interval);
-  }, [loadData]);
+  }, [loadData, useRealtime, isRealtimeConnected]);
 
   if (loading) {
     return (
@@ -460,10 +521,40 @@ export default function ExplorerPage() {
             </p>
           </div>
           <div className="flex items-center gap-4">
+            {/* Real-time toggle */}
+            <button
+              onClick={() => setUseRealtime(!useRealtime)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${
+                useRealtime 
+                  ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30' 
+                  : 'bg-white/5 text-gray-400 border border-white/10'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${
+                useRealtime && isRealtimeConnected 
+                  ? 'bg-neon-cyan animate-pulse' 
+                  : useRealtime 
+                    ? 'bg-yellow-400' 
+                    : 'bg-gray-500'
+              }`} />
+              {useRealtime ? 'Live' : 'Polling'}
+            </button>
+            
+            {/* Connection status */}
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${stats?.blockHeight ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+              <span className={`w-2 h-2 rounded-full ${
+                stats?.blockHeight 
+                  ? isRealtimeConnected 
+                    ? 'bg-green-400 animate-pulse' 
+                    : 'bg-green-400'
+                  : 'bg-red-400'
+              }`} />
               <span className="text-gray-400 text-sm">
-                {stats?.blockHeight ? 'Connected' : 'Offline'}
+                {stats?.blockHeight 
+                  ? isRealtimeConnected 
+                    ? 'Live' 
+                    : 'Connected' 
+                  : 'Offline'}
               </span>
             </div>
             <span className="text-gray-500 text-sm">

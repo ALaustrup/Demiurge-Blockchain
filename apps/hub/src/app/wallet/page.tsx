@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 /**
  * DEPRECATED: The standalone wallet page has been moved to the Dashboard.
  * This page now redirects to /portal where the Wallet Widget is available.
+ * 
+ * TODO: Remove this file after March 2026 - keeping temporarily for SEO/bookmark redirects
+ * @deprecated since v1.0.0 - Use /portal instead
  */
 export default function WalletPage() {
   const router = useRouter();

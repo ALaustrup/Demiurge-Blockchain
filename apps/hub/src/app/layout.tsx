@@ -13,6 +13,7 @@ import { StarfieldBackground, HeaderBar } from '@/components/Launcher'
 import { MusicPlayer } from '@/components/music/MusicPlayer'
 import { AuthGate } from '@/components/auth/AuthGate'
 import { TerminalButton } from '@/components/terminal'
+import { SophiaChatButton } from '@/components/sophia'
 import './globals.css'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -102,6 +103,9 @@ export default function RootLayout({
                           
                           {/* Floating Terminal Button */}
                           <TerminalButton />
+                          
+                          {/* Sophia AI Chat Button */}
+                          <SophiaChatButton />
                         </ContextMenuProvider>
                       </MusicProvider>
                     </VoiceProvider>

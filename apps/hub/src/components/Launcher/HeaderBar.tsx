@@ -41,6 +41,7 @@ export function HeaderBar() {
   ];
 
   const dropdownItems = [
+    { label: 'Docs', href: '/docs', icon: '📚' },
     { label: 'Agents', href: '/agents', icon: '🤖' },
     { label: 'Bounties', href: '/bounties', icon: '🎯' },
     { label: 'Developers', href: '/developers', icon: '💻' },

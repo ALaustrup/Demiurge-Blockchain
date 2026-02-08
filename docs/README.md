@@ -2,7 +2,9 @@
 
 > The Sovereign Creative Substrate - A Next-Generation Blockchain for Gaming, AI, and the Open Metaverse
 
-**Status:** Mainnet v1 Live | **Block Time:** 6s | **RPC:** `rpc.demiurge.cloud:9944`
+**Status:** Mainnet v1.1 Live | **Block Time:** 6s | **RPC:** `rpc.demiurge.cloud:9944`
+
+**Last Updated:** February 4, 2026
 
 ---
 
@@ -46,16 +48,19 @@
 | Document | Description |
 |----------|-------------|
 | [Developer Guide](./developers/README.md) | Complete developer reference |
-| [RPC Reference](./developers/rpc-reference.md) | All RPC methods documented |
-| [TypeScript SDK](./developers/sdk/typescript.md) | `@demiurge/sdk` usage |
-| [Unreal Engine](./developers/game-engines/unreal.md) | UE5 integration |
-| [Unity](./developers/game-engines/unity.md) | Unity integration |
+| [RPC Reference](./developers/rpc-reference.md) | All RPC methods + WebSocket subscriptions |
+| [Wallet Extension](./sdk/WALLET_EXTENSION.md) | Browser wallet development |
+| [TypeScript SDK](./sdk/TYPESCRIPT_SDK.md) | `@demiurge/sdk` usage |
+| [Validator CLI](./developers/VALIDATOR_CLI.md) | Validator operations |
+| [Unreal Engine](./sdk/unreal/) | UE5 integration guides |
+| [Unity](./developers/drc-sdk/UNITY_INTEGRATION.md) | Unity integration |
 
 ### Operations
 | Document | Description |
 |----------|-------------|
-| [Deployment](./operations/deployment.md) | Production deployment guide |
-| [Testnet](./operations/testnet.md) | Run a local testnet |
+| [Production Deployment](./deployment/PRODUCTION_DEPLOYMENT.md) | Production deployment guide |
+| [Testnet Deployment](./deployment/TESTNET_DEPLOYMENT_GUIDE.md) | Testnet setup |
+| [Docker Testnet](./deployment/DOCKER_TESTNET.md) | 4-node Docker testnet |
 | [Monitoring](./operations/monitoring.md) | Node monitoring |
 
 ### Applications
@@ -75,7 +80,7 @@ Demiurge-Blockchain/
 │   ├── core/              # Runtime engine
 │   ├── consensus/         # PoS + BFT consensus
 │   ├── network/           # LibP2P networking
-│   ├── rpc/               # JSON-RPC server
+│   ├── rpc/               # JSON-RPC server + WebSocket subscriptions
 │   ├── storage/           # RocksDB backend
 │   └── modules/           # Runtime modules
 │       ├── balances/      # CGT token
@@ -84,15 +89,18 @@ Demiurge-Blockchain/
 │       ├── cvp/           # Security mutations
 │       └── agentic/       # AI agents
 ├── apps/
-│   ├── hub/               # Next.js web platform
+│   ├── hub/               # Next.js web platform + block explorer
 │   ├── sophia/            # SOPHIA AI interface
+│   ├── wallet-extension/  # Browser wallet (Chrome/Firefox)
 │   └── games/             # Game integrations
 ├── packages/              # TypeScript SDKs
 │   ├── qor-sdk/           # Identity SDK
 │   ├── drc369-sdk/        # NFT SDK
 │   └── agent-foundry/     # Agent SDK
-├── sdk/                   # Core protocol SDK
-├── cli/                   # Command-line interface
+├── sdk/                   # Core protocol SDK (Ed25519, BIP39)
+├── cli/                   # Command-line interface + validator commands
+├── docker/                # Docker deployment configs
+│   └── docker-compose.testnet.yml  # 4-node testnet
 ├── services/              # Backend services
 ├── testnet/               # Multi-node testnet
 └── docs/                  # This documentation
@@ -104,19 +112,24 @@ Demiurge-Blockchain/
 
 ### Live Systems
 - **Blockchain Node:** Producing blocks every 6 seconds
-- **RPC API:** 22+ methods verified and operational
+- **RPC API:** 30+ methods verified and operational
+- **WebSocket Subscriptions:** Real-time block/transaction streaming
+- **Browser Wallet:** Manifest V3 extension for Chrome/Firefox
 - **Web Platform:** https://demiurge.cloud
+- **Block Explorer:** Real-time dashboard with WebSocket updates
 - **Authentication:** Hybrid keypair + QOR ID
 
-### Verified Functionality (as of Feb 2026)
+### Verified Functionality (as of February 4, 2026)
 | Module | Status | Tests |
 |--------|--------|-------|
 | Chain Health | Operational | Passing |
-| Consensus | Active | 1 validator |
+| Consensus | Active | Validator staking operational |
 | Balances | Operational | Transfer verified |
 | Energy | Operational | Regeneration active |
 | DRC-369 | Operational | Physics integration complete |
 | Session Keys | Operational | Key management working |
+| WebSocket | Operational | 5 subscription types |
+| Wallet Extension | Ready | Ed25519 + BIP39 |
 
 ---
 
@@ -124,7 +137,8 @@ Demiurge-Blockchain/
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 1.0.0 | Feb 2026 | Mainnet v1 launch, fresh genesis |
+| 1.1.0 | Feb 4, 2026 | Browser wallet, WebSocket subscriptions, Validator CLI, Docker testnet |
+| 1.0.0 | Feb 1, 2026 | Mainnet v1 launch, fresh genesis |
 | 0.9.0 | Jan 2026 | DRC-369 physics integration |
 | 0.8.0 | Jan 2026 | CVP security system |
 | 0.7.0 | Dec 2025 | Agentic layer complete |
@@ -143,5 +157,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Last Updated:** February 2026  
+**Last Updated:** February 4, 2026  
 **Maintainer:** [@ALaustrup](https://github.com/ALaustrup)

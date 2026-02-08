@@ -2,21 +2,36 @@
 
 use crate::{RpcError, Result, RpcMethods};
 use crate::error::{invalid_params, method_not_found};
+use crate::subscriptions::{
+    SharedSubscriptionManager, create_subscription_manager,
+    BlockNotification, TransactionNotification, BalanceNotification,
+    ValidatorNotification, CvpThreatNotification,
+};
 use demiurge_storage::Storage;
 use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
     RpcModule,
     types::ErrorObjectOwned,
+    PendingSubscriptionSink,
+    SubscriptionMessage,
 };
 use std::net::SocketAddr;
 use std::sync::Arc;
 use hex;
+use tokio::sync::broadcast;
 
-/// RPC server
+/// RPC server with subscription support
 pub struct RpcServer<S: Storage> {
     handle: Option<ServerHandle>,
     address: SocketAddr,
     _methods: Option<Arc<RpcMethods<S>>>,
+    subscriptions: SharedSubscriptionManager,
+}
+
+/// Server context for subscription methods
+struct SubscriptionContext<S: Storage> {
+    methods: Arc<RpcMethods<S>>,
+    subscriptions: SharedSubscriptionManager,
 }
 
 impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
@@ -26,13 +41,19 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
             handle: None,
             address,
             _methods: None,
+            subscriptions: create_subscription_manager(),
         }
+    }
+
+    /// Get the subscription manager for publishing events
+    pub fn subscription_manager(&self) -> SharedSubscriptionManager {
+        self.subscriptions.clone()
     }
 
     /// Start the RPC server
     pub async fn start(&mut self, methods: Arc<RpcMethods<S>>) -> Result<()> {
         let methods_clone = methods.clone();
-        self._methods = Some(methods);
+        self._methods = Some(methods.clone());
         
         let mut module = RpcModule::new(methods_clone);
         
@@ -56,6 +77,9 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
         
         // Register CVP (Consensus-Verified Polymorphism) methods
         Self::register_cvp_methods(&mut module)?;
+        
+        // Register subscription methods
+        Self::register_subscription_methods(&mut module, self.subscriptions.clone())?;
         
         // Configure server to support both HTTP and WebSocket
         // ServerBuilder::default() should support both, but we ensure HTTP is enabled
@@ -437,6 +461,207 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
             ctx.cvp_get_scheduled_mutations().await
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))
         }).map_err(|e| RpcError::ServerError(format!("Failed to register cvp_getScheduledMutations: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// Register subscription RPC methods (WebSocket only)
+    fn register_subscription_methods(
+        module: &mut RpcModule<Arc<RpcMethods<S>>>,
+        subscriptions: SharedSubscriptionManager,
+    ) -> Result<()> {
+        // chain_subscribeNewBlocks
+        let subs = subscriptions.clone();
+        module.register_subscription(
+            "chain_subscribeNewBlocks",
+            "chain_newBlock",
+            "chain_unsubscribeNewBlocks",
+            move |_params, pending, _ctx| {
+                let subs = subs.clone();
+                async move {
+                    let sink = pending.accept().await.map_err(|_| "Failed to accept subscription")?;
+                    let connection_id = format!("conn_{}", std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos());
+                    
+                    let (sub_id, mut receiver) = subs.subscribe_new_blocks(connection_id.clone()).await;
+                    
+                    // Send subscription ID first
+                    let _ = sink.send(SubscriptionMessage::from_json(&sub_id).unwrap());
+                    
+                    // Stream blocks to subscriber
+                    tokio::spawn(async move {
+                        loop {
+                            match receiver.recv().await {
+                                Ok(block) => {
+                                    if sink.send(SubscriptionMessage::from_json(&block).unwrap()).await.is_err() {
+                                        break;
+                                    }
+                                }
+                                Err(broadcast::error::RecvError::Closed) => break,
+                                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                            }
+                        }
+                        let _ = subs.unsubscribe(sub_id).await;
+                    });
+                    
+                    Ok(())
+                }
+            },
+        ).map_err(|e| RpcError::ServerError(format!("Failed to register chain_subscribeNewBlocks: {}", e)))?;
+
+        // chain_subscribeFinalizedBlocks
+        let subs = subscriptions.clone();
+        module.register_subscription(
+            "chain_subscribeFinalizedBlocks",
+            "chain_finalizedBlock",
+            "chain_unsubscribeFinalizedBlocks",
+            move |_params, pending, _ctx| {
+                let subs = subs.clone();
+                async move {
+                    let sink = pending.accept().await.map_err(|_| "Failed to accept subscription")?;
+                    let connection_id = format!("conn_{}", std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos());
+                    
+                    let (sub_id, mut receiver) = subs.subscribe_finalized_blocks(connection_id).await;
+                    let _ = sink.send(SubscriptionMessage::from_json(&sub_id).unwrap());
+                    
+                    tokio::spawn(async move {
+                        loop {
+                            match receiver.recv().await {
+                                Ok(block) => {
+                                    if sink.send(SubscriptionMessage::from_json(&block).unwrap()).await.is_err() {
+                                        break;
+                                    }
+                                }
+                                Err(broadcast::error::RecvError::Closed) => break,
+                                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                            }
+                        }
+                        let _ = subs.unsubscribe(sub_id).await;
+                    });
+                    
+                    Ok(())
+                }
+            },
+        ).map_err(|e| RpcError::ServerError(format!("Failed to register chain_subscribeFinalizedBlocks: {}", e)))?;
+
+        // chain_subscribeNewPendingTransactions
+        let subs = subscriptions.clone();
+        module.register_subscription(
+            "chain_subscribeNewPendingTransactions",
+            "chain_pendingTransaction",
+            "chain_unsubscribePendingTransactions",
+            move |_params, pending, _ctx| {
+                let subs = subs.clone();
+                async move {
+                    let sink = pending.accept().await.map_err(|_| "Failed to accept subscription")?;
+                    let connection_id = format!("conn_{}", std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos());
+                    
+                    let (sub_id, mut receiver) = subs.subscribe_pending_transactions(connection_id).await;
+                    let _ = sink.send(SubscriptionMessage::from_json(&sub_id).unwrap());
+                    
+                    tokio::spawn(async move {
+                        loop {
+                            match receiver.recv().await {
+                                Ok(tx) => {
+                                    if sink.send(SubscriptionMessage::from_json(&tx).unwrap()).await.is_err() {
+                                        break;
+                                    }
+                                }
+                                Err(broadcast::error::RecvError::Closed) => break,
+                                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                            }
+                        }
+                        let _ = subs.unsubscribe(sub_id).await;
+                    });
+                    
+                    Ok(())
+                }
+            },
+        ).map_err(|e| RpcError::ServerError(format!("Failed to register chain_subscribeNewPendingTransactions: {}", e)))?;
+
+        // consensus_subscribeValidatorStatus
+        let subs = subscriptions.clone();
+        module.register_subscription(
+            "consensus_subscribeValidatorStatus",
+            "consensus_validatorStatus",
+            "consensus_unsubscribeValidatorStatus",
+            move |_params, pending, _ctx| {
+                let subs = subs.clone();
+                async move {
+                    let sink = pending.accept().await.map_err(|_| "Failed to accept subscription")?;
+                    let connection_id = format!("conn_{}", std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos());
+                    
+                    let (sub_id, mut receiver) = subs.subscribe_validator_status(None, connection_id).await;
+                    let _ = sink.send(SubscriptionMessage::from_json(&sub_id).unwrap());
+                    
+                    tokio::spawn(async move {
+                        loop {
+                            match receiver.recv().await {
+                                Ok(event) => {
+                                    if sink.send(SubscriptionMessage::from_json(&event).unwrap()).await.is_err() {
+                                        break;
+                                    }
+                                }
+                                Err(broadcast::error::RecvError::Closed) => break,
+                                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                            }
+                        }
+                        let _ = subs.unsubscribe(sub_id).await;
+                    });
+                    
+                    Ok(())
+                }
+            },
+        ).map_err(|e| RpcError::ServerError(format!("Failed to register consensus_subscribeValidatorStatus: {}", e)))?;
+
+        // cvp_subscribeThreats
+        let subs = subscriptions.clone();
+        module.register_subscription(
+            "cvp_subscribeThreats",
+            "cvp_threat",
+            "cvp_unsubscribeThreats",
+            move |_params, pending, _ctx| {
+                let subs = subs.clone();
+                async move {
+                    let sink = pending.accept().await.map_err(|_| "Failed to accept subscription")?;
+                    let connection_id = format!("conn_{}", std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos());
+                    
+                    let (sub_id, mut receiver) = subs.subscribe_cvp_threats(connection_id).await;
+                    let _ = sink.send(SubscriptionMessage::from_json(&sub_id).unwrap());
+                    
+                    tokio::spawn(async move {
+                        loop {
+                            match receiver.recv().await {
+                                Ok(threat) => {
+                                    if sink.send(SubscriptionMessage::from_json(&threat).unwrap()).await.is_err() {
+                                        break;
+                                    }
+                                }
+                                Err(broadcast::error::RecvError::Closed) => break,
+                                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                            }
+                        }
+                        let _ = subs.unsubscribe(sub_id).await;
+                    });
+                    
+                    Ok(())
+                }
+            },
+        ).map_err(|e| RpcError::ServerError(format!("Failed to register cvp_subscribeThreats: {}", e)))?;
 
         Ok(())
     }

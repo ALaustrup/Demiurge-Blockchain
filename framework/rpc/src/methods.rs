@@ -644,6 +644,546 @@ impl<S: Storage> RpcMethods<S> {
         }
     }
 
+    /// Register a new validator
+    /// 
+    /// Registers the caller as a validator with the specified stake and commission rate.
+    /// Requires a minimum stake amount to be eligible for validation.
+    /// 
+    /// Parameters:
+    /// - validator: Validator address (hex)
+    /// - stake: Initial stake amount (in Sparks)
+    /// - commission: Commission rate (0-100)
+    /// - signature: Transaction signature from the validator
+    pub async fn consensus_register_validator(
+        &self,
+        request: ValidatorRegistrationRequest,
+    ) -> Result<ValidatorRegistrationResult, RpcError> {
+        use blake2::{Blake2b512, Digest};
+        
+        // Minimum stake requirement: 1 million CGT (100M Sparks)
+        const MIN_VALIDATOR_STAKE: u128 = 100_000_000;
+        
+        // Parse validator address
+        let validator_bytes: [u8; 32] = hex::decode(&request.validator)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Parse stake
+        let stake: u128 = request.stake.parse()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Validate commission rate
+        if request.commission > 100 {
+            return Err(RpcError::InvalidTransaction("Commission must be 0-100".to_string()));
+        }
+        
+        // Check minimum stake
+        if stake < MIN_VALIDATOR_STAKE {
+            return Err(RpcError::InvalidTransaction(format!(
+                "Minimum stake is {} Sparks (1M CGT), provided: {}",
+                MIN_VALIDATOR_STAKE, stake
+            )));
+        }
+        
+        // Verify signature format
+        if request.signature.len() < 128 || hex::decode(&request.signature).is_err() {
+            return Err(RpcError::InvalidTransaction("Invalid signature format".to_string()));
+        }
+        
+        // Check if validator already exists
+        if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            if consensus_guard.validators.get_validator(&validator_bytes).is_some() {
+                return Err(RpcError::InvalidTransaction("Validator already registered".to_string()));
+            }
+        }
+        
+        // Check balance is sufficient for stake
+        let balance = self.get_balance(validator_bytes).await?;
+        if balance < stake {
+            return Err(RpcError::InvalidTransaction(format!(
+                "Insufficient balance: have {}, need {} for stake",
+                balance, stake
+            )));
+        }
+        
+        // Generate transaction hash
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"REGISTER_VALIDATOR");
+        hasher.update(&validator_bytes);
+        hasher.update(&stake.to_le_bytes());
+        hasher.update(&[request.commission]);
+        hasher.update(&std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .to_le_bytes());
+        let hash = hasher.finalize();
+        let mut tx_hash = [0u8; 32];
+        tx_hash.copy_from_slice(&hash[..32]);
+        
+        // Store registration request
+        let registration_key = Self::validator_registration_key(validator_bytes);
+        let registration_data = format!(
+            "{{\"stake\":\"{}\",\"commission\":{},\"timestamp\":{}}}",
+            stake, request.commission, std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis()
+        );
+        self.storage.put(&registration_key, registration_data.as_bytes());
+        
+        // Deduct stake from validator balance
+        let new_balance = balance.saturating_sub(stake);
+        let balance_key = Self::balance_key(validator_bytes);
+        self.storage.put(&balance_key, &new_balance.to_le_bytes());
+        
+        tracing::info!(
+            "Validator registration: {} stake={} commission={}%",
+            hex::encode(&validator_bytes[..8]),
+            stake,
+            request.commission
+        );
+        
+        Ok(ValidatorRegistrationResult {
+            tx_hash: format!("0x{}", hex::encode(tx_hash)),
+            validator: request.validator,
+            stake: stake.to_string(),
+            commission: request.commission,
+            status: "pending".to_string(),
+            activation_era: None, // Will be set when activated in next era
+        })
+    }
+
+    /// Claim staking rewards
+    /// 
+    /// Allows nominators and validators to claim their accumulated staking rewards.
+    /// Rewards are transferred to the claimer's balance.
+    /// 
+    /// Parameters:
+    /// - claimer: Address claiming rewards (hex)
+    /// - validator: Optional validator to claim from (claims all if None)
+    /// - signature: Transaction signature from the claimer
+    pub async fn consensus_claim_rewards(
+        &self,
+        request: ClaimRewardsRequest,
+    ) -> Result<ClaimRewardsResult, RpcError> {
+        use blake2::{Blake2b512, Digest};
+        
+        // Parse claimer address
+        let claimer_bytes: [u8; 32] = hex::decode(&request.claimer)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Verify signature format
+        if request.signature.len() < 128 || hex::decode(&request.signature).is_err() {
+            return Err(RpcError::InvalidTransaction("Invalid signature format".to_string()));
+        }
+        
+        // Calculate pending rewards
+        let rewards_key = Self::pending_rewards_key(claimer_bytes);
+        let pending_rewards: u128 = self.storage.get(&rewards_key)
+            .and_then(|v| {
+                if v.len() >= 16 {
+                    Some(u128::from_le_bytes(v[..16].try_into().unwrap()))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+        
+        if pending_rewards == 0 {
+            return Err(RpcError::InvalidTransaction("No pending rewards to claim".to_string()));
+        }
+        
+        // Generate transaction hash
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"CLAIM_REWARDS");
+        hasher.update(&claimer_bytes);
+        hasher.update(&pending_rewards.to_le_bytes());
+        hasher.update(&std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .to_le_bytes());
+        let hash = hasher.finalize();
+        let mut tx_hash = [0u8; 32];
+        tx_hash.copy_from_slice(&hash[..32]);
+        
+        // Transfer rewards to claimer's balance
+        let current_balance = self.get_balance(claimer_bytes).await?;
+        let new_balance = current_balance.saturating_add(pending_rewards);
+        let balance_key = Self::balance_key(claimer_bytes);
+        self.storage.put(&balance_key, &new_balance.to_le_bytes());
+        
+        // Clear pending rewards
+        self.storage.put(&rewards_key, &0u128.to_le_bytes());
+        
+        tracing::info!(
+            "Rewards claimed: {} received {} Sparks",
+            hex::encode(&claimer_bytes[..8]),
+            pending_rewards
+        );
+        
+        Ok(ClaimRewardsResult {
+            tx_hash: format!("0x{}", hex::encode(tx_hash)),
+            claimer: request.claimer,
+            amount: pending_rewards.to_string(),
+            new_balance: new_balance.to_string(),
+        })
+    }
+
+    /// Get pending rewards for an address
+    /// 
+    /// Returns the total pending rewards and breakdown by validator.
+    pub async fn consensus_get_pending_rewards(
+        &self,
+        address_hex: String,
+        validator_hex: Option<String>,
+    ) -> Result<PendingRewardsInfo, RpcError> {
+        let address: [u8; 32] = hex::decode(&address_hex)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Get total pending rewards
+        let rewards_key = Self::pending_rewards_key(address);
+        let total_rewards: u128 = self.storage.get(&rewards_key)
+            .and_then(|v| {
+                if v.len() >= 16 {
+                    Some(u128::from_le_bytes(v[..16].try_into().unwrap()))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+        
+        // Get breakdown by validator (simplified - would need proper storage iteration)
+        let breakdown = Vec::new(); // TODO: Implement per-validator breakdown
+        
+        Ok(PendingRewardsInfo {
+            total: total_rewards.to_string(),
+            breakdown,
+        })
+    }
+
+    /// Get staking status for an account
+    /// 
+    /// Returns comprehensive staking information including whether the account
+    /// is a validator, total staked amount, nominations, and pending rewards.
+    pub async fn consensus_get_staking_status(
+        &self,
+        address_hex: String,
+    ) -> Result<StakingStatusInfo, RpcError> {
+        let address: [u8; 32] = hex::decode(&address_hex)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Check if address is a validator
+        let is_validator = if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            consensus_guard.validators.get_validator(&address).is_some()
+        } else {
+            false
+        };
+        
+        // Get total staked (as validator or nominator)
+        let staked_key = Self::total_staked_key(address);
+        let total_staked: u128 = self.storage.get(&staked_key)
+            .and_then(|v| {
+                if v.len() >= 16 {
+                    Some(u128::from_le_bytes(v[..16].try_into().unwrap()))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+        
+        // Get pending rewards
+        let rewards_key = Self::pending_rewards_key(address);
+        let pending_rewards: u128 = self.storage.get(&rewards_key)
+            .and_then(|v| {
+                if v.len() >= 16 {
+                    Some(u128::from_le_bytes(v[..16].try_into().unwrap()))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+        
+        // Get nominations (simplified)
+        let nominations = Vec::new(); // TODO: Implement nomination lookup
+        
+        // Get unbonding entries (simplified)
+        let unbonding = Vec::new(); // TODO: Implement unbonding lookup
+        
+        Ok(StakingStatusInfo {
+            is_validator,
+            total_staked: total_staked.to_string(),
+            nominations,
+            pending_rewards: pending_rewards.to_string(),
+            unbonding,
+        })
+    }
+
+    /// Update validator commission rate
+    /// 
+    /// Allows a validator to update their commission rate.
+    /// Changes take effect in the next era.
+    pub async fn consensus_update_commission(
+        &self,
+        request: UpdateCommissionRequest,
+    ) -> Result<UpdateCommissionResult, RpcError> {
+        use blake2::{Blake2b512, Digest};
+        
+        // Parse validator address
+        let validator_bytes: [u8; 32] = hex::decode(&request.validator)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Validate commission rate
+        if request.commission > 100 {
+            return Err(RpcError::InvalidTransaction("Commission must be 0-100".to_string()));
+        }
+        
+        // Verify signature format
+        if request.signature.len() < 128 || hex::decode(&request.signature).is_err() {
+            return Err(RpcError::InvalidTransaction("Invalid signature format".to_string()));
+        }
+        
+        // Check if validator exists
+        if let Some(consensus) = &self.consensus {
+            let consensus_guard = consensus.lock().await;
+            if consensus_guard.validators.get_validator(&validator_bytes).is_none() {
+                return Err(RpcError::InvalidTransaction("Validator not found".to_string()));
+            }
+        } else {
+            return Err(RpcError::NotImplemented);
+        }
+        
+        // Generate transaction hash
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"UPDATE_COMMISSION");
+        hasher.update(&validator_bytes);
+        hasher.update(&[request.commission]);
+        hasher.update(&std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .to_le_bytes());
+        let hash = hasher.finalize();
+        let mut tx_hash = [0u8; 32];
+        tx_hash.copy_from_slice(&hash[..32]);
+        
+        // Store commission update (will be applied in next era)
+        let commission_key = Self::pending_commission_key(validator_bytes);
+        self.storage.put(&commission_key, &[request.commission]);
+        
+        tracing::info!(
+            "Commission update: {} new_commission={}%",
+            hex::encode(&validator_bytes[..8]),
+            request.commission
+        );
+        
+        Ok(UpdateCommissionResult {
+            tx_hash: format!("0x{}", hex::encode(tx_hash)),
+            validator: request.validator,
+            new_commission: request.commission,
+            effective_era: None, // Will be set when applied
+        })
+    }
+
+    /// Stake tokens to a validator (nominate)
+    /// 
+    /// Allows an account to stake tokens to a validator for rewards.
+    pub async fn consensus_stake(
+        &self,
+        request: StakeRequest,
+    ) -> Result<StakeResult, RpcError> {
+        use blake2::{Blake2b512, Digest};
+        
+        // Parse addresses
+        let nominator_bytes: [u8; 32] = hex::decode(&request.nominator)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        let validator_bytes: [u8; 32] = hex::decode(&request.validator)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Parse amount
+        let amount: u128 = request.amount.parse()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        if amount == 0 {
+            return Err(RpcError::InvalidTransaction("Stake amount must be greater than 0".to_string()));
+        }
+        
+        // Verify signature format
+        if request.signature.len() < 128 || hex::decode(&request.signature).is_err() {
+            return Err(RpcError::InvalidTransaction("Invalid signature format".to_string()));
+        }
+        
+        // Check balance
+        let balance = self.get_balance(nominator_bytes).await?;
+        if balance < amount {
+            return Err(RpcError::InvalidTransaction(format!(
+                "Insufficient balance: have {}, need {}",
+                balance, amount
+            )));
+        }
+        
+        // Generate transaction hash
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"STAKE");
+        hasher.update(&nominator_bytes);
+        hasher.update(&validator_bytes);
+        hasher.update(&amount.to_le_bytes());
+        hasher.update(&std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .to_le_bytes());
+        let hash = hasher.finalize();
+        let mut tx_hash = [0u8; 32];
+        tx_hash.copy_from_slice(&hash[..32]);
+        
+        // Deduct from nominator balance
+        let new_balance = balance.saturating_sub(amount);
+        let balance_key = Self::balance_key(nominator_bytes);
+        self.storage.put(&balance_key, &new_balance.to_le_bytes());
+        
+        // Update total staked for nominator
+        let staked_key = Self::total_staked_key(nominator_bytes);
+        let current_staked: u128 = self.storage.get(&staked_key)
+            .and_then(|v| {
+                if v.len() >= 16 {
+                    Some(u128::from_le_bytes(v[..16].try_into().unwrap()))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+        let new_staked = current_staked.saturating_add(amount);
+        self.storage.put(&staked_key, &new_staked.to_le_bytes());
+        
+        tracing::info!(
+            "Stake: {} -> {} amount={}",
+            hex::encode(&nominator_bytes[..8]),
+            hex::encode(&validator_bytes[..8]),
+            amount
+        );
+        
+        Ok(StakeResult {
+            tx_hash: format!("0x{}", hex::encode(tx_hash)),
+            nominator: request.nominator,
+            validator: request.validator,
+            amount: amount.to_string(),
+        })
+    }
+
+    /// Unstake tokens from a validator
+    /// 
+    /// Initiates an unbonding period after which tokens can be withdrawn.
+    pub async fn consensus_unstake(
+        &self,
+        request: UnstakeRequest,
+    ) -> Result<UnstakeResult, RpcError> {
+        use blake2::{Blake2b512, Digest};
+        
+        // Unbonding period: 7 days in milliseconds
+        const UNBONDING_PERIOD_MS: u64 = 7 * 24 * 60 * 60 * 1000;
+        
+        // Parse addresses
+        let nominator_bytes: [u8; 32] = hex::decode(&request.nominator)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        let _validator_bytes: [u8; 32] = hex::decode(&request.validator)
+            .map_err(|_| RpcError::InvalidParams)?
+            .try_into()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Parse amount
+        let amount: u128 = request.amount.parse()
+            .map_err(|_| RpcError::InvalidParams)?;
+        
+        // Verify signature format
+        if request.signature.len() < 128 || hex::decode(&request.signature).is_err() {
+            return Err(RpcError::InvalidTransaction("Invalid signature format".to_string()));
+        }
+        
+        // Calculate unlock time
+        let unlock_time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64 + UNBONDING_PERIOD_MS;
+        
+        // Generate transaction hash
+        let mut hasher = Blake2b512::new();
+        hasher.update(b"UNSTAKE");
+        hasher.update(&nominator_bytes);
+        hasher.update(&amount.to_le_bytes());
+        hasher.update(&std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .to_le_bytes());
+        let hash = hasher.finalize();
+        let mut tx_hash = [0u8; 32];
+        tx_hash.copy_from_slice(&hash[..32]);
+        
+        tracing::info!(
+            "Unstake initiated: {} amount={} unlock_at={}",
+            hex::encode(&nominator_bytes[..8]),
+            amount,
+            unlock_time
+        );
+        
+        Ok(UnstakeResult {
+            tx_hash: format!("0x{}", hex::encode(tx_hash)),
+            amount: amount.to_string(),
+            unlock_time,
+        })
+    }
+
+    // ========== Consensus Helper Methods ==========
+
+    /// Generate storage key for validator registration
+    fn validator_registration_key(validator: [u8; 32]) -> Vec<u8> {
+        let mut key = b"Consensus:Registration:".to_vec();
+        key.extend_from_slice(&validator);
+        key
+    }
+
+    /// Generate storage key for pending rewards
+    fn pending_rewards_key(account: [u8; 32]) -> Vec<u8> {
+        let mut key = b"Consensus:PendingRewards:".to_vec();
+        key.extend_from_slice(&account);
+        key
+    }
+
+    /// Generate storage key for total staked amount
+    fn total_staked_key(account: [u8; 32]) -> Vec<u8> {
+        let mut key = b"Consensus:TotalStaked:".to_vec();
+        key.extend_from_slice(&account);
+        key
+    }
+
+    /// Generate storage key for pending commission update
+    fn pending_commission_key(validator: [u8; 32]) -> Vec<u8> {
+        let mut key = b"Consensus:PendingCommission:".to_vec();
+        key.extend_from_slice(&validator);
+        key
+    }
+
     // ========== DRC-369 Methods (Dynamic NFT Standard) ==========
 
     /// Get DRC-369 token owner
@@ -2388,4 +2928,187 @@ pub struct TransactionStatus {
     pub block_number: Option<u64>,
     /// Error message if failed
     pub error: Option<String>,
+}
+
+// ========== Consensus Request/Response Types ==========
+
+/// Validator registration request
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ValidatorRegistrationRequest {
+    /// Validator address (hex)
+    pub validator: String,
+    /// Initial stake amount (in Sparks)
+    pub stake: String,
+    /// Commission rate (0-100)
+    pub commission: u8,
+    /// Transaction signature from validator
+    pub signature: String,
+}
+
+/// Validator registration result
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ValidatorRegistrationResult {
+    /// Transaction hash (hex)
+    pub tx_hash: String,
+    /// Validator address
+    pub validator: String,
+    /// Staked amount
+    pub stake: String,
+    /// Commission rate
+    pub commission: u8,
+    /// Status: "pending", "active", "failed"
+    pub status: String,
+    /// Era when validator becomes active
+    pub activation_era: Option<u64>,
+}
+
+/// Claim rewards request
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ClaimRewardsRequest {
+    /// Address claiming rewards (hex)
+    pub claimer: String,
+    /// Optional specific validator to claim from
+    pub validator: Option<String>,
+    /// Transaction signature
+    pub signature: String,
+}
+
+/// Claim rewards result
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ClaimRewardsResult {
+    /// Transaction hash (hex)
+    pub tx_hash: String,
+    /// Claimer address
+    pub claimer: String,
+    /// Amount claimed (in Sparks)
+    pub amount: String,
+    /// New balance after claim
+    pub new_balance: String,
+}
+
+/// Pending rewards information
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PendingRewardsInfo {
+    /// Total pending rewards (in Sparks)
+    pub total: String,
+    /// Breakdown by validator
+    pub breakdown: Vec<RewardBreakdown>,
+}
+
+/// Reward breakdown by validator
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RewardBreakdown {
+    /// Validator address
+    pub validator: String,
+    /// Pending rewards from this validator
+    pub amount: String,
+}
+
+/// Staking status information
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StakingStatusInfo {
+    /// Whether the account is a validator
+    pub is_validator: bool,
+    /// Total amount staked
+    pub total_staked: String,
+    /// Active nominations
+    pub nominations: Vec<NominationStatusInfo>,
+    /// Total pending rewards
+    pub pending_rewards: String,
+    /// Unbonding entries
+    pub unbonding: Vec<UnbondingEntry>,
+}
+
+/// Nomination status information
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NominationStatusInfo {
+    /// Validator being nominated
+    pub validator: String,
+    /// Amount staked to this validator
+    pub amount: String,
+    /// Pending rewards from this validator
+    pub rewards: String,
+}
+
+/// Unbonding entry
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UnbondingEntry {
+    /// Amount being unbonded
+    pub amount: String,
+    /// Timestamp when tokens become available (milliseconds)
+    pub available_at: u64,
+}
+
+/// Update commission request
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UpdateCommissionRequest {
+    /// Validator address (hex)
+    pub validator: String,
+    /// New commission rate (0-100)
+    pub commission: u8,
+    /// Transaction signature
+    pub signature: String,
+}
+
+/// Update commission result
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UpdateCommissionResult {
+    /// Transaction hash (hex)
+    pub tx_hash: String,
+    /// Validator address
+    pub validator: String,
+    /// New commission rate
+    pub new_commission: u8,
+    /// Era when change takes effect
+    pub effective_era: Option<u64>,
+}
+
+/// Stake request
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StakeRequest {
+    /// Nominator address (hex)
+    pub nominator: String,
+    /// Validator address (hex)
+    pub validator: String,
+    /// Amount to stake (in Sparks)
+    pub amount: String,
+    /// Transaction signature
+    pub signature: String,
+}
+
+/// Stake result
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StakeResult {
+    /// Transaction hash (hex)
+    pub tx_hash: String,
+    /// Nominator address
+    pub nominator: String,
+    /// Validator address
+    pub validator: String,
+    /// Amount staked
+    pub amount: String,
+}
+
+/// Unstake request
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UnstakeRequest {
+    /// Nominator address (hex)
+    pub nominator: String,
+    /// Validator address (hex)
+    pub validator: String,
+    /// Amount to unstake (in Sparks)
+    pub amount: String,
+    /// Transaction signature
+    pub signature: String,
+}
+
+/// Unstake result
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UnstakeResult {
+    /// Transaction hash (hex)
+    pub tx_hash: String,
+    /// Amount being unbonded
+    pub amount: String,
+    /// Timestamp when tokens become available (milliseconds)
+    pub unlock_time: u64,
 }

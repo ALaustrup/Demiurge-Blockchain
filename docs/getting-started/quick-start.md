@@ -2,6 +2,8 @@
 
 Get started with Demiurge Protocol in 5 minutes.
 
+**Last Updated:** February 4, 2026
+
 ---
 
 ## Prerequisites
@@ -11,7 +13,27 @@ Get started with Demiurge Protocol in 5 minutes.
 
 ---
 
-## Option 1: Use the Web Platform
+## Option 1: Install the Browser Wallet (Recommended)
+
+The easiest way to interact with Demiurge:
+
+1. **Install the Extension**
+   - Download from Chrome Web Store or Firefox Add-ons
+   - Or build from source: `cd apps/wallet-extension && npm install && npm run build`
+
+2. **Create or Import Wallet**
+   - Click the Demiurge icon in your browser toolbar
+   - Choose "Create New Wallet" or "Import Existing"
+   - Set a strong password and backup your recovery phrase
+
+3. **Get Started**
+   - Visit any Demiurge-enabled dApp
+   - The wallet will prompt for connection approval
+   - Claim your starter CGT bonus on testnet
+
+---
+
+## Option 2: Use the Web Platform
 
 The fastest way to explore Demiurge:
 
@@ -22,7 +44,7 @@ The fastest way to explore Demiurge:
 
 ---
 
-## Option 2: Use the CLI
+## Option 3: Use the CLI
 
 ```bash
 # Install the CLI
@@ -49,18 +71,31 @@ demiurge wallet balance <address>
 
 # Send CGT
 demiurge wallet send <to-address> <amount>
+
+# Validator operations
+demiurge validator list
+demiurge validator register --stake 1000
+demiurge validator claim-rewards
 ```
 
 ---
 
-## Option 3: Use the SDK
+## Option 4: Use the SDK
 
 ```bash
 npm install @demiurge/sdk
 ```
 
 ```typescript
-import { DemiurgeClient } from '@demiurge/sdk';
+import { DemiurgeClient, Wallet } from '@demiurge/sdk';
+
+// Create a new wallet
+const wallet = await Wallet.generate();
+console.log('Address:', wallet.address);
+console.log('Mnemonic:', wallet.exportMnemonic());
+
+// Or import from mnemonic
+const imported = await Wallet.fromMnemonic('your twelve word recovery phrase here ...');
 
 const client = new DemiurgeClient({
   rpcUrl: 'https://rpc.demiurge.cloud'
@@ -71,13 +106,19 @@ const block = await client.getBlockNumber();
 console.log('Current block:', block);
 
 // Get balance
-const balance = await client.getBalance('0x0000...0001');
+const balance = await client.getBalance(wallet.address);
 console.log('Balance:', balance, 'CGT');
+
+// Sign and send transaction
+const signature = await wallet.signTransactionAsync({
+  to: 'recipient-address',
+  amount: '100'
+});
 ```
 
 ---
 
-## Option 4: Direct RPC Calls
+## Option 5: Direct RPC Calls
 
 ```bash
 curl -X POST https://rpc.demiurge.cloud:9944 \

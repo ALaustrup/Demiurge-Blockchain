@@ -2,10 +2,12 @@
  * Block Explorer Service
  * 
  * Provides comprehensive blockchain data for the explorer
- * with caching, pagination, and real-time updates
+ * with caching, pagination, and real-time updates.
+ * 
+ * Supports both polling and WebSocket subscriptions for real-time data.
  */
 
-import { demiurgeRpc } from './demiurge-rpc';
+import { demiurgeRpc, RPC_URL } from './demiurge-rpc';
 import type {
   BlockDetails,
   BlockSummary,
@@ -591,3 +593,13 @@ class ExplorerService {
 
 // Export singleton
 export const explorerService = new ExplorerService();
+
+// Export WebSocket URL for subscriptions
+export function getWebSocketUrl(): string {
+  // Convert HTTP URL to WebSocket URL
+  const rpcUrl = RPC_URL || 'http://localhost:9944';
+  return rpcUrl.replace('http://', 'ws://').replace('https://', 'wss://');
+}
+
+// Re-export RPC_URL for convenience
+export { RPC_URL };

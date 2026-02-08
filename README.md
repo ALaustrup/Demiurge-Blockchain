@@ -63,6 +63,30 @@ While others build walled gardens (Fortnite, Roblox, Sandbox), **Demiurge builds
 
 **Status:** ✅ **Live** - Interactive shell with animated splash
 
+### 🔑 **Browser Wallet Extension**
+*Secure self-custody wallet for Chrome and Firefox*
+
+- **Manifest V3** - Modern browser extension architecture
+- **Ed25519 Keys** - Industry-standard cryptographic signing
+- **BIP39 Mnemonics** - 12/24 word recovery phrases
+- **AES-256-GCM** - Military-grade encryption for stored keys
+- **dApp Integration** - `window.demiurge` provider for seamless connection
+- **Auto-Lock** - Configurable security timeout
+- **Multi-Network** - Mainnet, testnet, devnet support
+
+**Status:** ✅ **Live** - Full wallet functionality with dApp provider
+
+### 📡 **WebSocket Subscriptions**
+*Real-time blockchain event streaming*
+
+- **New Blocks** - `chain_subscribeNewBlocks` for block notifications
+- **Finalized Blocks** - `chain_subscribeFinalizedBlocks` for confirmed blocks
+- **Pending Transactions** - `chain_subscribeNewPendingTransactions` for mempool
+- **Validator Status** - `consensus_subscribeValidatorStatus` for staking events
+- **CVP Threats** - `cvp_subscribeThreats` for security alerts
+
+**Status:** ✅ **Live** - 5 subscription types operational
+
 ### 👑 **Godmode Administration**
 *Administrative control for network governance*
 
@@ -181,7 +205,12 @@ Demiurge-Blockchain/
 │       ├── session-keys/  # Temporary authorization
 │       └── zk/            # Zero-knowledge proofs
 ├── apps/
-│   └── hub/               # Web platform (Next.js)
+│   ├── hub/               # Web platform + block explorer (Next.js)
+│   ├── wallet-extension/  # Browser wallet (Chrome/Firefox, Manifest V3)
+│   ├── sophia/            # SOPHIA AI interface
+│   └── games/             # Game integrations
+├── docker/                # Docker deployment configs
+│   └── docker-compose.testnet.yml  # 4-node testnet with Prometheus
 ├── packages/              # TypeScript SDKs
 │   ├── qor-sdk/          # Identity SDK
 │   ├── drc369-sdk/       # NFT SDK
@@ -747,6 +776,19 @@ Create infrastructure so robust, so flexible, and so developer-friendly that it 
 
 **Built with 🔥 for the Sovereign Creative Substrate**
 
-**Last Updated:** February 1, 2026  
-**Version:** 1.0.0 (Mainnet v1)  
-**Status:** Live with Fresh Genesis
+---
+
+**Demiurge Protocol | Team: Laustrup**
+
+*Special thanks to: Claude | Cursor | Gemini | Ara*
+
+**Affiliate Projects:**  
+[Digital Sovereign Society](https://DigitalSovereign.org) | [Fractal Node](https://FractalNode.AI)
+
+---
+
+**All Rights Reserved 2030 Astra Matrix, Inc & Laustrup Group**
+
+**Last Updated:** February 4, 2026  
+**Version:** 1.1.0 (Production Suite)  
+**Status:** Live with Browser Wallet, WebSocket Subscriptions, Validator CLI
