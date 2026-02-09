@@ -19,6 +19,13 @@ export type MessageType =
   | 'ACCOUNT_GET_ALL'
   | 'ACCOUNT_REMOVE'
   
+  // QOR ID Auth
+  | 'AUTH_LOGIN'
+  | 'AUTH_KEYPAIR_LOGIN'
+  | 'AUTH_LOGOUT'
+  | 'AUTH_GET_SESSION'
+  | 'DETACH_WALLET'
+  
   // Network
   | 'NETWORK_SWITCH'
   | 'NETWORK_GET_CURRENT'
@@ -28,6 +35,10 @@ export type MessageType =
   | 'SIGN_TRANSACTION'
   | 'SEND_TRANSACTION'
   | 'GET_BALANCE'
+  | 'CLAIM_STARTER_TOKENS'
+  | 'EXPORT_PRIVATE_KEY'
+  | 'CHECK_TRANSFER_POLICY'
+  | 'GET_ACCOUNT_LIMITS'
   
   // dApp connection
   | 'DAPP_CONNECT'
@@ -38,9 +49,26 @@ export type MessageType =
   | 'REQUEST_APPROVE'
   | 'REQUEST_REJECT'
   | 'REQUEST_GET_PENDING'
+  | 'GET_PENDING_REQUESTS'
+  | 'APPROVE_REQUEST'
+  | 'REJECT_REQUEST'
 
   // Sophia AI
-  | 'SOPHIA_QUERY';
+  | 'SOPHIA_QUERY'
+
+  // Page context (for side panel)
+  | 'GET_PAGE_CONTEXT'
+  | 'PAGE_CONTEXT_RESULT'
+
+  // Content capture
+  | 'SAVE_NOTE'
+  | 'GET_NOTES'
+  | 'DELETE_NOTE'
+  | 'SAVE_MEDIA'
+  | 'GET_MEDIA'
+
+  // VYB Chat (handled via side panel UI directly)
+  ;
 
 export interface Message<T = any> {
   type: MessageType;
@@ -105,8 +133,11 @@ export interface RequestRejectPayload {
 
 export interface SophiaQueryPayload {
   message: string;
+  conversationHistory?: Array<{ role: string; content: string }>;
   context?: {
     currentPage?: string;
+    pageTitle?: string;
+    selectedText?: string;
     connectedDapp?: string;
   };
 }
@@ -114,6 +145,43 @@ export interface SophiaQueryPayload {
 export interface SophiaQueryResponse {
   text: string;
   toolsUsed?: number;
+}
+
+// QOR ID Auth payloads
+export interface AuthLoginPayload {
+  identifier: string; // QOR ID (e.g. "username#1234") or email
+  password: string;
+}
+
+export interface AuthKeypairLoginPayload {
+  address: string;
+  signature: string;
+  challenge: string;
+}
+
+export interface AuthSessionResponse {
+  isAuthenticated: boolean;
+  token?: string;
+  user?: {
+    qorId: string;
+    address?: string;
+    displayName?: string;
+  };
+}
+
+// Content capture payloads
+export interface SaveNotePayload {
+  title: string;
+  content: string;
+  url?: string;
+  tags?: string[];
+}
+
+export interface SaveMediaPayload {
+  url: string;
+  title?: string;
+  sourceUrl: string;
+  type: 'image' | 'link';
 }
 
 // Response types
@@ -125,6 +193,11 @@ export interface WalletStateResponse {
   activeAccount: string | null;
   network: string;
   pendingRequestCount: number;
+  auth?: {
+    isAuthenticated: boolean;
+    token: string | null;
+    user: { qorId: string; address?: string; displayName?: string } | null;
+  };
 }
 
 export interface BalanceResponse {

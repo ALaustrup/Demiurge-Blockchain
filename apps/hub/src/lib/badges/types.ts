@@ -74,7 +74,7 @@ export interface OfficialBadge {
   perks?: {
     stakingBonus?: number;     // Basis points
     xpRateBonus?: number;      // Basis points
-    gasDiscount?: number;      // Basis points
+    energyDiscount?: number;    // Basis points
     freeMints?: number;
     chatPrivileges?: string[];
     systemAccess?: string[];   // e.g., 'music_releases', 'game_submission'

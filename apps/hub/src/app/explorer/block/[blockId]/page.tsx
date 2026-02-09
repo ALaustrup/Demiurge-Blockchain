@@ -157,9 +157,9 @@ export default function BlockDetailPage() {
                 <span className="text-white">{(block.size / 1024).toFixed(2)} KB</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Gas Used / Limit</span>
+                <span className="text-gray-400">Energy Used / Limit</span>
                 <span className="text-white">
-                  {block.gasUsed.toLocaleString()} / {block.gasLimit.toLocaleString()}
+                  {block.energyUsed.toLocaleString()} / {block.energyLimit.toLocaleString()}
                 </span>
               </div>
             </div>

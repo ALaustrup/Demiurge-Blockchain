@@ -27,6 +27,10 @@ const config: Config = {
         'mono': ['var(--font-mono)', 'JetBrains Mono', 'Fira Code', 'monospace'],
         'data': ['var(--font-mono)', 'JetBrains Mono', 'monospace'],
         
+        // Forge/VYB - Stylized display fonts
+        'grunge': ['"Permanent Marker"', '"Rock Salt"', 'var(--font-rajdhani)', 'cursive'],
+        'grunge-alt': ['"Special Elite"', '"Courier Prime"', 'var(--font-rajdhani)', 'monospace'],
+        
         // Legacy compatibility
         'orbitron': ['var(--font-rajdhani)', 'Rajdhani', 'system-ui', 'sans-serif'],
       },
@@ -105,6 +109,14 @@ const config: Config = {
           secondary: '#C5C6C7',
           tertiary: '#7B8794',
           muted: '#4A5568',
+        },
+        
+        // Demiurge accent colors
+        'demiurge-gold': {
+          DEFAULT: '#D4AF37',
+          light: '#F0D060',
+          dim: '#A68B28',
+          dark: '#7A6520',
         },
         
         // More legacy mappings

@@ -12,7 +12,7 @@ export interface DonationTier {
   cgtReward: number;
   stakingBonusBps: number; // basis points (200 = 2%)
   xpRateBonusBps: number;
-  gasDiscountBps: number;
+  energyDiscountBps: number;
   freeMints: number;
   chatPrivileges: string[];
   badgeImage: string;
@@ -40,7 +40,7 @@ export const DONATION_TIERS: DonationTier[] = [
     cgtReward: 200,
     stakingBonusBps: 200, // +2%
     xpRateBonusBps: 500, // +5%
-    gasDiscountBps: 0,
+    energyDiscountBps: 0,
     freeMints: 0,
     chatPrivileges: ['colored_name'],
     badgeImage: 'ipfs://bafkreie5aznjvttude6c3wbvqeebb6rlx5wkbzyppv7garber7pdgcycfa', // Bronze
@@ -55,7 +55,7 @@ export const DONATION_TIERS: DonationTier[] = [
     cgtReward: 500,
     stakingBonusBps: 400, // +4%
     xpRateBonusBps: 1000, // +10%
-    gasDiscountBps: 0,
+    energyDiscountBps: 0,
     freeMints: 10,
     chatPrivileges: ['colored_name', 'animated_name'],
     badgeImage: 'ipfs://bafkreif5aznjvttude6c3wbvqeebb6rlx5wkbzyppv7garber7pdgcycfb', // Silver
@@ -70,7 +70,7 @@ export const DONATION_TIERS: DonationTier[] = [
     cgtReward: 1000,
     stakingBonusBps: 600, // +6%
     xpRateBonusBps: 1500, // +15%
-    gasDiscountBps: 1000, // 10% gas discount
+    energyDiscountBps: 1000, // 10% energy discount
     freeMints: 25,
     chatPrivileges: ['colored_name', 'animated_name', 'custom_emotes'],
     badgeImage: 'ipfs://bafkreig5aznjvttude6c3wbvqeebb6rlx5wkbzyppv7garber7pdgcycfc', // Gold
@@ -85,7 +85,7 @@ export const DONATION_TIERS: DonationTier[] = [
     cgtReward: 2500,
     stakingBonusBps: 800, // +8%
     xpRateBonusBps: 2000, // +20%
-    gasDiscountBps: 1000,
+    energyDiscountBps: 1000,
     freeMints: 50,
     chatPrivileges: ['colored_name', 'animated_name', 'custom_emotes', 'badge_flair'],
     badgeImage: 'ipfs://bafkreih5aznjvttude6c3wbvqeebb6rlx5wkbzyppv7garber7pdgcycfd', // Platinum
@@ -100,7 +100,7 @@ export const DONATION_TIERS: DonationTier[] = [
     cgtReward: 5000,
     stakingBonusBps: 1000, // +10%
     xpRateBonusBps: 2500, // +25%
-    gasDiscountBps: 1000,
+    energyDiscountBps: 1000,
     freeMints: 100,
     chatPrivileges: ['all'],
     badgeImage: 'ipfs://bafkreii5aznjvttude6c3wbvqeebb6rlx5wkbzyppv7garber7pdgcycfe', // Rainbow/Holographic

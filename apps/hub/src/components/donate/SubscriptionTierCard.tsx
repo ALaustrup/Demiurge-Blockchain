@@ -98,8 +98,8 @@ export function SubscriptionTierCard({
             <div className="text-xs text-gray-400 space-y-1">
               <div>+{formatBps(effectiveTier.stakingBonusBps)} staking</div>
               <div>+{formatBps(effectiveTier.xpRateBonusBps)} XP rate</div>
-              {effectiveTier.gasDiscountBps > 0 && (
-                <div>{formatBps(effectiveTier.gasDiscountBps)} gas discount</div>
+              {effectiveTier.energyDiscountBps > 0 && (
+                <div>{formatBps(effectiveTier.energyDiscountBps)} energy discount</div>
               )}
             </div>
           </div>

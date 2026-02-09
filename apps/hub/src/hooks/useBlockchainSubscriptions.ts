@@ -92,16 +92,20 @@ export function useBlockchainSubscriptions(config: SubscriptionConfig) {
         setStatus('error');
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         setStatus('disconnected');
         subscriptionIds.current.clear();
+        wsRef.current = null;
         
-        // Attempt reconnection
+        // Attempt reconnection with exponential backoff
         const maxAttempts = config.maxReconnectAttempts ?? 10;
         if (reconnectAttempts.current < maxAttempts) {
           reconnectAttempts.current++;
-          const delay = config.reconnectInterval ?? 5000;
-          setTimeout(connect, delay * Math.min(reconnectAttempts.current, 5));
+          const baseDelay = config.reconnectInterval ?? 3000;
+          const delay = baseDelay * Math.pow(1.5, Math.min(reconnectAttempts.current - 1, 6));
+          setTimeout(connect, delay);
+        } else {
+          setError('Connection lost. Please refresh to reconnect.');
         }
       };
     } catch (e) {

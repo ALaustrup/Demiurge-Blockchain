@@ -1,6 +1,6 @@
 // Demiurge Wallet Extension - State Management
 import { create } from 'zustand';
-import type { Account, WalletState } from '../shared/types';
+import type { Account } from '../shared/types';
 import type { Message, MessageResponse, WalletStateResponse } from '../shared/messages';
 
 interface PopupState {
@@ -15,10 +15,25 @@ interface PopupState {
   formattedBalance: string | null;
   pendingRequestCount: number;
   
+  // Auth state
+  isAuthenticated: boolean;
+  authToken: string | null;
+  authUser: { qorId: string; address?: string; displayName?: string } | null;
+  
   // UI state
-  view: 'loading' | 'create' | 'unlock' | 'main' | 'send' | 'approve' | 'settings';
+  view: 'loading' | 'login' | 'unlock' | 'main' | 'send' | 'receive' | 'approve' | 'settings';
   error: string | null;
   success: string | null;
+  
+  // Transfer limits
+  accountLimits: {
+    tier: string;
+    dailyLimit: number;
+    dailyUsed: number;
+    maxSingleCGT: string;
+    canSend: boolean;
+    accountAgeHours: number;
+  } | null;
   
   // Actions
   initialize: () => Promise<void>;
@@ -27,10 +42,16 @@ interface PopupState {
   unlock: (password: string) => Promise<void>;
   lock: () => Promise<void>;
   refreshBalance: () => Promise<void>;
+  refreshLimits: () => Promise<void>;
   switchNetwork: (network: string) => Promise<void>;
   sendTransaction: (to: string, amount: string) => Promise<string>;
   setView: (view: PopupState['view']) => void;
   clearMessages: () => void;
+  
+  // Auth actions
+  authLogin: (identifier: string, password: string) => Promise<void>;
+  authLogout: () => Promise<void>;
+  detachWallet: () => Promise<void>;
 }
 
 // Send message to background script
@@ -49,9 +70,13 @@ export const useStore = create<PopupState>((set, get) => ({
   balance: null,
   formattedBalance: null,
   pendingRequestCount: 0,
+  isAuthenticated: false,
+  authToken: null,
+  authUser: null,
   view: 'loading',
   error: null,
   success: null,
+  accountLimits: null,
 
   // Initialize from background state
   initialize: async () => {
@@ -59,36 +84,122 @@ export const useStore = create<PopupState>((set, get) => ({
       const response = await sendMessage<WalletStateResponse>({ type: 'WALLET_GET_STATE' });
       
       if (response.success && response.data) {
-        const { isLocked, isInitialized, accounts, activeAccount, network, pendingRequestCount } = response.data;
+        const { isLocked, isInitialized, accounts, activeAccount, network, pendingRequestCount, auth } = response.data;
         
-        let view: PopupState['view'] = 'main';
-        if (!isInitialized) {
-          view = 'create';
-        } else if (isLocked) {
-          view = 'unlock';
-        } else if (pendingRequestCount > 0) {
-          view = 'approve';
+        const isAuthenticated = auth?.isAuthenticated || false;
+        
+        // Determine initial view: QOR ID auth is the gate
+        let view: PopupState['view'] = 'login';
+        if (isAuthenticated) {
+          // Authenticated — go to main wallet view
+          view = pendingRequestCount > 0 ? 'approve' : 'main';
         }
 
         set({
           isLoading: false,
           isLocked,
-          isInitialized,
+          isInitialized: isInitialized || isAuthenticated,
           accounts,
           activeAccount,
           network,
           pendingRequestCount,
+          isAuthenticated,
+          authToken: auth?.token || null,
+          authUser: auth?.user || null,
           view,
         });
 
-        // Fetch balance if unlocked
-        if (!isLocked && activeAccount) {
+        // Fetch balance and limits if authenticated with an account
+        if (isAuthenticated && activeAccount) {
           get().refreshBalance();
+          get().refreshLimits();
         }
       }
     } catch (error) {
       set({ isLoading: false, error: 'Failed to initialize wallet' });
     }
+  },
+
+  // QOR ID Login
+  authLogin: async (identifier: string, password: string) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const response = await sendMessage<{ token: string; user: any }>({
+        type: 'AUTH_LOGIN',
+        payload: { identifier, password },
+      });
+
+      if (response.success && response.data) {
+        const user = response.data.user;
+        const displayName = user?.displayName || user?.qorId || identifier.split('#')[0];
+
+        // Re-read the full wallet state from background to ensure activeAccount is synced
+        const stateResponse = await sendMessage<WalletStateResponse>({ type: 'WALLET_GET_STATE' });
+        const resolvedAccount = stateResponse?.data?.activeAccount || user?.address || null;
+
+        set({
+          isLoading: false,
+          isAuthenticated: true,
+          authToken: response.data.token,
+          authUser: user,
+          activeAccount: resolvedAccount,
+          isInitialized: true,
+          view: 'main',
+          success: `Welcome, ${displayName}!`,
+        });
+
+        // Fetch balance and limits immediately
+        if (resolvedAccount) {
+          get().refreshBalance();
+          get().refreshLimits();
+        }
+      } else {
+        throw new Error(response.error || 'Login failed');
+      }
+    } catch (error) {
+      set({ isLoading: false, error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  // Logout (clears auth and resets to login)
+  authLogout: async () => {
+    await sendMessage({ type: 'AUTH_LOGOUT' });
+    set({
+      isAuthenticated: false,
+      authToken: null,
+      authUser: null,
+      activeAccount: null,
+      accounts: [],
+      balance: null,
+      formattedBalance: null,
+      accountLimits: null,
+      isInitialized: false,
+      isLocked: true,
+      view: 'login',
+    });
+  },
+
+  // Full detach: clears ALL local data (keystores, accounts, auth, etc.)
+  detachWallet: async () => {
+    await sendMessage({ type: 'DETACH_WALLET' });
+    set({
+      isAuthenticated: false,
+      authToken: null,
+      authUser: null,
+      activeAccount: null,
+      accounts: [],
+      balance: null,
+      formattedBalance: null,
+      accountLimits: null,
+      isInitialized: false,
+      isLocked: true,
+      pendingRequestCount: 0,
+      error: null,
+      success: null,
+      view: 'login',
+    });
   },
 
   // Create new wallet
@@ -180,10 +291,15 @@ export const useStore = create<PopupState>((set, get) => ({
     }
   },
 
-  // Lock wallet
+  // Lock wallet (returns to login since QOR ID is required)
   lock: async () => {
     await sendMessage({ type: 'WALLET_LOCK' });
-    set({ isLocked: true, view: 'unlock', balance: null, formattedBalance: null });
+    set({
+      isLocked: true,
+      view: 'login',
+      balance: null,
+      formattedBalance: null,
+    });
   },
 
   // Refresh balance
@@ -205,6 +321,18 @@ export const useStore = create<PopupState>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to fetch balance:', error);
+    }
+  },
+
+  // Refresh account transfer limits
+  refreshLimits: async () => {
+    try {
+      const response = await sendMessage<any>({ type: 'GET_ACCOUNT_LIMITS' });
+      if (response.success && response.data) {
+        set({ accountLimits: response.data });
+      }
+    } catch (error) {
+      console.error('Failed to fetch limits:', error);
     }
   },
 

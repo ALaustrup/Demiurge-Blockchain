@@ -75,7 +75,7 @@ export const OFFICIAL_BADGES: Record<OfficialBadgeType, OfficialBadge> = {
     perks: {
       stakingBonus: 600,      // +6%
       xpRateBonus: 1500,      // +15%
-      gasDiscount: 1000,      // 10%
+      energyDiscount: 1000,      // 10%
       freeMints: 25,
       chatPrivileges: ['colored_name', 'animated_name', 'custom_emotes'],
     },
@@ -96,7 +96,7 @@ export const OFFICIAL_BADGES: Record<OfficialBadgeType, OfficialBadge> = {
     perks: {
       stakingBonus: 800,      // +8%
       xpRateBonus: 2000,      // +20%
-      gasDiscount: 1000,      // 10%
+      energyDiscount: 1000,      // 10%
       freeMints: 50,
       chatPrivileges: ['colored_name', 'animated_name', 'custom_emotes', 'badge_flair'],
     },
@@ -117,7 +117,7 @@ export const OFFICIAL_BADGES: Record<OfficialBadgeType, OfficialBadge> = {
     perks: {
       stakingBonus: 1000,     // +10%
       xpRateBonus: 2500,      // +25%
-      gasDiscount: 1000,      // 10%
+      energyDiscount: 1000,      // 10%
       freeMints: 100,
       chatPrivileges: ['all'],
     },

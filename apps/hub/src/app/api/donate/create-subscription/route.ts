@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
         tierName: effectiveTier.name,
         stakingBonus: effectiveTier.stakingBonusBps,
         xpBonus: effectiveTier.xpRateBonusBps,
-        gasDiscount: effectiveTier.gasDiscountBps,
+        energyDiscount: effectiveTier.energyDiscountBps,
         chatPrivileges: effectiveTier.chatPrivileges,
       } : null,
     });
@@ -156,7 +156,7 @@ export async function GET() {
       effectivePerks: effectiveTier ? {
         stakingBonus: `+${effectiveTier.stakingBonusBps / 100}%`,
         xpBonus: `+${effectiveTier.xpRateBonusBps / 100}%`,
-        gasDiscount: effectiveTier.gasDiscountBps > 0 ? `${effectiveTier.gasDiscountBps / 100}%` : 'None',
+        energyDiscount: effectiveTier.energyDiscountBps > 0 ? `${effectiveTier.energyDiscountBps / 100}%` : 'None',
         freeMints: effectiveTier.freeMints,
         chatPrivileges: effectiveTier.chatPrivileges,
       } : null,

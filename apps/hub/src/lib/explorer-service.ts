@@ -90,35 +90,31 @@ class ExplorerService {
           networkVersion: '1.0.0',
         };
       } catch (error) {
-        // Return mock data when blockchain is unavailable
-        return this.getMockNetworkStats();
+        // Return empty stats when blockchain is unavailable
+        return {
+          blockHeight: 0,
+          blockTime: 0,
+          lastBlockTime: 0,
+          tps: 0,
+          avgTps24h: 0,
+          currentEra: 0,
+          eraProgress: 0,
+          eraStartBlock: 0,
+          blocksPerEra: 14400,
+          activeValidators: 0,
+          totalValidators: 0,
+          validatorSetChanges: 0,
+          totalSupply: '1000000000',
+          circulatingSupply: '500000000',
+          totalStaked: '0',
+          stakingRatio: 0,
+          totalTransactionFees: '0',
+          finality: 0,
+          peerCount: 0,
+          networkVersion: '1.0.0',
+        };
       }
     });
-  }
-
-  private getMockNetworkStats(): NetworkStats {
-    return {
-      blockHeight: 0,
-      blockTime: 6,
-      lastBlockTime: Date.now(),
-      tps: 0,
-      avgTps24h: 0,
-      currentEra: 0,
-      eraProgress: 0,
-      eraStartBlock: 0,
-      blocksPerEra: 14400,
-      activeValidators: 0,
-      totalValidators: 0,
-      validatorSetChanges: 0,
-      totalSupply: '1000000000',
-      circulatingSupply: '500000000',
-      totalStaked: '0',
-      stakingRatio: 0,
-      totalTransactionFees: '0',
-      finality: 0,
-      peerCount: 0,
-      networkVersion: '1.0.0',
-    };
   }
 
   private calculateEraProgress(currentBlock: number, eraStartBlock: number): number {
@@ -162,7 +158,7 @@ class ExplorerService {
         const blockTimes: ChartDataPoint[] = [];
         const tpsHistory: ChartDataPoint[] = [];
         const transactionsPerBlock: ChartDataPoint[] = [];
-        const gasUsedHistory: ChartDataPoint[] = [];
+        const energyUsedHistory: ChartDataPoint[] = [];
 
         for (let i = 1; i < blocks.length; i++) {
           const block = blocks[i - 1];
@@ -172,51 +168,29 @@ class ExplorerService {
           blockTimes.push({ timestamp: block.timestamp, value: blockTime });
           transactionsPerBlock.push({ timestamp: block.timestamp, value: block.transactionCount });
           tpsHistory.push({ timestamp: block.timestamp, value: blockTime > 0 ? block.transactionCount / blockTime : 0 });
-          gasUsedHistory.push({ timestamp: block.timestamp, value: block.size });
+          energyUsedHistory.push({ timestamp: block.timestamp, value: block.size });
         }
-
-        // Mock data for active addresses and staking (would need historical data)
-        const now = Date.now();
-        const activeAddresses = Array.from({ length: 24 }, (_, i) => ({
-          timestamp: now - (23 - i) * 3600000,
-          value: Math.floor(Math.random() * 100) + 50,
-        }));
-
-        const stakingHistory = Array.from({ length: 30 }, (_, i) => ({
-          timestamp: now - (29 - i) * 86400000,
-          value: 100000000 + Math.floor(Math.random() * 50000000),
-        }));
 
         return {
           blockTimes: blockTimes.reverse(),
           tpsHistory: tpsHistory.reverse(),
           transactionsPerBlock: transactionsPerBlock.reverse(),
-          gasUsedHistory: gasUsedHistory.reverse(),
-          activeAddresses,
-          stakingHistory,
+          energyUsedHistory: energyUsedHistory.reverse(),
+          activeAddresses: [], // Requires historical data aggregation
+          stakingHistory: [], // Requires historical data aggregation
         };
       } catch {
-        return this.getMockChartData();
+        // Return empty charts when blockchain is unavailable
+        return {
+          blockTimes: [],
+          tpsHistory: [],
+          transactionsPerBlock: [],
+          energyUsedHistory: [],
+          activeAddresses: [],
+          stakingHistory: [],
+        };
       }
     }, 30000); // 30 second cache for charts
-  }
-
-  private getMockChartData(): NetworkCharts {
-    const now = Date.now();
-    const generateMockData = (count: number, interval: number, baseValue: number, variance: number): ChartDataPoint[] =>
-      Array.from({ length: count }, (_, i) => ({
-        timestamp: now - (count - 1 - i) * interval,
-        value: baseValue + (Math.random() - 0.5) * variance,
-      }));
-
-    return {
-      blockTimes: generateMockData(50, 6000, 6, 2),
-      tpsHistory: generateMockData(50, 6000, 5, 3),
-      transactionsPerBlock: generateMockData(50, 6000, 10, 8),
-      gasUsedHistory: generateMockData(50, 6000, 1000000, 500000),
-      activeAddresses: generateMockData(24, 3600000, 75, 50),
-      stakingHistory: generateMockData(30, 86400000, 125000000, 25000000),
-    };
   }
 
   // ============ Blocks ============
@@ -232,13 +206,14 @@ class ExplorerService {
       for (let i = 0; i < limit && latestBlock.number - i >= 0; i++) {
         const block = await demiurgeRpc.getBlock(latestBlock.number - i);
         if (block) {
+          const blockAny = block as any;
           blocks.push({
             hash: block.hash,
             number: block.number,
             timestamp: block.timestamp,
             transactionCount: block.transactions?.length || 0,
-            validator: 'validator_' + (block.number % 10),
-            size: Math.floor(Math.random() * 50000) + 10000,
+            validator: blockAny.author || blockAny.validator || '',
+            size: blockAny.size || 0,
             finalized: true,
           });
         }
@@ -246,22 +221,9 @@ class ExplorerService {
 
       return blocks;
     } catch (error) {
-      // Return mock blocks if blockchain unavailable
-      return this.getMockBlocks(limit);
+      // Return empty array when blockchain is unavailable
+      return [];
     }
-  }
-
-  private getMockBlocks(limit: number): BlockSummary[] {
-    const now = Date.now();
-    return Array.from({ length: limit }, (_, i) => ({
-      hash: `0x${Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`,
-      number: 1000000 - i,
-      timestamp: now - i * 6000,
-      transactionCount: Math.floor(Math.random() * 20),
-      validator: `validator_${i % 5}`,
-      size: Math.floor(Math.random() * 50000) + 10000,
-      finalized: true,
-    }));
   }
 
   /**
@@ -276,6 +238,7 @@ class ExplorerService {
       const block = await demiurgeRpc.getBlock(blockNumber);
       if (!block) return null;
 
+      const blockAny = block as any;
       return {
         hash: block.hash,
         number: block.number,
@@ -283,20 +246,23 @@ class ExplorerService {
         stateRoot: block.stateRoot,
         extrinsicsRoot: block.extrinsicsRoot,
         timestamp: block.timestamp,
-        validator: 'validator_' + (block.number % 10),
-        size: Math.floor(Math.random() * 50000) + 10000,
-        gasUsed: Math.floor(Math.random() * 8000000),
-        gasLimit: 15000000,
+        validator: blockAny.author || blockAny.validator || '',
+        size: blockAny.size || 0,
+        energyUsed: blockAny.energyUsed || blockAny.gasUsed || 0,
+        energyLimit: blockAny.energyLimit || blockAny.gasLimit || 15000000,
         transactionCount: block.transactions?.length || 0,
-        transactions: (block.transactions || []).map(tx => ({
-          hash: tx.hash,
-          from: tx.from,
-          to: tx.to || null,
-          value: tx.amount || '0',
-          type: 'transfer' as const,
-          status: tx.status === 'finalized' ? 'success' as const : 'pending' as const,
-          timestamp: block.timestamp,
-        })),
+        transactions: (block.transactions || []).map(tx => {
+          const txAny = tx as any;
+          return {
+            hash: tx.hash,
+            from: tx.from,
+            to: tx.to || null,
+            value: tx.amount || '0',
+            type: 'transfer' as const,
+            status: txAny.status === 'finalized' ? 'success' as const : 'pending' as const,
+            timestamp: block.timestamp,
+          };
+        }),
         era: Math.floor(block.number / 14400),
         finalized: true,
       };
@@ -312,13 +278,14 @@ class ExplorerService {
     const blocks = await this.getRecentBlocks(page * pageSize + pageSize);
     const start = (page - 1) * pageSize;
     const data = blocks.slice(start, start + pageSize);
+    const stats = await this.getNetworkStats();
 
     return {
       data,
-      total: 1000000, // Mock total
+      total: stats.blockHeight || data.length,
       page,
       pageSize,
-      hasMore: page * pageSize < 1000000,
+      hasMore: data.length === pageSize,
     };
   }
 
@@ -351,25 +318,11 @@ class ExplorerService {
         if (transactions.length >= limit) break;
       }
 
-      return transactions.length > 0 ? transactions : this.getMockTransactions(limit);
+      return transactions;
     } catch {
-      return this.getMockTransactions(limit);
+      // Return empty array when blockchain is unavailable
+      return [];
     }
-  }
-
-  private getMockTransactions(limit: number): TransactionSummary[] {
-    const now = Date.now();
-    const types = ['transfer', 'stake', 'nft_mint', 'claim_reward'] as const;
-
-    return Array.from({ length: limit }, (_, i) => ({
-      hash: `0x${Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`,
-      from: `0x${Array(40).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`,
-      to: `0x${Array(40).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`,
-      value: (Math.random() * 1000).toFixed(2),
-      type: types[Math.floor(Math.random() * types.length)],
-      status: 'success' as const,
-      timestamp: now - i * 15000,
-    }));
   }
 
   /**
@@ -387,9 +340,9 @@ class ExplorerService {
         from: tx.from,
         to: tx.to || null,
         value: tx.amount || '0',
-        gasPrice: '1000000000',
-        gasUsed: 21000,
-        gasLimit: 21000,
+        energyPrice: '1000000000',
+        energyUsed: 21000,
+        energyLimit: 21000,
         nonce: tx.nonce,
         input: '0x',
         status: tx.status === 'finalized' ? 'success' : tx.status === 'failed' ? 'failed' : 'pending',
@@ -413,10 +366,10 @@ class ExplorerService {
 
     return {
       data,
-      total: 5000000,
+      total: data.length,
       page,
       pageSize,
-      hasMore: page * pageSize < 5000000,
+      hasMore: data.length === pageSize,
     };
   }
 
@@ -428,32 +381,23 @@ class ExplorerService {
   async getValidators(): Promise<ValidatorSummary[]> {
     try {
       const validators = await demiurgeRpc.getValidators();
-      return validators.map((v, i) => ({
-        address: v.account,
-        name: `Validator ${i + 1}`,
-        stake: v.stake,
-        commission: v.commission,
-        nominators: Math.floor(Math.random() * 100),
-        active: v.active,
-        blocksProducedEra: Math.floor(Math.random() * 100),
-        uptime: 95 + Math.random() * 5,
-      }));
+      return validators.map((v, i) => {
+        const vAny = v as any;
+        return {
+          address: v.account,
+          name: vAny.name || `Validator ${i + 1}`,
+          stake: v.stake,
+          commission: v.commission,
+          nominators: vAny.nominators || 0,
+          active: v.active,
+          blocksProducedEra: vAny.blocksProducedEra || 0,
+          uptime: vAny.uptime || 0,
+        };
+      });
     } catch {
-      return this.getMockValidators();
+      // Return empty array when blockchain is unavailable
+      return [];
     }
-  }
-
-  private getMockValidators(): ValidatorSummary[] {
-    return Array.from({ length: 10 }, (_, i) => ({
-      address: `0x${Array(40).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`,
-      name: `Validator ${i + 1}`,
-      stake: (1000000 + Math.random() * 9000000).toFixed(0),
-      commission: Math.floor(Math.random() * 20),
-      nominators: Math.floor(Math.random() * 100),
-      active: i < 7,
-      blocksProducedEra: Math.floor(Math.random() * 100),
-      uptime: 95 + Math.random() * 5,
-    }));
   }
 
   /**
@@ -466,21 +410,22 @@ class ExplorerService {
 
       const pool = await demiurgeRpc.getStakingPool(address);
 
+      const vAny = validator as any;
       return {
         address: validator.account,
         stake: validator.stake,
-        selfStake: (parseFloat(validator.stake) * 0.3).toFixed(0),
+        selfStake: vAny.selfStake || (parseFloat(validator.stake) * 0.3).toFixed(0),
         nominators: pool?.nominators.length || 0,
-        nominatorStake: (parseFloat(validator.stake) * 0.7).toFixed(0),
+        nominatorStake: pool ? pool.nominators.reduce((sum: number, n: any) => sum + parseFloat(n.stake || '0'), 0).toFixed(0) : '0',
         commission: validator.commission,
         active: validator.active,
-        blocksProduced: Math.floor(Math.random() * 10000),
-        blocksProducedEra: Math.floor(Math.random() * 100),
-        missedBlocks: Math.floor(Math.random() * 10),
-        uptime: 95 + Math.random() * 5,
-        rewards24h: (Math.random() * 1000).toFixed(2),
-        rewardsTotal: (Math.random() * 100000).toFixed(2),
-        slashEvents: [],
+        blocksProduced: vAny.blocksProduced || 0,
+        blocksProducedEra: vAny.blocksProducedEra || 0,
+        missedBlocks: vAny.missedBlocks || 0,
+        uptime: vAny.uptime || 0,
+        rewards24h: vAny.rewards24h || '0',
+        rewardsTotal: vAny.rewardsTotal || '0',
+        slashEvents: vAny.slashEvents || [],
       };
     } catch {
       return null;

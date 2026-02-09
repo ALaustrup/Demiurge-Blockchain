@@ -2,6 +2,7 @@
 export default {
   content: [
     './popup/**/*.{js,ts,jsx,tsx,html}',
+    './sidepanel/**/*.{js,ts,jsx,tsx,html}',
   ],
   theme: {
     extend: {

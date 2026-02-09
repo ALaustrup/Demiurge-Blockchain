@@ -90,10 +90,10 @@ export function DonationTierCard({ tier, isCurrentTier, onSelect, disabled }: Do
               <span className="text-holographic font-bold">{tier.freeMints}</span>
             </div>
           )}
-          {tier.gasDiscountBps > 0 && (
+          {tier.energyDiscountBps > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-400">Gas Discount</span>
-              <span className="text-data-magenta font-bold">{formatBps(tier.gasDiscountBps)}</span>
+              <span className="text-gray-400">Energy Discount</span>
+              <span className="text-data-magenta font-bold">{formatBps(tier.energyDiscountBps)}</span>
             </div>
           )}
         </div>

@@ -179,11 +179,11 @@ export const GNOSTIC_KNOWLEDGE: GnosticEntry[] = [
   },
   {
     term: 'Energy System',
-    definition: 'The gasless transaction mechanism; spiritual energy powering action.',
+    definition: 'The feeless transaction mechanism; spiritual energy powering action.',
     gnosticOrigin:
       'In Gnostic cosmology, pneuma (spirit/breath) is the animating force that enables action in the material world. Without pneuma, matter is inert. With it, creation becomes possible.',
     protocolMapping:
-      'The Energy system replaces traditional gas fees with a regenerating energy pool. Users start with 1000 Energy, regenerating at 1 per second. Transactions cost Energy rather than CGT, enabling gasless interactions. Like pneuma, Energy is the invisible force that makes all on-chain action possible.',
+      'The Energy system replaces traditional fee mechanisms with a regenerating energy pool. Users start with 1000 Energy, regenerating at 1 per second. Transactions cost Energy rather than CGT, enabling feeless interactions. Like pneuma, Energy is the invisible force that makes all on-chain action possible.',
     relatedTerms: ['Pneumatic', 'Demiurge'],
   },
 ];

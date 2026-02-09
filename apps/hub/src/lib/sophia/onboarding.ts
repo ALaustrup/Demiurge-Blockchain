@@ -56,7 +56,7 @@ const USER_STEPS: Omit<OnboardingStep, 'stepNumber' | 'totalSteps' | 'path'>[] =
     tips: [
       'Never share your seed phrase with anyone.',
       'The wallet uses Ed25519 cryptography for maximum security.',
-      'Your Energy starts at 1000 and regenerates at 1/second — this replaces gas fees.',
+      'Your Energy starts at 1000 and regenerates at 1/second — no traditional fees required.',
     ],
     nextAction: 'Once your wallet is set up, say "next" to claim your starter bonus.',
   },

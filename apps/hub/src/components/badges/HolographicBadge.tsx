@@ -503,8 +503,8 @@ export function BadgeDetailModal({
                   {definition.perks.xpRateBonus && (
                     <PerkItem icon="⚡" label="XP Rate Bonus" value={`+${definition.perks.xpRateBonus / 100}%`} />
                   )}
-                  {definition.perks.gasDiscount && (
-                    <PerkItem icon="⛽" label="Gas Discount" value={`${definition.perks.gasDiscount / 100}%`} />
+                  {definition.perks.energyDiscount && (
+                    <PerkItem icon="⚡" label="Energy Discount" value={`${definition.perks.energyDiscount / 100}%`} />
                   )}
                   {definition.perks.freeMints && (
                     <PerkItem icon="🎨" label="Free Mints" value={`${definition.perks.freeMints}`} />

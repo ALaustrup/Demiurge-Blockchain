@@ -60,6 +60,10 @@ export interface ProfileTheme {
   layoutStyle: 'classic' | 'grid' | 'timeline' | 'gallery';
   musicEnabled: boolean;
   profileSong?: string;
+  bannerImage?: string;
+  musicFile?: string;
+  musicPlayerStyle?: 'minimal' | 'full' | 'compact';
+  musicPlayerColor?: string;
 }
 
 export interface SocialLinks {

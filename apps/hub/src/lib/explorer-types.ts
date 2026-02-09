@@ -15,8 +15,8 @@ export interface BlockDetails {
   timestamp: number;
   validator: string;
   size: number;
-  gasUsed: number;
-  gasLimit: number;
+  energyUsed: number;
+  energyLimit: number;
   transactionCount: number;
   transactions: TransactionSummary[];
   era: number;
@@ -42,9 +42,9 @@ export interface TransactionDetails {
   from: string;
   to: string | null;
   value: string;
-  gasPrice: string;
-  gasUsed: number;
-  gasLimit: number;
+  energyPrice: string;
+  energyUsed: number;
+  energyLimit: number;
   nonce: number;
   input: string;
   status: 'success' | 'failed' | 'pending';
@@ -185,7 +185,7 @@ export interface NetworkCharts {
   blockTimes: ChartDataPoint[];
   tpsHistory: ChartDataPoint[];
   transactionsPerBlock: ChartDataPoint[];
-  gasUsedHistory: ChartDataPoint[];
+  energyUsedHistory: ChartDataPoint[];
   activeAddresses: ChartDataPoint[];
   stakingHistory: ChartDataPoint[];
 }

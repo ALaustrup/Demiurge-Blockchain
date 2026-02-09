@@ -68,8 +68,51 @@ class VYBService {
       return profileCache.get(qorId)!;
     }
 
-    // TODO: Fetch from real API when available
-    // For now, return a default profile with zero stats (not random mock data)
+    try {
+      // Fetch from VYB profile API
+      const response = await fetch(`/api/vyb/profile/${encodeURIComponent(qorId)}`);
+      if (response.ok) {
+        const { profile: dbProfile } = await response.json();
+        if (dbProfile) {
+          const profile: VYBProfile = {
+            qorId,
+            walletAddress: '',
+            displayName: dbProfile.display_name || qorId.split('#')[0] || 'User',
+            bio: dbProfile.bio || '',
+            avatar: dbProfile.avatar_url || undefined,
+            coverImage: dbProfile.banner_url || undefined,
+            role: 'user',
+            badges: [],
+            stats: {
+              followers: 0,
+              following: 0,
+              posts: 0,
+              nftsOwned: 0,
+              nftsCreated: 0,
+              cgtEarned: 0,
+              gamesPlayed: 0,
+              achievementsUnlocked: 0,
+            },
+            theme: {
+              ...DEFAULT_THEME,
+              ...(dbProfile.theme_json || {}),
+              bannerImage: dbProfile.banner_url || undefined,
+              musicFile: dbProfile.music_url || undefined,
+            },
+            createdAt: new Date(dbProfile.created_at || Date.now()),
+            lastActive: new Date(dbProfile.updated_at || Date.now()),
+            isVerified: false,
+            socialLinks: dbProfile.social_links || {},
+          };
+          profileCache.set(qorId, profile);
+          return profile;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch profile from API, using defaults:', error);
+    }
+
+    // Fallback: return a default profile with zero stats
     const profile: VYBProfile = {
       qorId,
       walletAddress: '',
@@ -104,7 +147,29 @@ class VYBService {
 
     const updated = { ...existing, ...updates };
     profileCache.set(qorId, updated);
-    // TODO: Persist to backend API when available
+
+    // Persist to backend API
+    try {
+      await fetch('/api/vyb/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-qor-id': qorId,
+        },
+        body: JSON.stringify({
+          display_name: updated.displayName,
+          bio: updated.bio,
+          avatar_url: updated.avatar,
+          banner_url: updated.coverImage || updated.theme.bannerImage,
+          music_url: updated.theme.musicFile || updated.theme.profileSong,
+          theme_json: updated.theme,
+          social_links: updated.socialLinks,
+        }),
+      });
+    } catch (error) {
+      console.warn('Failed to persist profile to API:', error);
+    }
+
     return updated;
   }
 

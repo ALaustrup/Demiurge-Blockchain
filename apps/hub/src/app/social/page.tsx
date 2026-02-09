@@ -14,9 +14,10 @@ import {
   ServiceMarketplace,
   TopFriends,
 } from '@/components/vyb';
+import { ChatLayout } from '@/components/vyb/chat';
 import { vybService } from '@/lib/vyb/service';
 
-type TabType = 'feed' | 'messages' | 'gallery' | 'services' | 'notifications';
+type TabType = 'feed' | 'messages' | 'gallery' | 'services' | 'notifications' | 'chat';
 
 interface OnlineFriend {
   id: string;
@@ -106,7 +107,8 @@ export default function SocialPage() {
 
   const tabs: { id: TabType; label: string; icon: string; badge?: number }[] = [
     { id: 'feed', label: 'Feed', icon: '🌐' },
-    { id: 'messages', label: 'Messages', icon: '💬', badge: unreadMessageCount },
+    { id: 'chat', label: 'Chat', icon: '💬' },
+    { id: 'messages', label: 'Messages', icon: '✉️', badge: unreadMessageCount },
     { id: 'gallery', label: 'Gallery', icon: '📸' },
     { id: 'services', label: 'Services', icon: '🛠️' },
     { id: 'notifications', label: 'Notifications', icon: '🔔', badge: unreadNotificationCount },
@@ -118,8 +120,6 @@ export default function SocialPage() {
     { href: '/social/groups', icon: '🏛️', label: 'Groups' },
     { href: '/social/events', icon: '📅', label: 'Events' },
     { href: '/games', icon: '🎮', label: 'Games' },
-    { href: '/music', icon: '🎵', label: 'Music' },
-    { href: '/marketplace', icon: '🛒', label: 'Market' },
   ];
 
   return (
@@ -405,6 +405,13 @@ export default function SocialPage() {
                 </Link>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Chat Tab */}
+        {activeTab === 'chat' && (
+          <div className="h-[70vh]">
+            <ChatLayout />
           </div>
         )}
 

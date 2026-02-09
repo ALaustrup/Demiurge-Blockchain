@@ -156,10 +156,24 @@ window.addEventListener('message', async (event) => {
   }
 });
 
+// Extract page context for Sophia AI
+function getPageContext(): { url: string; title: string; selectedText: string; content: string } {
+  const selection = window.getSelection();
+  return {
+    url: window.location.href,
+    title: document.title,
+    selectedText: selection ? selection.toString().trim() : '',
+    content: document.body?.innerText?.slice(0, 10000) || '',
+  };
+}
+
 // Listen for events from background
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'WALLET_EVENT') {
     sendEventToPage(message.event, message.data);
+  } else if (message.type === 'GET_PAGE_CONTEXT') {
+    sendResponse({ success: true, data: getPageContext() });
+    return;
   }
   sendResponse({ received: true });
   return true;

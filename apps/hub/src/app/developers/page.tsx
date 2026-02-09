@@ -235,7 +235,7 @@ export default function DevelopersPage() {
                 </div>
                 <div className="text-center p-4 bg-blockchain-light/30 rounded-lg">
                   <div className="text-3xl font-grunge text-green-400">0</div>
-                  <div className="text-xs text-gray-400">Gas Fees</div>
+                  <div className="text-xs text-gray-400">Energy Fees</div>
                 </div>
                 <div className="text-center p-4 bg-blockchain-light/30 rounded-lg">
                   <div className="text-3xl font-grunge text-neon-purple">1000+</div>

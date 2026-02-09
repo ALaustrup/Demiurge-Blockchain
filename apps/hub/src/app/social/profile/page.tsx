@@ -11,6 +11,7 @@ import {
   MoodStatus, 
   AboutMe 
 } from '@/components/vyb';
+import { ProfileMusicPlayer } from '@/components/vyb/ProfileMusicPlayer';
 import Link from 'next/link';
 
 type ProfileTabType = 'wall' | 'about' | 'photos' | 'friends' | 'nfts' | 'games';
@@ -77,15 +78,32 @@ export default function MyProfilePage() {
     { id: 'games', label: 'Games', icon: '🎮' },
   ];
 
+  // Dynamic font class based on theme
+  const fontClass = {
+    modern: 'font-sans',
+    retro: 'font-mono',
+    grunge: 'font-grunge',
+    minimal: 'font-body',
+  }[profile.theme.fontStyle] || 'font-sans';
+
   return (
-    <main className="min-h-screen">
+    <main className={`min-h-screen ${fontClass}`}>
       {/* Cover Image */}
       <div 
-        className="h-48 md:h-72 relative"
+        className="h-48 md:h-72 relative overflow-hidden"
         style={{
-          background: `linear-gradient(135deg, ${profile.theme.primaryColor}, ${profile.theme.secondaryColor})`
+          background: profile.theme.bannerImage
+            ? undefined
+            : `linear-gradient(135deg, ${profile.theme.primaryColor}, ${profile.theme.secondaryColor})`
         }}
       >
+        {profile.theme.bannerImage && (
+          <img 
+            src={profile.theme.bannerImage} 
+            alt="Profile Banner" 
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-blockchain-dark/90 to-transparent" />
         
         {/* Back Button */}
@@ -107,6 +125,9 @@ export default function MyProfilePage() {
           </button>
         </div>
       </div>
+
+      {/* Profile Music Player */}
+      <ProfileMusicPlayer theme={profile.theme} autoPlay />
 
       {/* Profile Header */}
       <div className="max-w-6xl mx-auto px-4 -mt-20 relative z-10">

@@ -12,6 +12,7 @@ export { ServiceMarketplace } from './ServiceMarketplace';
 // Media Components
 export { MediaUploader, type MediaFile } from './MediaUploader';
 export { AudioPlayer } from './AudioPlayer';
+export { ProfileMusicPlayer } from './ProfileMusicPlayer';
 
 // Enhanced Social Network Components
 export { ProfileWall } from './ProfileWall';

@@ -405,7 +405,7 @@ async function mintOrUpgradeDonorBadge(
       free_mints_remaining: donorData.free_mints_remaining || tier.freeMints,
       staking_bonus_bps: tier.stakingBonusBps,
       xp_rate_bonus_bps: tier.xpRateBonusBps,
-      gas_discount_bps: tier.gasDiscountBps,
+      gas_discount_bps: tier.energyDiscountBps,
       chat_privileges: tier.chatPrivileges,
       cgt_received: donorData.total_cgt_received || tier.cgtReward,
       upgraded_at: new Date().toISOString(),

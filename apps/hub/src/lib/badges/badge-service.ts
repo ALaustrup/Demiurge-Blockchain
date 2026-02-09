@@ -151,10 +151,10 @@ async function buildBadgeMetadata(
         display_type: 'boost_percentage',
       });
     }
-    if (badge.perks.gasDiscount) {
+    if (badge.perks.energyDiscount) {
       metadata.attributes.push({
-        trait_type: 'Gas Discount',
-        value: badge.perks.gasDiscount / 100,
+        trait_type: 'Energy Discount',
+        value: badge.perks.energyDiscount / 100,
         display_type: 'boost_percentage',
       });
     }

@@ -9,6 +9,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'popup/index.html'),
+        sidepanel: resolve(__dirname, 'sidepanel/index.html'),
         'background/service-worker': resolve(__dirname, 'background/service-worker.ts'),
         'content/inject': resolve(__dirname, 'content/inject.ts'),
         'content/provider': resolve(__dirname, 'content/provider.ts'),

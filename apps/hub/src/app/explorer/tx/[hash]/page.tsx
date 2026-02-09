@@ -200,23 +200,23 @@ export default function TransactionDetailPage() {
           </div>
         </div>
 
-        {/* Gas Details */}
+        {/* Energy Details */}
         <div className="glass-panel rounded-xl overflow-hidden">
           <div className="p-4 border-b border-white/10">
-            <h3 className="font-grunge text-lg text-white">Gas Details</h3>
+            <h3 className="font-grunge text-lg text-white">Energy Details</h3>
           </div>
           <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
-              <span className="text-gray-400 text-sm">Gas Used</span>
-              <p className="text-white font-semibold">{tx.gasUsed.toLocaleString()}</p>
+              <span className="text-gray-400 text-sm">Energy Used</span>
+              <p className="text-white font-semibold">{tx.energyUsed.toLocaleString()}</p>
             </div>
             <div>
-              <span className="text-gray-400 text-sm">Gas Limit</span>
-              <p className="text-white font-semibold">{tx.gasLimit.toLocaleString()}</p>
+              <span className="text-gray-400 text-sm">Energy Limit</span>
+              <p className="text-white font-semibold">{tx.energyLimit.toLocaleString()}</p>
             </div>
             <div>
-              <span className="text-gray-400 text-sm">Gas Price</span>
-              <p className="text-white font-semibold">{(parseFloat(tx.gasPrice) / 1e9).toFixed(2)} Gwei</p>
+              <span className="text-gray-400 text-sm">Energy Price</span>
+              <p className="text-white font-semibold">{(parseFloat(tx.energyPrice) / 1e9).toFixed(2)} units</p>
             </div>
             <div>
               <span className="text-gray-400 text-sm">Nonce</span>

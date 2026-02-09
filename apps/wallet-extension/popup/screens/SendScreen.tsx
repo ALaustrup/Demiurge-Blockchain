@@ -1,41 +1,87 @@
-// Demiurge Wallet Extension - Send Screen
-import React, { useState } from 'react';
+// Demiurge Wallet Extension - Send Screen (with Transfer Policy)
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { Button } from '../components/Button';
 
 export function SendScreen() {
-  const { sendTransaction, setView, isLoading, formattedBalance } = useStore();
+  const { sendTransaction, setView, isLoading, formattedBalance, activeAccount, accountLimits, refreshLimits } = useStore();
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
+  const [policyWarning, setPolicyWarning] = useState('');
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    refreshLimits();
+  }, [refreshLimits]);
 
   const validateAddress = (address: string): boolean => {
-    // Basic validation for Demiurge addresses (hex string of correct length)
-    return /^[0-9a-fA-F]{64}$/.test(address);
+    // Demiurge addresses: 48-char hex strings starting with 5, or 64-char hex public keys
+    return /^[0-9a-fA-F]{64}$/.test(address) || /^5[0-9a-fA-F]{47}$/.test(address);
   };
+
+  // Pre-check transfer policy when recipient and amount are filled
+  useEffect(() => {
+    setPolicyWarning('');
+    if (!recipient || !amount || !validateAddress(recipient)) return;
+
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) return;
+
+    const amountInBaseUnits = (BigInt(Math.floor(amountNum * 1e6)) * BigInt(1e12)).toString();
+
+    const timer = setTimeout(async () => {
+      setChecking(true);
+      try {
+        const response = await chrome.runtime.sendMessage({
+          type: 'CHECK_TRANSFER_POLICY',
+          payload: { to: recipient, amount: amountInBaseUnits },
+        });
+
+        if (response.success && response.data && !response.data.allowed) {
+          setPolicyWarning(response.data.reason || 'Transfer not allowed.');
+        }
+      } catch {
+        // Ignore pre-check errors
+      } finally {
+        setChecking(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [recipient, amount]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validate recipient address
     if (!validateAddress(recipient)) {
-      setError('Invalid recipient address');
+      setError('Invalid recipient address. Must be a valid Demiurge address.');
       return;
     }
 
-    // Validate amount
+    if (activeAccount && recipient.toLowerCase() === activeAccount.toLowerCase()) {
+      setError('Cannot send CGT to your own address.');
+      return;
+    }
+
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
-      setError('Please enter a valid amount');
+      setError('Please enter a valid amount.');
       return;
     }
 
-    // Convert to base units (assuming 18 decimals like most chains)
+    if (amountNum < 0.001) {
+      setError('Minimum transfer amount is 0.001 CGT.');
+      return;
+    }
+
+    // Convert to base units (18 decimals)
     const amountInBaseUnits = (BigInt(Math.floor(amountNum * 1e6)) * BigInt(1e12)).toString();
 
     try {
       await sendTransaction(recipient, amountInBaseUnits);
+      refreshLimits();
     } catch (e) {
       setError((e as Error).message);
     }
@@ -43,7 +89,9 @@ export function SendScreen() {
 
   const handleMaxAmount = () => {
     if (formattedBalance) {
-      setAmount(formattedBalance);
+      // Leave 0.1 CGT for energy + minimum retain
+      const max = Math.max(0, parseFloat(formattedBalance) - 0.1);
+      setAmount(max > 0 ? max.toFixed(6) : '0');
     }
   };
 
@@ -62,6 +110,20 @@ export function SendScreen() {
         <h1 className="text-xl font-bold text-white">Send CGT</h1>
       </div>
 
+      {/* Limits Banner */}
+      {accountLimits && (
+        <div className="bg-gray-800/30 border border-gray-700/30 rounded-lg p-3 mb-4 text-xs text-gray-400">
+          <div className="flex justify-between">
+            <span>Daily sends</span>
+            <span className="text-white">{accountLimits.dailyUsed}/{accountLimits.dailyLimit}</span>
+          </div>
+          <div className="flex justify-between mt-1">
+            <span>Max per transfer</span>
+            <span className="text-white">{accountLimits.maxSingleCGT} CGT</span>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSend} className="flex-1 flex flex-col">
         <div className="space-y-4 flex-1">
           {/* Recipient */}
@@ -70,8 +132,8 @@ export function SendScreen() {
             <input
               type="text"
               value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
-              placeholder="Enter recipient address (64 hex characters)"
+              onChange={(e) => setRecipient(e.target.value.trim())}
+              placeholder="Demiurge address"
               className="input font-mono text-sm"
             />
           </div>
@@ -83,31 +145,43 @@ export function SendScreen() {
               <button
                 type="button"
                 onClick={handleMaxAmount}
-                className="text-demiurge-400 text-sm hover:text-demiurge-300 transition-colors"
+                className="text-demiurge-400 text-xs hover:text-demiurge-300 transition-colors"
               >
-                Max: {formattedBalance ?? '0'} CGT
+                Max: {formattedBalance ?? '0'}
               </button>
             </div>
             <div className="relative">
               <input
                 type="number"
                 step="0.000001"
-                min="0"
+                min="0.001"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
                 className="input pr-16"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm">
                 CGT
               </span>
             </div>
           </div>
 
+          {/* Policy Warning */}
+          {policyWarning && (
+            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-red-400 text-xs">{policyWarning}</p>
+              </div>
+            </div>
+          )}
+
           {/* Transaction Preview */}
-          {amount && recipient && (
+          {amount && recipient && !policyWarning && (
             <div className="card">
-              <h3 className="text-gray-400 text-sm mb-3">Transaction Preview</h3>
+              <h3 className="text-gray-400 text-xs font-medium uppercase tracking-wide mb-3">Preview</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Amount</span>
@@ -134,7 +208,7 @@ export function SendScreen() {
           <p className="text-red-500 text-sm mb-4">{error}</p>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 mt-4">
           <Button
             type="button"
             variant="secondary"
@@ -146,8 +220,8 @@ export function SendScreen() {
           <Button
             type="submit"
             fullWidth
-            loading={isLoading}
-            disabled={!recipient || !amount}
+            loading={isLoading || checking}
+            disabled={!recipient || !amount || !!policyWarning}
           >
             Send
           </Button>

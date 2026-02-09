@@ -6,13 +6,19 @@ import { Button } from '../components/Button';
 type SettingsTab = 'general' | 'security' | 'about';
 
 export function SettingsScreen() {
-  const { setView, lock, activeAccount, network } = useStore();
+  const { setView, lock, activeAccount, network, detachWallet, authLogout, isAuthenticated, authUser } = useStore();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [autoLockTime, setAutoLockTime] = useState('15');
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportPassword, setExportPassword] = useState('');
   const [privateKey, setPrivateKey] = useState('');
   const [exportError, setExportError] = useState('');
+  const [showDetachConfirm, setShowDetachConfirm] = useState(false);
+
+  const handleDetachWallet = async () => {
+    await detachWallet();
+    setShowDetachConfirm(false);
+  };
 
   const handleExportPrivateKey = async () => {
     setExportError('');
@@ -113,6 +119,21 @@ export function SettingsScreen() {
 
         {activeTab === 'security' && (
           <div className="space-y-4">
+            {isAuthenticated && authUser && (
+              <div className="card">
+                <h3 className="text-white font-medium mb-3">Signed In</h3>
+                <p className="text-gray-400 text-sm mb-1">
+                  QOR ID: <span className="text-white font-mono">{authUser.qorId}</span>
+                </p>
+                <p className="text-gray-400 text-sm mb-3">
+                  {authUser.displayName && `Display name: ${authUser.displayName}`}
+                </p>
+                <Button variant="secondary" fullWidth onClick={authLogout}>
+                  Sign Out
+                </Button>
+              </div>
+            )}
+
             <div className="card">
               <h3 className="text-white font-medium mb-3">Export Private Key</h3>
               <p className="text-gray-400 text-sm mb-3">
@@ -127,23 +148,23 @@ export function SettingsScreen() {
               </Button>
             </div>
 
-            <div className="card">
-              <h3 className="text-white font-medium mb-3">Lock Wallet</h3>
+            <div className="card border-yellow-500/30">
+              <h3 className="text-yellow-400 font-medium mb-3">Detach Wallet</h3>
               <p className="text-gray-400 text-sm mb-3">
-                Lock your wallet immediately
+                Sign out and clear all local wallet data. You can sign back in with your QOR ID at any time.
               </p>
-              <Button variant="secondary" fullWidth onClick={lock}>
-                Lock Now
+              <Button variant="secondary" fullWidth onClick={() => setShowDetachConfirm(true)}>
+                Detach Wallet
               </Button>
             </div>
 
             <div className="card border-red-500/30">
               <h3 className="text-red-400 font-medium mb-3">Danger Zone</h3>
               <p className="text-gray-400 text-sm mb-3">
-                Clear all wallet data. Make sure you have your recovery phrase.
+                Clear all wallet data including cached sessions. This cannot be undone.
               </p>
               <Button variant="danger" fullWidth onClick={handleClearData}>
-                Clear Wallet Data
+                Clear All Data
               </Button>
             </div>
           </div>
@@ -284,6 +305,42 @@ export function SettingsScreen() {
                 </Button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Detach Confirmation Modal */}
+      {showDetachConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm">
+            <h2 className="text-xl font-bold text-white mb-3">Detach Wallet</h2>
+            <p className="text-gray-400 text-sm mb-2">
+              This will:
+            </p>
+            <ul className="text-gray-400 text-sm mb-4 list-disc list-inside space-y-1">
+              <li>Sign you out of your QOR ID</li>
+              <li>Clear all local wallet data</li>
+              <li>Remove cached notes and media</li>
+            </ul>
+            <p className="text-gray-300 text-sm mb-4">
+              You can sign back in with your QOR ID at any time. Your on-chain data remains safe.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setShowDetachConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                fullWidth
+                onClick={handleDetachWallet}
+              >
+                Detach
+              </Button>
+            </div>
           </div>
         </div>
       )}

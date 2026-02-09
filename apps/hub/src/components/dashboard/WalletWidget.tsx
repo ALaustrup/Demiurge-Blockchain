@@ -140,7 +140,11 @@ export function WalletWidget() {
           <div className="mb-4">
             <div className="text-xs text-gray-400 mb-1">Public Address</div>
             <div className="flex items-center gap-2">
-              <div className="flex-1 bg-black/30 rounded px-3 py-2 text-xs font-mono text-gray-300 truncate">
+              <div
+                className="flex-1 bg-black/30 rounded px-3 py-2 text-xs font-mono text-gray-300 break-all select-all cursor-pointer"
+                title={address}
+                onClick={handleCopy}
+              >
                 {address}
               </div>
               <button
@@ -159,6 +163,25 @@ export function WalletWidget() {
             <EnergyDisplay address={address} />
           </div>
         )}
+
+        {/* Extension Promo */}
+        <div className="mt-4 pt-4 border-t border-white/5">
+          <a
+            href="/docs/sdk/wallet-extension"
+            className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all group"
+          >
+            <span className="text-xl">🧩</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-orange-300 group-hover:text-orange-200 transition-colors">
+                Demiurge Extension
+              </div>
+              <div className="text-xs text-gray-400">
+                Wallet, Sophia AI &amp; more — in your browser
+              </div>
+            </div>
+            <span className="text-gray-500 group-hover:text-orange-300 transition-colors">→</span>
+          </a>
+        </div>
       </div>
 
       {/* Modals */}

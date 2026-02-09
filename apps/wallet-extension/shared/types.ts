@@ -85,6 +85,19 @@ export interface TransactionResult {
   blockNumber?: number;
 }
 
+// Auth state
+export interface AuthState {
+  isAuthenticated: boolean;
+  token: string | null;
+  user: QorUser | null;
+}
+
+export interface QorUser {
+  qorId: string;
+  address?: string;
+  displayName?: string;
+}
+
 // Wallet state
 export interface WalletState {
   isLocked: boolean;
@@ -93,6 +106,28 @@ export interface WalletState {
   activeAccount: string | null;
   network: string;
   pendingRequests: PendingRequest[];
+  auth: AuthState;
+}
+
+// Saved note
+export interface SavedNote {
+  id: string;
+  title: string;
+  content: string;
+  url?: string;
+  tags: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+// Saved media
+export interface SavedMedia {
+  id: string;
+  url: string;
+  title?: string;
+  sourceUrl: string;
+  type: 'image' | 'link';
+  createdAt: number;
 }
 
 export interface PendingRequest {

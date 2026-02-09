@@ -10,7 +10,7 @@ export interface DonorPerks {
   freeMints: number;
   stakingBonusBps: number;
   xpRateBonusBps: number;
-  gasDiscountBps: number;
+  energyDiscountBps: number;
   chatPrivileges: string[];
   donorTier: number;
   subscriptionTier: number;
@@ -41,7 +41,7 @@ export async function getDonorPerks(authHeader: string | null): Promise<DonorPer
       freeMints: data.free_mints_remaining || 0,
       stakingBonusBps: data.staking_bonus_bps || 0,
       xpRateBonusBps: data.xp_rate_bonus_bps || 0,
-      gasDiscountBps: data.gas_discount_bps || 0,
+      energyDiscountBps: data.gas_discount_bps || 0,
       chatPrivileges: data.chat_privileges || [],
       donorTier: data.current_tier || 0,
       subscriptionTier: data.subscription_tier || 0,
@@ -139,15 +139,15 @@ export async function checkAndConsumeFreeMint(
 }
 
 /**
- * Calculate gas discount for a donor
+ * Calculate energy discount for a donor
  * 
  * @param baseFee Base transaction fee
- * @param gasDiscountBps Gas discount in basis points (1000 = 10%)
+ * @param energyDiscountBps Energy discount in basis points (1000 = 10%)
  * @returns Discounted fee
  */
-export function applyGasDiscount(baseFee: number, gasDiscountBps: number): number {
-  if (gasDiscountBps <= 0) return baseFee;
-  const discount = baseFee * (gasDiscountBps / 10000);
+export function applyEnergyDiscount(baseFee: number, energyDiscountBps: number): number {
+  if (energyDiscountBps <= 0) return baseFee;
+  const discount = baseFee * (energyDiscountBps / 10000);
   return Math.max(0, baseFee - discount);
 }
 

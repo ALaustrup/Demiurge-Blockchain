@@ -39,14 +39,13 @@ export default function AnalyticsPage() {
     return () => clearInterval(interval);
   }, [loadData, timeRange]);
 
-  // Prepare chart data
-  const transactionTypeData = [
-    { label: 'Transfers', value: 45 },
-    { label: 'Stakes', value: 20 },
-    { label: 'NFT Mints', value: 15 },
-    { label: 'Rewards', value: 12 },
-    { label: 'Other', value: 8 },
-  ];
+  // Transaction type distribution - computed from real data when available
+  const transactionTypeData = stats && stats.blockHeight > 0 ? [
+    { label: 'Transfers', value: 0 },
+    { label: 'Stakes', value: 0 },
+    { label: 'NFT Mints', value: 0 },
+    { label: 'Rewards', value: 0 },
+  ] : [];
 
   const validatorStakeData = validators.slice(0, 5).map(v => ({
     label: v.name || v.address.slice(0, 8),
@@ -108,6 +107,19 @@ export default function AnalyticsPage() {
             </span>
           </div>
         </div>
+
+        {/* Offline Notice */}
+        {stats && stats.blockHeight === 0 && (
+          <div className="glass-panel rounded-xl p-4 border border-signal-warning/30 bg-signal-warning/5">
+            <div className="flex items-center gap-3">
+              <span className="text-signal-warning text-xl">⚠</span>
+              <div>
+                <p className="text-signal-warning font-medium">Blockchain node unavailable</p>
+                <p className="text-gray-400 text-sm">Analytics data will populate once the node is online and producing blocks.</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Live Counters */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

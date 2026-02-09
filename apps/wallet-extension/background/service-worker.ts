@@ -13,9 +13,16 @@ import type {
   SendTransactionPayload,
   WalletStateResponse,
   SophiaQueryPayload,
+  AuthLoginPayload,
+  AuthKeypairLoginPayload,
+  AuthSessionResponse,
+  SaveNotePayload,
+  SaveMediaPayload,
+  AnalyzePagePayload,
+  MintSummaryPayload,
 } from '../shared/messages';
 import { createResponse } from '../shared/messages';
-import type { Account, EncryptedKeystore, PendingRequest, WalletState } from '../shared/types';
+import type { Account, AuthState, EncryptedKeystore, PendingRequest, SavedNote, SavedMedia, WalletState } from '../shared/types';
 
 // Wallet state
 let walletState: WalletState = {
@@ -25,6 +32,11 @@ let walletState: WalletState = {
   activeAccount: null,
   network: 'mainnet',
   pendingRequests: [],
+  auth: {
+    isAuthenticated: false,
+    token: null,
+    user: null,
+  },
 };
 
 // Storage keys
@@ -33,7 +45,101 @@ const STORAGE_KEYS = {
   ACCOUNTS: 'demiurge_accounts',
   SETTINGS: 'demiurge_settings',
   CONNECTED_SITES: 'demiurge_connected_sites',
+  AUTH_TOKEN: 'demiurge_auth_token',
+  AUTH_USER: 'demiurge_auth_user',
+  NOTES: 'demiurge_notes',
+  MEDIA: 'demiurge_media',
+  SOPHIA_CONVERSATIONS: 'demiurge_sophia_conversations',
 };
+
+// Hub URL resolver
+function getHubUrl(): string {
+  return walletState.network === 'mainnet'
+    ? 'https://demiurge.cloud'
+    : 'http://localhost:3000';
+}
+
+// Deterministic address derivation from QOR ID
+// Mirrors the hub's generateSimpleAddress() logic for compatibility
+function deriveAddressFromQorId(qorId: string): string {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`DEMIURGE_QOR_ID:${qorId}`);
+
+  let hash1 = 2166136261;
+  let hash2 = 3671253287;
+
+  for (let i = 0; i < data.length; i++) {
+    hash1 ^= data[i];
+    hash1 = Math.imul(hash1, 16777619);
+    hash2 ^= data[data.length - 1 - i];
+    hash2 = Math.imul(hash2, 16777619);
+  }
+
+  const hex1 = (hash1 >>> 0).toString(16).padStart(8, '0');
+  const hex2 = (hash2 >>> 0).toString(16).padStart(8, '0');
+  const hex3 = ((hash1 ^ hash2) >>> 0).toString(16).padStart(8, '0');
+  const hex4 = ((hash1 + hash2) >>> 0).toString(16).padStart(8, '0');
+  const hex5 = ((hash1 * hash2) >>> 0).toString(16).padStart(8, '0');
+  const hex6 = (Math.abs(hash1 - hash2) >>> 0).toString(16).padStart(8, '0');
+
+  return `5${hex1}${hex2}${hex3}${hex4}${hex5}${hex6}`.slice(0, 48);
+}
+
+// Transfer activity tracking
+import { evaluateSendPolicy, getAccountLimits, type AccountActivity } from '../shared/transfer-policy';
+
+const STORAGE_TRANSFER_LOG = 'demiurge_transfer_log';
+
+interface TransferLogEntry {
+  to: string;
+  amount: string;
+  timestamp: number;
+}
+
+async function getTransferActivity(address: string): Promise<AccountActivity> {
+  const stored = await chrome.storage.local.get([STORAGE_TRANSFER_LOG, STORAGE_KEYS.ACCOUNTS]);
+  const log: TransferLogEntry[] = stored[STORAGE_TRANSFER_LOG] || [];
+  const accounts: Account[] = stored[STORAGE_KEYS.ACCOUNTS] || [];
+
+  const now = Date.now();
+  const oneDayAgo = now - 24 * 60 * 60 * 1000;
+  const oneHourAgo = now - 60 * 60 * 1000;
+  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+  // Find account creation date
+  const account = accounts.find(a => a.address === address);
+  const createdAt = account?.createdAt || now;
+
+  const todayTransfers = log.filter(e => e.timestamp > oneDayAgo);
+  const hourTransfers = log.filter(e => e.timestamp > oneHourAgo);
+  const weekRecipients = log
+    .filter(e => e.timestamp > sevenDaysAgo)
+    .map(e => e.to.toLowerCase());
+
+  return {
+    createdAt,
+    totalTransfersSent: log.length,
+    totalTransfersReceived: 0,
+    transfersToday: todayTransfers.length,
+    transfersThisHour: hourTransfers.length,
+    lastTransferAt: log.length > 0 ? log[log.length - 1].timestamp : 0,
+    uniqueRecipients: [...new Set(weekRecipients)],
+    flagged: false,
+  };
+}
+
+async function recordTransfer(to: string, amount: string): Promise<void> {
+  const stored = await chrome.storage.local.get(STORAGE_TRANSFER_LOG);
+  const log: TransferLogEntry[] = stored[STORAGE_TRANSFER_LOG] || [];
+
+  log.push({ to: to.toLowerCase(), amount, timestamp: Date.now() });
+
+  // Keep only last 30 days of entries
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const trimmed = log.filter(e => e.timestamp > cutoff);
+
+  await chrome.storage.local.set({ [STORAGE_TRANSFER_LOG]: trimmed });
+}
 
 // Initialize wallet state from storage
 async function initializeState(): Promise<void> {
@@ -41,16 +147,47 @@ async function initializeState(): Promise<void> {
     STORAGE_KEYS.KEYSTORES,
     STORAGE_KEYS.ACCOUNTS,
     STORAGE_KEYS.SETTINGS,
+    STORAGE_KEYS.AUTH_TOKEN,
+    STORAGE_KEYS.AUTH_USER,
   ]);
 
   const keystores = stored[STORAGE_KEYS.KEYSTORES] as EncryptedKeystore[] | undefined;
   const accounts = stored[STORAGE_KEYS.ACCOUNTS] as Account[] | undefined;
   const settings = stored[STORAGE_KEYS.SETTINGS] as { network?: string } | undefined;
+  const authToken = stored[STORAGE_KEYS.AUTH_TOKEN] as string | undefined;
+  const authUser = stored[STORAGE_KEYS.AUTH_USER] as { qorId: string; address?: string; displayName?: string } | undefined;
 
-  walletState.isInitialized = keystores && keystores.length > 0;
+  walletState.isInitialized = (keystores && keystores.length > 0) || false;
   walletState.accounts = accounts || [];
   walletState.network = settings?.network || 'mainnet';
   walletState.isLocked = true;
+
+  // Restore auth session
+  if (authToken && authUser) {
+    // Ensure address is present (derive if missing)
+    if (!authUser.address && authUser.qorId) {
+      authUser.address = deriveAddressFromQorId(authUser.qorId);
+    }
+
+    walletState.auth = {
+      isAuthenticated: true,
+      token: authToken,
+      user: authUser,
+    };
+
+    // Ensure account and activeAccount are set
+    if (authUser.address) {
+      if (!walletState.accounts.find(a => a.address === authUser.address)) {
+        walletState.accounts.push({
+          address: authUser.address!,
+          publicKey: authUser.address!,
+          name: authUser.displayName || 'QOR Account',
+          createdAt: Date.now(),
+        });
+      }
+      walletState.activeAccount = authUser.address;
+    }
+  }
 
   if (settings?.network) {
     rpcHandler.setNetwork(settings.network);
@@ -161,9 +298,61 @@ async function handleMessage(
       case 'REJECT_REQUEST':
         return handleRequestReject(payload as { requestId: string; reason?: string });
 
+      // QOR ID Auth
+      case 'AUTH_LOGIN':
+        return await handleAuthLogin(payload as AuthLoginPayload);
+
+      case 'AUTH_KEYPAIR_LOGIN':
+        return await handleAuthKeypairLogin(payload as AuthKeypairLoginPayload);
+
+      case 'AUTH_LOGOUT':
+        return await handleAuthLogout();
+
+      case 'DETACH_WALLET':
+        return await handleDetachWallet();
+
+      case 'AUTH_GET_SESSION':
+        return createResponse(true, getAuthSession());
+
+      // Transfer policy
+      case 'CHECK_TRANSFER_POLICY':
+        return await handleCheckTransferPolicy(payload as { to: string; amount: string });
+
+      case 'GET_ACCOUNT_LIMITS':
+        return await handleGetAccountLimits();
+
+      // Missing handlers
+      case 'CLAIM_STARTER_TOKENS':
+        return await handleClaimStarterTokens(payload as { address: string });
+
+      case 'EXPORT_PRIVATE_KEY':
+        return await handleExportPrivateKey(payload as { password: string });
+
       // Sophia AI
       case 'SOPHIA_QUERY':
         return await handleSophiaQuery(payload as SophiaQueryPayload);
+
+      // Content capture
+      case 'SAVE_NOTE':
+        return await handleSaveNote(payload as SaveNotePayload);
+
+      case 'GET_NOTES':
+        return await handleGetNotes();
+
+      case 'DELETE_NOTE':
+        return await handleDeleteNote(payload as { id: string });
+
+      case 'SAVE_MEDIA':
+        return await handleSaveMedia(payload as SaveMediaPayload);
+
+      case 'GET_MEDIA':
+        return await handleGetMedia();
+
+      // Phase 4 (Page Analysis) removed - replaced by VYB Chat integration
+
+      // Page context (from content script)
+      case 'GET_PAGE_CONTEXT':
+        return createResponse(true, { supported: true });
 
       default:
         return createResponse(false, undefined, `Unknown message type: ${type}`);
@@ -183,6 +372,16 @@ function getWalletState(): WalletStateResponse {
     activeAccount: walletState.activeAccount,
     network: walletState.network,
     pendingRequestCount: walletState.pendingRequests.length,
+    auth: walletState.auth,
+  };
+}
+
+// Get auth session
+function getAuthSession(): AuthSessionResponse {
+  return {
+    isAuthenticated: walletState.auth.isAuthenticated,
+    token: walletState.auth.token || undefined,
+    user: walletState.auth.user || undefined,
   };
 }
 
@@ -389,7 +588,9 @@ async function handleSignTransaction(payload: SendTransactionPayload, origin?: s
 
 // Send transaction
 async function handleSendTransaction(payload: SendTransactionPayload, origin?: string): Promise<MessageResponse> {
-  if (walletState.isLocked) {
+  // QOR-authenticated users can send even if local wallet is locked
+  const isQorAuth = walletState.auth.isAuthenticated;
+  if (walletState.isLocked && !isQorAuth) {
     return createResponse(false, undefined, 'Wallet is locked');
   }
 
@@ -398,6 +599,26 @@ async function handleSendTransaction(payload: SendTransactionPayload, origin?: s
   
   if (!from) {
     return createResponse(false, undefined, 'No account selected');
+  }
+
+  // --- Enforce transfer policy ---
+  try {
+    const balanceResult = await rpcHandler.getBalance(from);
+    const activity = await getTransferActivity(from);
+    const policyResult = evaluateSendPolicy(
+      from,
+      transaction.to,
+      transaction.value,
+      balanceResult.balance,
+      activity,
+    );
+
+    if (!policyResult.allowed) {
+      return createResponse(false, undefined, policyResult.reason || 'Transfer blocked by policy.');
+    }
+  } catch (policyError) {
+    // If we can't check policy (e.g., RPC down), still allow but log
+    console.warn('Transfer policy check failed, proceeding:', policyError);
   }
 
   // Build message for signing
@@ -417,7 +638,53 @@ async function handleSendTransaction(payload: SendTransactionPayload, origin?: s
       transaction.value,
       signatureHex
     );
+
+    // Record successful transfer for rate limiting
+    await recordTransfer(transaction.to, transaction.value);
+
     return createResponse(true, result);
+  } catch (error) {
+    return createResponse(false, undefined, (error as Error).message);
+  }
+}
+
+// Check transfer policy without sending
+async function handleCheckTransferPolicy(payload: { to: string; amount: string }): Promise<MessageResponse> {
+  const from = walletState.activeAccount;
+  if (!from) {
+    return createResponse(false, undefined, 'No account selected');
+  }
+
+  try {
+    const balanceResult = await rpcHandler.getBalance(from);
+    const activity = await getTransferActivity(from);
+    const result = evaluateSendPolicy(from, payload.to, payload.amount, balanceResult.balance, activity);
+    return createResponse(true, result);
+  } catch (error) {
+    return createResponse(false, undefined, (error as Error).message);
+  }
+}
+
+// Get current account limits
+async function handleGetAccountLimits(): Promise<MessageResponse> {
+  const from = walletState.activeAccount;
+  if (!from) {
+    return createResponse(true, {
+      tier: 'new',
+      dailyLimit: 3,
+      dailyUsed: 0,
+      hourlyLimit: 5,
+      hourlyUsed: 0,
+      maxSingleCGT: '100',
+      canSend: false,
+      accountAgeHours: 0,
+    });
+  }
+
+  try {
+    const activity = await getTransferActivity(from);
+    const limits = getAccountLimits(activity);
+    return createResponse(true, limits);
   } catch (error) {
     return createResponse(false, undefined, (error as Error).message);
   }
@@ -489,26 +756,260 @@ function handleRequestReject(payload: { requestId: string; reason?: string }): M
   return createResponse(true, { rejected: true, reason: payload.reason });
 }
 
-// Sophia AI query handler
-async function handleSophiaQuery(payload: SophiaQueryPayload): Promise<MessageResponse> {
-  try {
-    // Determine the Sophia API endpoint based on network config
-    const hubUrl = walletState.network === 'mainnet'
-      ? 'https://hub.demiurge.cloud'
-      : 'http://localhost:3000';
+// --- QOR ID Auth Handlers ---
 
-    const response = await fetch(`${hubUrl}/api/sophia/chat`, {
+async function handleAuthLogin(payload: AuthLoginPayload): Promise<MessageResponse> {
+  try {
+    const hubUrl = getHubUrl();
+    const response = await fetch(`${hubUrl}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        messages: [
-          {
-            role: 'user',
-            content: payload.message,
-          },
-        ],
-        // Pass wallet context so Sophia knows the user's state
-        systemPrompt: undefined, // Use default
+        identifier: payload.identifier,
+        password: payload.password,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return createResponse(false, undefined, errorData.message || `Login failed (${response.status})`);
+    }
+
+    const data = await response.json();
+    const token = data.token || data.access_token;
+    const qorId = data.user?.qor_id || data.user?.qorId || payload.identifier;
+
+    // Resolve on-chain address: use API response first, otherwise derive from QOR ID
+    const apiAddress = data.user?.address || data.user?.on_chain_address || data.user?.on_chain?.address;
+    const derivedAddress = deriveAddressFromQorId(qorId);
+    const resolvedAddress = apiAddress || derivedAddress;
+
+    const user = {
+      qorId,
+      address: resolvedAddress,
+      displayName: data.user?.display_name || data.user?.displayName || payload.identifier.split('#')[0],
+    };
+
+    // Persist auth
+    walletState.auth = { isAuthenticated: true, token, user };
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.AUTH_TOKEN]: token,
+      [STORAGE_KEYS.AUTH_USER]: user,
+    });
+
+    // Ensure account exists for this address
+    if (!walletState.accounts.find(a => a.address === resolvedAddress)) {
+      const account: Account = {
+        address: resolvedAddress,
+        publicKey: resolvedAddress,
+        name: user.displayName || 'QOR Account',
+        createdAt: Date.now(),
+      };
+      walletState.accounts.push(account);
+      await saveAccounts();
+    }
+
+    // Always set active account to the resolved address
+    walletState.activeAccount = resolvedAddress;
+
+    return createResponse(true, { token, user });
+  } catch (error) {
+    return createResponse(false, undefined, `Login failed: ${(error as Error).message}`);
+  }
+}
+
+async function handleAuthKeypairLogin(payload: AuthKeypairLoginPayload): Promise<MessageResponse> {
+  try {
+    const hubUrl = getHubUrl();
+    const response = await fetch(`${hubUrl}/api/v1/auth/keypair-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        address: payload.address,
+        signature: payload.signature,
+        challenge: payload.challenge,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return createResponse(false, undefined, errorData.message || `Keypair login failed (${response.status})`);
+    }
+
+    const data = await response.json();
+    const token = data.token || data.access_token;
+    const user = {
+      qorId: data.user?.qor_id || data.user?.qorId || payload.address,
+      address: payload.address,
+      displayName: data.user?.display_name || data.user?.displayName,
+    };
+
+    walletState.auth = { isAuthenticated: true, token, user };
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.AUTH_TOKEN]: token,
+      [STORAGE_KEYS.AUTH_USER]: user,
+    });
+
+    return createResponse(true, { token, user });
+  } catch (error) {
+    return createResponse(false, undefined, `Keypair login failed: ${(error as Error).message}`);
+  }
+}
+
+async function handleAuthLogout(): Promise<MessageResponse> {
+  // Clear auth state
+  walletState.auth = { isAuthenticated: false, token: null, user: null };
+  walletState.activeAccount = null;
+  walletState.accounts = [];
+  walletState.isInitialized = false;
+  walletState.isLocked = true;
+  walletState.pendingRequests = [];
+
+  await chrome.storage.local.remove([
+    STORAGE_KEYS.AUTH_TOKEN,
+    STORAGE_KEYS.AUTH_USER,
+    STORAGE_KEYS.ACCOUNTS,
+    STORAGE_KEYS.KEYSTORES,
+  ]);
+
+  return createResponse(true);
+}
+
+async function handleDetachWallet(): Promise<MessageResponse> {
+  // Full reset: clear ALL local data and wallet state
+  walletState = {
+    isLocked: true,
+    isInitialized: false,
+    accounts: [],
+    activeAccount: null,
+    network: walletState.network, // Preserve network preference
+    pendingRequests: [],
+    auth: { isAuthenticated: false, token: null, user: null },
+  };
+
+  // Clear all extension storage
+  await chrome.storage.local.clear();
+
+  return createResponse(true);
+}
+
+// --- Missing Handlers ---
+
+async function handleClaimStarterTokens(payload: { address: string }): Promise<MessageResponse> {
+  try {
+    const result = await rpcHandler.claimStarter(payload.address);
+    return createResponse(true, result);
+  } catch (error) {
+    return createResponse(false, undefined, `Failed to claim: ${(error as Error).message}`);
+  }
+}
+
+async function handleExportPrivateKey(payload: { password: string }): Promise<MessageResponse> {
+  try {
+    const keystores = await getKeystores();
+    if (keystores.length === 0) {
+      return createResponse(false, undefined, 'No keystores found');
+    }
+
+    // Decrypt the active account's keystore
+    const activeAddress = walletState.activeAccount;
+    const targetKeystore = activeAddress
+      ? keystores.find(k => k.address === activeAddress) || keystores[0]
+      : keystores[0];
+
+    const privateKey = await keyring.decryptPrivateKey(targetKeystore, payload.password);
+    const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    // Wipe after returning
+    setTimeout(() => privateKey.fill(0), 0);
+
+    return createResponse(true, { privateKey: privateKeyHex });
+  } catch (error) {
+    return createResponse(false, undefined, 'Invalid password');
+  }
+}
+
+// --- Content Capture Handlers ---
+
+async function handleSaveNote(payload: SaveNotePayload): Promise<MessageResponse> {
+  const stored = await chrome.storage.local.get(STORAGE_KEYS.NOTES);
+  const notes: SavedNote[] = stored[STORAGE_KEYS.NOTES] || [];
+
+  const note: SavedNote = {
+    id: crypto.randomUUID(),
+    title: payload.title,
+    content: payload.content,
+    url: payload.url,
+    tags: payload.tags || [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+
+  notes.unshift(note);
+  await chrome.storage.local.set({ [STORAGE_KEYS.NOTES]: notes });
+  return createResponse(true, note);
+}
+
+async function handleGetNotes(): Promise<MessageResponse> {
+  const stored = await chrome.storage.local.get(STORAGE_KEYS.NOTES);
+  return createResponse(true, stored[STORAGE_KEYS.NOTES] || []);
+}
+
+async function handleDeleteNote(payload: { id: string }): Promise<MessageResponse> {
+  const stored = await chrome.storage.local.get(STORAGE_KEYS.NOTES);
+  const notes: SavedNote[] = stored[STORAGE_KEYS.NOTES] || [];
+  const filtered = notes.filter(n => n.id !== payload.id);
+  await chrome.storage.local.set({ [STORAGE_KEYS.NOTES]: filtered });
+  return createResponse(true);
+}
+
+async function handleSaveMedia(payload: SaveMediaPayload): Promise<MessageResponse> {
+  const stored = await chrome.storage.local.get(STORAGE_KEYS.MEDIA);
+  const media: SavedMedia[] = stored[STORAGE_KEYS.MEDIA] || [];
+
+  const item: SavedMedia = {
+    id: crypto.randomUUID(),
+    url: payload.url,
+    title: payload.title,
+    sourceUrl: payload.sourceUrl,
+    type: payload.type,
+    createdAt: Date.now(),
+  };
+
+  media.unshift(item);
+  await chrome.storage.local.set({ [STORAGE_KEYS.MEDIA]: media });
+  return createResponse(true, item);
+}
+
+async function handleGetMedia(): Promise<MessageResponse> {
+  const stored = await chrome.storage.local.get(STORAGE_KEYS.MEDIA);
+  return createResponse(true, stored[STORAGE_KEYS.MEDIA] || []);
+}
+
+// --- Page Analysis ---
+
+// Phase 4 handlers (handleAnalyzePage, handleMintSummaryNFT) removed.
+// VYB Chat is now handled directly via the side panel UI calling the hub API.
+
+// --- Sophia AI query handler ---
+async function handleSophiaQuery(payload: SophiaQueryPayload): Promise<MessageResponse> {
+  try {
+    const hubUrl = getHubUrl();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (walletState.auth.token) {
+      headers['Authorization'] = `Bearer ${walletState.auth.token}`;
+    }
+
+    // Build messages array with conversation history
+    const messages = payload.conversationHistory
+      ? [...payload.conversationHistory, { role: 'user', content: payload.message }]
+      : [{ role: 'user', content: payload.message }];
+
+    const response = await fetch(`${hubUrl}/api/sophia/chat`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        messages,
         enableTools: true,
         walletContext: {
           activeAccount: walletState.activeAccount,
@@ -557,5 +1058,56 @@ chrome.runtime.onInstalled.addListener((details) => {
     console.log('Demiurge Wallet: Extension installed');
   } else if (details.reason === 'update') {
     console.log('Demiurge Wallet: Extension updated');
+  }
+
+  // Register context menus for content capture
+  chrome.contextMenus?.create({
+    id: 'demiurge-save-text',
+    title: 'Save to Demiurge',
+    contexts: ['selection'],
+  });
+
+  chrome.contextMenus?.create({
+    id: 'demiurge-save-link',
+    title: 'Save Link to Demiurge',
+    contexts: ['link'],
+  });
+
+  chrome.contextMenus?.create({
+    id: 'demiurge-save-image',
+    title: 'Save Image to Demiurge',
+    contexts: ['image'],
+  });
+});
+
+// Handle context menu clicks
+chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
+  const sourceUrl = tab?.url || info.pageUrl || '';
+  const pageTitle = tab?.title || '';
+
+  if (info.menuItemId === 'demiurge-save-text' && info.selectionText) {
+    await handleSaveNote({
+      title: `Note from ${pageTitle}`.slice(0, 100),
+      content: info.selectionText,
+      url: sourceUrl,
+      tags: [],
+    });
+    console.log('Demiurge: Text saved');
+  } else if (info.menuItemId === 'demiurge-save-link' && info.linkUrl) {
+    await handleSaveMedia({
+      url: info.linkUrl,
+      title: info.linkUrl,
+      sourceUrl,
+      type: 'link',
+    });
+    console.log('Demiurge: Link saved');
+  } else if (info.menuItemId === 'demiurge-save-image' && info.srcUrl) {
+    await handleSaveMedia({
+      url: info.srcUrl,
+      title: pageTitle,
+      sourceUrl,
+      type: 'image',
+    });
+    console.log('Demiurge: Image saved');
   }
 });
