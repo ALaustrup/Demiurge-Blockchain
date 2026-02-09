@@ -343,17 +343,17 @@ async function callLLM(
   const openaiKey = process.env.OPENAI_API_KEY;
 
   // Groq (fastest inference — OpenAI-compatible)
+  // Primary: llama-3.3-70b-versatile (smarter, 12k TPM)
+  // Fallback: llama-3.1-8b-instant (faster, 131k TPM)
   if (groqKey) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+    for (const model of models) {
       try {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${groqKey}`,
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
           body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
+            model,
             max_tokens: maxTokens,
             temperature,
             messages: [{ role: 'system', content: systemPrompt }, ...messages],
@@ -368,39 +368,24 @@ async function callLLM(
           if (choice.message.tool_calls) return { toolCalls: choice.message.tool_calls };
           return { text: choice.message.content };
         } else if (response.status === 429) {
-          const wait = Math.min(2000, Math.max(1000, attempt * 1500 + 1000));
-          console.warn(`Groq rate limited, waiting ${wait}ms (attempt ${attempt + 1})`);
-          await new Promise(r => setTimeout(r, wait));
+          console.warn(`Groq ${model} rate limited, trying next model`);
           continue;
         } else if (response.status === 400 && enableTools) {
-          console.warn('Groq tool_use_failed, retrying without tools');
+          console.warn(`Groq ${model} tool_use_failed, retrying without tools`);
           const retry = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
-            body: JSON.stringify({
-              model: 'llama-3.3-70b-versatile',
-              max_tokens: maxTokens,
-              temperature,
-              messages: [{ role: 'system', content: systemPrompt }, ...messages],
-            }),
+            body: JSON.stringify({ model, max_tokens: maxTokens, temperature, messages: [{ role: 'system', content: systemPrompt }, ...messages] }),
           });
-          if (retry.ok) {
-            const data = await retry.json();
-            return { text: data.choices[0].message.content };
-          } else if (retry.status === 429) {
-            await new Promise(r => setTimeout(r, 1500));
-            continue;
-          }
+          if (retry.ok) { const data = await retry.json(); return { text: data.choices[0].message.content }; }
+          if (retry.status === 429) { console.warn(`Groq ${model} retry also rate limited`); continue; }
           break;
         } else {
           const errBody = await response.text();
-          console.warn(`Groq API returned ${response.status}:`, errBody.slice(0, 300));
+          console.warn(`Groq ${model} returned ${response.status}:`, errBody.slice(0, 300));
           break;
         }
-      } catch (e) {
-        console.warn('Groq API failed:', e);
-        break;
-      }
+      } catch (e) { console.warn(`Groq ${model} failed:`, e); break; }
     }
   }
 
