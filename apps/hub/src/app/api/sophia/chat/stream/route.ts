@@ -85,11 +85,56 @@ async function callLLMNonStreaming(
   systemPrompt: string,
   enableTools: boolean,
 ): Promise<{ text?: string; toolCalls?: any[]; error?: string }> {
+  const groqKey = process.env.GROQ_API_KEY;
   const grokKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
 
-  // Try Grok first
+  // Groq (fastest inference — OpenAI-compatible)
+  if (groqKey) {
+    try {
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          max_tokens: 2048,
+          temperature: 0.7,
+          messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          tools: enableTools ? TOOL_DEFINITIONS : undefined,
+          tool_choice: enableTools ? 'auto' : undefined,
+        }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const choice = data.choices[0];
+        if (choice.message.tool_calls) return { toolCalls: choice.message.tool_calls };
+        return { text: choice.message.content };
+      } else if (resp.status === 400 && enableTools) {
+        // Tool call format error — retry without tools
+        console.warn('Groq tool_use_failed, retrying without tools');
+        const retry = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            max_tokens: 2048,
+            temperature: 0.7,
+            messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          }),
+        });
+        if (retry.ok) {
+          const data = await retry.json();
+          return { text: data.choices[0].message.content };
+        }
+      } else {
+        const errBody = await resp.text();
+        console.warn(`Groq non-streaming returned ${resp.status}:`, errBody.slice(0, 300));
+      }
+    } catch (e) { console.warn('Groq API failed:', e); }
+  }
+
+  // Grok / xAI
   if (grokKey) {
     try {
       const resp = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -113,7 +158,7 @@ async function callLLMNonStreaming(
     } catch (e) { console.warn('Grok API failed:', e); }
   }
 
-  // Fallback to OpenAI (which supports streaming natively)
+  // Fallback to OpenAI
   if (openaiKey) {
     try {
       const resp = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -171,7 +216,8 @@ async function callLLMNonStreaming(
     } catch (e) { console.warn('Claude API failed:', e); }
   }
 
-  return { error: 'No LLM API available' };
+  console.warn('No non-streaming LLM provider succeeded. Keys:', { groq: !!groqKey, grok: !!grokKey, anthropic: !!anthropicKey, openai: !!openaiKey });
+  return { error: 'No LLM API available. Set GROQ_API_KEY, XAI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.' };
 }
 
 // Streaming LLM call (for final response only)
@@ -179,11 +225,34 @@ async function callLLMStreaming(
   messages: any[],
   systemPrompt: string,
 ): Promise<ReadableStream | { error: string }> {
+  const groqKey = process.env.GROQ_API_KEY;
   const grokKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  // Try Grok streaming (OpenAI-compatible)
+  // Groq streaming (OpenAI-compatible, fastest)
+  if (groqKey) {
+    try {
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          max_tokens: 2048,
+          temperature: 0.7,
+          stream: true,
+          messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        }),
+      });
+      if (resp.ok && resp.body) {
+        return transformOpenAIStream(resp.body);
+      } else {
+        console.warn(`Groq streaming returned ${resp.status}`);
+      }
+    } catch (e) { console.warn('Groq streaming failed:', e); }
+  }
+
+  // Grok / xAI streaming (OpenAI-compatible)
   if (grokKey) {
     try {
       const resp = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -245,7 +314,8 @@ async function callLLMStreaming(
     } catch (e) { console.warn('Claude streaming failed:', e); }
   }
 
-  return { error: 'No streaming LLM API available' };
+  console.warn('No streaming LLM provider succeeded. Keys:', { groq: !!groqKey, grok: !!grokKey, openai: !!openaiKey, anthropic: !!anthropicKey });
+  return { error: 'No streaming LLM API available. Set GROQ_API_KEY, XAI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.' };
 }
 
 /**
