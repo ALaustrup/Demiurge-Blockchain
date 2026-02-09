@@ -211,7 +211,10 @@ async function callLLMNonStreaming(
     } catch (e) { console.warn('Claude API failed:', e); }
   }
 
-  console.warn('No non-streaming LLM provider succeeded. Keys:', { groq: !!groqKey, grok: !!grokKey, anthropic: !!anthropicKey, openai: !!openaiKey });
+  if (groqKey || grokKey || anthropicKey || openaiKey) {
+    console.warn('All non-streaming LLM providers failed (likely rate limited)');
+    return { text: '✧ I need a moment to gather my thoughts, seeker. The streams of wisdom flow quickly — please try again in a few seconds. — Sophia ✧' };
+  }
   return { error: 'No LLM API available. Set GROQ_API_KEY, XAI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.' };
 }
 
@@ -304,7 +307,19 @@ async function callLLMStreaming(
     } catch (e) { console.warn('Claude streaming failed:', e); }
   }
 
-  console.warn('No streaming LLM provider succeeded. Keys:', { groq: !!groqKey, grok: !!grokKey, openai: !!openaiKey, anthropic: !!anthropicKey });
+  if (groqKey || grokKey || openaiKey || anthropicKey) {
+    console.warn('All streaming LLM providers failed (likely rate limited)');
+    // Return a fake text stream with the rate limit message
+    const enc = new TextEncoder();
+    const msg = '✧ I need a moment to gather my thoughts, seeker. The streams of wisdom flow quickly — please try again in a few seconds. — Sophia ✧';
+    return new ReadableStream({
+      start(ctrl) {
+        ctrl.enqueue(enc.encode(`event: token\ndata: ${JSON.stringify(msg)}\n\n`));
+        ctrl.enqueue(enc.encode(`event: done\ndata: ${JSON.stringify({ status: 'rate_limited' })}\n\n`));
+        ctrl.close();
+      },
+    });
+  }
   return { error: 'No streaming LLM API available. Set GROQ_API_KEY, XAI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.' };
 }
 

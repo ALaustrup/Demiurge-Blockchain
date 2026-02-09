@@ -512,7 +512,11 @@ async function callLLM(
     }
   }
 
-  console.warn('No LLM provider succeeded. Keys present:', { groq: !!groqKey, grok: !!grokKey, anthropic: !!anthropicKey, openai: !!openaiKey });
+  // Check if we were rate limited vs genuinely missing keys
+  if (groqKey || grokKey || anthropicKey || openaiKey) {
+    console.warn('All LLM providers failed (likely rate limited). Keys:', { groq: !!groqKey, grok: !!grokKey, anthropic: !!anthropicKey, openai: !!openaiKey });
+    return { text: '✧ I need a moment to gather my thoughts, seeker. The streams of wisdom flow quickly — please try again in a few seconds. — Sophia ✧' };
+  }
   return { error: 'No LLM API key configured. Set GROQ_API_KEY, XAI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.' };
 }
 

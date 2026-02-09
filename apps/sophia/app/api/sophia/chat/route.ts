@@ -182,7 +182,11 @@ async function callLLM(
     } catch (e) { console.warn('OpenAI failed:', e); }
   }
 
-  return { error: 'No LLM API key configured. Set XAI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.' };
+  if (groqKey || grokKey || anthropicKey || openaiKey) {
+    console.warn('All LLM providers failed (likely rate limited)');
+    return { text: '✧ I need a moment to gather my thoughts, seeker. The streams of wisdom flow quickly — please try again in a few seconds. — Sophia ✧' };
+  }
+  return { error: 'No LLM API key configured. Set GROQ_API_KEY, XAI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.' };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
