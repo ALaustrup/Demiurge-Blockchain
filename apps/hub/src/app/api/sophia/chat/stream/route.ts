@@ -92,28 +92,9 @@ async function callLLMNonStreaming(
 
   // Groq (fastest inference — OpenAI-compatible)
   if (groqKey) {
-    try {
-      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          max_tokens: 2048,
-          temperature: 0.7,
-          messages: [{ role: 'system', content: systemPrompt }, ...messages],
-          tools: enableTools ? TOOL_DEFINITIONS : undefined,
-          tool_choice: enableTools ? 'auto' : undefined,
-        }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const choice = data.choices[0];
-        if (choice.message.tool_calls) return { toolCalls: choice.message.tool_calls };
-        return { text: choice.message.content };
-      } else if (resp.status === 400 && enableTools) {
-        // Tool call format error — retry without tools
-        console.warn('Groq tool_use_failed, retrying without tools');
-        const retry = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
           body: JSON.stringify({
@@ -121,17 +102,37 @@ async function callLLMNonStreaming(
             max_tokens: 2048,
             temperature: 0.7,
             messages: [{ role: 'system', content: systemPrompt }, ...messages],
+            tools: enableTools ? TOOL_DEFINITIONS : undefined,
+            tool_choice: enableTools ? 'auto' : undefined,
           }),
         });
-        if (retry.ok) {
-          const data = await retry.json();
-          return { text: data.choices[0].message.content };
+        if (resp.ok) {
+          const data = await resp.json();
+          const choice = data.choices[0];
+          if (choice.message.tool_calls) return { toolCalls: choice.message.tool_calls };
+          return { text: choice.message.content };
+        } else if (resp.status === 429) {
+          const wait = Math.min(2000, Math.max(1000, attempt * 1500 + 1000));
+          console.warn(`Groq rate limited, waiting ${wait}ms`);
+          await new Promise(r => setTimeout(r, wait));
+          continue;
+        } else if (resp.status === 400 && enableTools) {
+          console.warn('Groq tool_use_failed, retrying without tools');
+          const retry = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+            body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 2048, temperature: 0.7, messages: [{ role: 'system', content: systemPrompt }, ...messages] }),
+          });
+          if (retry.ok) { const data = await retry.json(); return { text: data.choices[0].message.content }; }
+          if (retry.status === 429) { await new Promise(r => setTimeout(r, 1500)); continue; }
+          break;
+        } else {
+          const errBody = await resp.text();
+          console.warn(`Groq non-streaming returned ${resp.status}:`, errBody.slice(0, 300));
+          break;
         }
-      } else {
-        const errBody = await resp.text();
-        console.warn(`Groq non-streaming returned ${resp.status}:`, errBody.slice(0, 300));
-      }
-    } catch (e) { console.warn('Groq API failed:', e); }
+      } catch (e) { console.warn('Groq API failed:', e); break; }
+    }
   }
 
   // Grok / xAI
@@ -232,24 +233,31 @@ async function callLLMStreaming(
 
   // Groq streaming (OpenAI-compatible, fastest)
   if (groqKey) {
-    try {
-      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          max_tokens: 2048,
-          temperature: 0.7,
-          stream: true,
-          messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        }),
-      });
-      if (resp.ok && resp.body) {
-        return transformOpenAIStream(resp.body);
-      } else {
-        console.warn(`Groq streaming returned ${resp.status}`);
-      }
-    } catch (e) { console.warn('Groq streaming failed:', e); }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            max_tokens: 2048,
+            temperature: 0.7,
+            stream: true,
+            messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          }),
+        });
+        if (resp.ok && resp.body) {
+          return transformOpenAIStream(resp.body);
+        } else if (resp.status === 429) {
+          console.warn(`Groq streaming rate limited, waiting`);
+          await new Promise(r => setTimeout(r, 1500));
+          continue;
+        } else {
+          console.warn(`Groq streaming returned ${resp.status}`);
+          break;
+        }
+      } catch (e) { console.warn('Groq streaming failed:', e); break; }
+    }
   }
 
   // Grok / xAI streaming (OpenAI-compatible)

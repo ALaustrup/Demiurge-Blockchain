@@ -344,36 +344,9 @@ async function callLLM(
 
   // Groq (fastest inference — OpenAI-compatible)
   if (groqKey) {
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqKey}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          max_tokens: maxTokens,
-          temperature,
-          messages: [{ role: 'system', content: systemPrompt }, ...messages],
-          tools: enableTools ? TOOL_DEFINITIONS : undefined,
-          tool_choice: enableTools ? 'auto' : undefined,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const choice = data.choices[0];
-        
-        if (choice.message.tool_calls) {
-          return { toolCalls: choice.message.tool_calls };
-        }
-        
-        return { text: choice.message.content };
-      } else if (response.status === 400 && enableTools) {
-        // Tool call format error — retry without tools
-        console.warn('Groq tool_use_failed, retrying without tools');
-        const retry = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -384,18 +357,50 @@ async function callLLM(
             max_tokens: maxTokens,
             temperature,
             messages: [{ role: 'system', content: systemPrompt }, ...messages],
+            tools: enableTools ? TOOL_DEFINITIONS : undefined,
+            tool_choice: enableTools ? 'auto' : undefined,
           }),
         });
-        if (retry.ok) {
-          const data = await retry.json();
-          return { text: data.choices[0].message.content };
+
+        if (response.ok) {
+          const data = await response.json();
+          const choice = data.choices[0];
+          if (choice.message.tool_calls) return { toolCalls: choice.message.tool_calls };
+          return { text: choice.message.content };
+        } else if (response.status === 429) {
+          const wait = Math.min(2000, Math.max(1000, attempt * 1500 + 1000));
+          console.warn(`Groq rate limited, waiting ${wait}ms (attempt ${attempt + 1})`);
+          await new Promise(r => setTimeout(r, wait));
+          continue;
+        } else if (response.status === 400 && enableTools) {
+          console.warn('Groq tool_use_failed, retrying without tools');
+          const retry = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+            body: JSON.stringify({
+              model: 'llama-3.3-70b-versatile',
+              max_tokens: maxTokens,
+              temperature,
+              messages: [{ role: 'system', content: systemPrompt }, ...messages],
+            }),
+          });
+          if (retry.ok) {
+            const data = await retry.json();
+            return { text: data.choices[0].message.content };
+          } else if (retry.status === 429) {
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
+          break;
+        } else {
+          const errBody = await response.text();
+          console.warn(`Groq API returned ${response.status}:`, errBody.slice(0, 300));
+          break;
         }
-      } else {
-        const errBody = await response.text();
-        console.warn(`Groq API returned ${response.status}:`, errBody.slice(0, 500));
+      } catch (e) {
+        console.warn('Groq API failed:', e);
+        break;
       }
-    } catch (e) {
-      console.warn('Groq API failed:', e);
     }
   }
 
