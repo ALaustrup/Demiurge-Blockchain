@@ -91,9 +91,15 @@ export function MainScreen() {
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-auto ${
               accountLimits.tier === 'established'
                 ? 'bg-green-500/20 text-green-400'
-                : 'bg-yellow-500/20 text-yellow-400'
+                : accountLimits.canSend
+                  ? 'bg-blue-500/20 text-blue-400'
+                  : 'bg-yellow-500/20 text-yellow-400'
             }`}>
-              {accountLimits.tier === 'established' ? 'Established' : 'New Account'}
+              {accountLimits.tier === 'established'
+                ? 'Established'
+                : accountLimits.canSend
+                  ? 'Standard'
+                  : 'New Account'}
             </span>
           )}
         </div>

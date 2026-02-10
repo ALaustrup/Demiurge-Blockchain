@@ -155,7 +155,7 @@ async function initializeState(): Promise<void> {
   const accounts = stored[STORAGE_KEYS.ACCOUNTS] as Account[] | undefined;
   const settings = stored[STORAGE_KEYS.SETTINGS] as { network?: string } | undefined;
   const authToken = stored[STORAGE_KEYS.AUTH_TOKEN] as string | undefined;
-  const authUser = stored[STORAGE_KEYS.AUTH_USER] as { qorId: string; address?: string; displayName?: string } | undefined;
+  const authUser = stored[STORAGE_KEYS.AUTH_USER] as { qorId: string; address?: string; displayName?: string; registeredAt?: number } | undefined;
 
   walletState.isInitialized = (keystores && keystores.length > 0) || false;
   walletState.accounts = accounts || [];
@@ -177,13 +177,17 @@ async function initializeState(): Promise<void> {
 
     // Ensure account and activeAccount are set
     if (authUser.address) {
-      if (!walletState.accounts.find(a => a.address === authUser.address)) {
+      const existingAcct = walletState.accounts.find(a => a.address === authUser.address);
+      if (!existingAcct) {
         walletState.accounts.push({
           address: authUser.address!,
           publicKey: authUser.address!,
           name: authUser.displayName || 'QOR Account',
-          createdAt: Date.now(),
+          createdAt: authUser.registeredAt || Date.now(),
         });
+      } else if (authUser.registeredAt && existingAcct.createdAt > authUser.registeredAt) {
+        // Correct createdAt if server registration is older
+        existingAcct.createdAt = authUser.registeredAt;
       }
       walletState.activeAccount = authUser.address;
     }
@@ -784,10 +788,40 @@ async function handleAuthLogin(payload: AuthLoginPayload): Promise<MessageRespon
     const derivedAddress = deriveAddressFromQorId(qorId);
     const resolvedAddress = apiAddress || derivedAddress;
 
+    // Fetch full profile from server to get accurate registration timestamp
+    let registrationTime: number | null = null;
+    let serverDisplayName: string | undefined;
+    try {
+      const profileResponse = await fetch(`${hubUrl}/api/v1/profile`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (profileResponse.ok) {
+        const profile = await profileResponse.json();
+        const serverCreatedAt = profile.created_at || profile.createdAt;
+        if (serverCreatedAt) {
+          registrationTime = new Date(serverCreatedAt).getTime();
+        }
+        // Also pick up server-side address and display name if available
+        if (!apiAddress && profile.on_chain?.address) {
+          // Use profile's on-chain address if login didn't provide one
+        }
+        serverDisplayName = profile.display_name || profile.displayName;
+      }
+    } catch {
+      // Profile fetch failed - not critical, fall back to login response data
+    }
+
+    // Fall back to login response if profile fetch didn't yield a timestamp
+    if (!registrationTime) {
+      const loginCreatedAt = data.user?.created_at || data.user?.createdAt;
+      registrationTime = loginCreatedAt ? new Date(loginCreatedAt).getTime() : null;
+    }
+
     const user = {
       qorId,
       address: resolvedAddress,
-      displayName: data.user?.display_name || data.user?.displayName || payload.identifier.split('#')[0],
+      displayName: serverDisplayName || data.user?.display_name || data.user?.displayName || payload.identifier.split('#')[0],
+      registeredAt: registrationTime || undefined,
     };
 
     // Persist auth
@@ -798,14 +832,19 @@ async function handleAuthLogin(payload: AuthLoginPayload): Promise<MessageRespon
     });
 
     // Ensure account exists for this address
-    if (!walletState.accounts.find(a => a.address === resolvedAddress)) {
+    const existingAccount = walletState.accounts.find(a => a.address === resolvedAddress);
+    if (!existingAccount) {
       const account: Account = {
         address: resolvedAddress,
         publicKey: resolvedAddress,
         name: user.displayName || 'QOR Account',
-        createdAt: Date.now(),
+        createdAt: registrationTime || Date.now(),
       };
       walletState.accounts.push(account);
+      await saveAccounts();
+    } else if (registrationTime && existingAccount.createdAt > registrationTime) {
+      // Server says account is older than local record - fix it
+      existingAccount.createdAt = registrationTime;
       await saveAccounts();
     }
 
