@@ -17,10 +17,10 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
-# RPC dependencies - enable HTTP and WebSocket server support
-# The "server" feature includes all server transports (HTTP and WebSocket)
-jsonrpsee = { version = "0.20", features = ["server", "macros"] }
-hex = "0.4"
+jsonrpsee = { workspace = true }
+hex = { workspace = true }
+rand = { workspace = true }
+blake2 = { workspace = true }
 
 # Internal dependencies
 demiurge-core = { path = "../core" }
@@ -29,7 +29,5 @@ demiurge-consensus = { path = "../consensus" }
 demiurge-network = { path = "../network" }
 demiurge-module-energy = { path = "../modules/energy" }
 demiurge-module-session-keys = { path = "../modules/session-keys" }
-blake2 = { workspace = true }
-rand = "0.8"
 
 [dev-dependencies]

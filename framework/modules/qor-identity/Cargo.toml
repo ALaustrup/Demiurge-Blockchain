@@ -1,24 +1,25 @@
 [package]
 name = "demiurge-qor-identity"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "Qor Identity - Sovereign Identity System for Demiurge"
-license = "MIT"
 
 [dependencies]
 demiurge-primitives = { path = "../../primitives" }
 demiurge-storage = { path = "../../storage" }
 demiurge-modules = { path = ".." }
 
-codec = { package = "parity-scale-codec", version = "3.6", features = ["derive"] }
-scale-info = { version = "2.11", features = ["derive"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-blake2 = "0.10"
-hex = "0.4"
-thiserror = "1.0"
-tracing = "0.1"
+codec = { workspace = true }
+scale-info = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+blake2 = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
-ed25519-dalek = { version = "2.0", features = ["rand_core"] }
-rand = "0.8"
+ed25519-dalek = { workspace = true }
+rand = { workspace = true }

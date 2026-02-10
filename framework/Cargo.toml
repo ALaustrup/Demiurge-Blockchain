@@ -17,6 +17,7 @@ members = [
     "modules/qor-identity",
     "modules/agentic",
     "modules/governance",
+    # "modules/game-registry",  # Excluded: pre-existing build errors, no dependents
     "network",
     "rpc",
     "node",
@@ -30,40 +31,52 @@ license = "MIT"
 repository = "https://github.com/Alaustrup/Demiurge-Blockchain"
 
 [workspace.dependencies]
-# Core dependencies - minimal, only what we need
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-codec = { package = "parity-scale-codec", version = "3.6", default-features = false, features = ["derive"] }
-scale-info = { version = "2.11", default-features = false, features = ["derive"] }
+# ── Serialization ──────────────────────────────────────────
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+codec = { package = "parity-scale-codec", version = "=3.7.5", default-features = false, features = ["derive"] }
+scale-info = { version = "=2.11.6", default-features = false, features = ["derive"] }
 
-# Crypto
-blake2 = "0.10"
-sha2 = "0.10"
-ed25519-dalek = { version = "2.0", features = ["rand_core"] }
+# ── Crypto ─────────────────────────────────────────────────
+blake2 = "=0.10.6"
+blake3 = "=1.8.3"
+sha2 = "=0.10.9"
+ed25519-dalek = { version = "=2.2.0", features = ["rand_core"] }
 secp256k1 = "0.28"
-hex = "0.4"
+hex = "=0.4.3"
+rand = "=0.8.5"
 
-# Async runtime
-tokio = { version = "1.43", features = ["full"] }
-futures = "0.3"
+# ── Async runtime ─────────────────────────────────────────
+tokio = { version = "=1.49.0", features = ["full"] }
+futures = "=0.3.31"
 
-# Networking
-libp2p = { version = "0.53", default-features = false, features = [
+# ── Networking ─────────────────────────────────────────────
+libp2p = { version = "=0.53.2", default-features = false, features = [
     "tcp", "dns", "noise", "yamux",
     "gossipsub", "kad", "identify",
     "tokio", "macros", "ed25519"
 ] }
 
-# Note: ZK Proofs (plonky2) are added directly in modules/cvp/Cargo.toml
+# ── Storage ────────────────────────────────────────────────
+rocksdb = "=0.21.0"
+
+# ── Logging ────────────────────────────────────────────────
+tracing = "=0.1.44"
+tracing-subscriber = { version = "=0.3.22", features = ["env-filter"] }
+
+# ── Error handling ─────────────────────────────────────────
+thiserror = "=1.0.69"
+anyhow = "=1.0.100"
+
+# ── RPC ────────────────────────────────────────────────────
+jsonrpsee = { version = "=0.20.4", features = ["server", "macros"] }
+
+# ── CLI ────────────────────────────────────────────────────
+clap = { version = "=4.5.54", features = ["derive"] }
+
+# ── Testing ────────────────────────────────────────────────
+tempfile = "=3.24.0"
+criterion = "=0.5.1"
+
+# Note: ZK Proofs (plonky2) are added directly in modules that need them
 # as optional dependencies cannot be declared at workspace level
-
-# Storage
-rocksdb = "0.21"
-
-# Logging
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-# Error handling
-thiserror = "1.0"
-anyhow = "1.0"

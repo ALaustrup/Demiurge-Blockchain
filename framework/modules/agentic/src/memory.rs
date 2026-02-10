@@ -6,7 +6,7 @@
 
 use alloc::{format, string::{String, ToString}, vec::Vec, vec};
 use core::cmp::Ordering;
-use parity_scale_codec::{Decode, Encode};
+use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 
