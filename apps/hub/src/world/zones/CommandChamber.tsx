@@ -34,7 +34,7 @@ function DataPillar({
   label,
   value,
   subValue,
-  color = '#66FCF1',
+  color = '#FF6A00',
   height = 4,
 }: DataPillarProps) {
   const pillarRef = useRef<Group>(null);
@@ -147,13 +147,13 @@ function OrbitalRing() {
       {/* Main ring */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[5, 0.02, 16, 100]} />
-        <meshBasicMaterial color="#66FCF1" transparent opacity={0.6} />
+        <meshBasicMaterial color="#FF6A00" transparent opacity={0.6} />
       </mesh>
       
       {/* Secondary ring */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[5.2, 0.01, 16, 100]} />
-        <meshBasicMaterial color="#45A29E" transparent opacity={0.3} />
+        <meshBasicMaterial color="#CC5500" transparent opacity={0.3} />
       </mesh>
       
       {/* Orbital nodes (validators/blocks) */}
@@ -167,7 +167,7 @@ function OrbitalRing() {
             <mesh position={[x, 0, z]}>
               <octahedronGeometry args={[0.1]} />
               <meshBasicMaterial
-                color={i % 2 === 0 ? '#66FCF1' : '#bf00ff'}
+                color={i % 2 === 0 ? '#FF6A00' : '#bf00ff'}
                 transparent
                 opacity={0.8}
               />
@@ -198,7 +198,7 @@ function CentralHologram() {
       <group ref={coreRef}>
         <mesh>
           <icosahedronGeometry args={[0.5, 1]} />
-          <meshBasicMaterial color="#66FCF1" wireframe transparent opacity={0.6} />
+          <meshBasicMaterial color="#FF6A00" wireframe transparent opacity={0.6} />
         </mesh>
         
         <mesh scale={0.7}>
@@ -210,14 +210,14 @@ function CentralHologram() {
       {/* Outer shell */}
       <mesh>
         <sphereGeometry args={[0.8, 32, 32]} />
-        <meshBasicMaterial color="#66FCF1" wireframe transparent opacity={0.1} />
+        <meshBasicMaterial color="#FF6A00" wireframe transparent opacity={0.1} />
       </mesh>
       
       {/* Energy field */}
       <Float speed={1.5} floatIntensity={0.2}>
         <mesh>
           <torusGeometry args={[0.6, 0.02, 16, 32]} />
-          <meshBasicMaterial color="#66FCF1" transparent opacity={0.5} />
+          <meshBasicMaterial color="#FF6A00" transparent opacity={0.5} />
         </mesh>
       </Float>
     </group>
@@ -305,7 +305,7 @@ function CommandChamberContent() {
         label="Block Height"
         value={blockHeight}
         subValue={isConnected ? 'SYNCED' : 'OFFLINE'}
-        color="#66FCF1"
+        color="#FF6A00"
         height={3.5}
       />
       

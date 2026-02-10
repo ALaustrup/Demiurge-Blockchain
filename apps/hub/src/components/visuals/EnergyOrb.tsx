@@ -58,8 +58,8 @@ const SIZE_CONFIG = {
 
 // Color configurations
 const COLOR_CONFIG = {
-  cyan: { primary: '#66FCF1', secondary: '#45A29E', glow: 'rgba(102, 252, 241, 0.4)' },
-  green: { primary: '#03DAC6', secondary: '#00A896', glow: 'rgba(3, 218, 198, 0.4)' },
+  cyan: { primary: '#FF6A00', secondary: '#CC5500', glow: 'rgba(255, 106, 0, 0.4)' },
+  green: { primary: '#22C55E', secondary: '#00A896', glow: 'rgba(34, 197, 94, 0.4)' },
   purple: { primary: '#BF00FF', secondary: '#8B00CC', glow: 'rgba(191, 0, 255, 0.4)' },
   gold: { primary: '#FFD700', secondary: '#FFA500', glow: 'rgba(255, 215, 0, 0.4)' },
   red: { primary: '#CF6679', secondary: '#B00020', glow: 'rgba(207, 102, 121, 0.4)' },

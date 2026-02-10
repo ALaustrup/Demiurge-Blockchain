@@ -99,8 +99,8 @@ export function HexagonalFloor() {
   
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
-    uColor: { value: new Color('#66FCF1') },
-    uSecondaryColor: { value: new Color('#45A29E') },
+    uColor: { value: new Color('#FF6A00') },
+    uSecondaryColor: { value: new Color('#CC5500') },
     uOpacity: { value: 1.0 },
   }), []);
   
@@ -151,7 +151,7 @@ export function HexagonalFloor() {
         position={[0, 0.01, 0]}
       >
         <ringGeometry args={[4, 4.1, 64]} />
-        <meshBasicMaterial color="#66FCF1" transparent opacity={0.8} />
+        <meshBasicMaterial color="#FF6A00" transparent opacity={0.8} />
       </mesh>
       
       {/* Inner accent ring */}
@@ -160,7 +160,7 @@ export function HexagonalFloor() {
         position={[0, 0.01, 0]}
       >
         <ringGeometry args={[2, 2.05, 64]} />
-        <meshBasicMaterial color="#45A29E" transparent opacity={0.6} />
+        <meshBasicMaterial color="#CC5500" transparent opacity={0.6} />
       </mesh>
       
       {/* Hexagonal border markers */}
@@ -176,7 +176,7 @@ export function HexagonalFloor() {
             rotation={[-Math.PI / 2, 0, rad]}
           >
             <circleGeometry args={[0.15, 6]} />
-            <meshBasicMaterial color="#66FCF1" transparent opacity={0.8} />
+            <meshBasicMaterial color="#FF6A00" transparent opacity={0.8} />
           </mesh>
         );
       })}

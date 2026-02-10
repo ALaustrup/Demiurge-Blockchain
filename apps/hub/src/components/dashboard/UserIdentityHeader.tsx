@@ -69,10 +69,10 @@ export function UserIdentityHeader() {
           </div>
           <div className="flex gap-3">
             <Link
-              href="/games"
+              href="/create"
               className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-white font-grunge-alt py-3 px-6 rounded-lg hover:scale-105 transition-all"
             >
-              Players
+              Create
             </Link>
             <Link
               href="/development"

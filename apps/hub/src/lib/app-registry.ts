@@ -96,11 +96,11 @@ appRegistry.register({
 });
 
 appRegistry.register({
-  id: 'nft-portal',
-  title: 'NFT Portal',
-  description: 'Manage DRC-369 assets & collections',
+  id: 'drc369-studio',
+  title: 'DRC-369 Studio',
+  description: 'Create, manage, and explore DRC-369 assets',
   icon: '🎨',
-  route: '/nft-portal',
+  route: '/create',
   url: process.env.NEXT_PUBLIC_NFT_PORTAL_URL || 'http://localhost:4000',
   type: 'embedded',
   category: 'nft',

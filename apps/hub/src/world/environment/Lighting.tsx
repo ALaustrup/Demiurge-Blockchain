@@ -45,7 +45,7 @@ export function EnvironmentLighting() {
         angle={0.4}
         penumbra={0.8}
         intensity={2}
-        color="#66FCF1"
+        color="#FF6A00"
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.0001}
@@ -55,7 +55,7 @@ export function EnvironmentLighting() {
       <directionalLight
         position={[5, 10, 5]}
         intensity={0.3}
-        color="#45A29E"
+        color="#CC5500"
       />
       
       {/* Accent point lights - cyan glow */}
@@ -63,7 +63,7 @@ export function EnvironmentLighting() {
         ref={accentLight1Ref}
         position={[-5, 2, -5]}
         intensity={1.5}
-        color="#66FCF1"
+        color="#FF6A00"
         distance={15}
         decay={2}
       />
@@ -73,7 +73,7 @@ export function EnvironmentLighting() {
         ref={accentLight2Ref}
         position={[5, 2, -5]}
         intensity={1.5}
-        color="#45A29E"
+        color="#CC5500"
         distance={15}
         decay={2}
       />
@@ -82,7 +82,7 @@ export function EnvironmentLighting() {
       <pointLight
         position={[0, 0.2, 0]}
         intensity={0.8}
-        color="#66FCF1"
+        color="#FF6A00"
         distance={8}
         decay={2}
       />

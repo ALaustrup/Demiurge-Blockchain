@@ -102,7 +102,7 @@ export function HoloValue(props: Omit<HoloTextProps, 'variant'>) {
 }
 
 export function HoloTitle(props: Omit<HoloTextProps, 'variant'>) {
-  return <HoloText {...props} variant="title" color="#66FCF1" fontSize={0.3} />;
+  return <HoloText {...props} variant="title" color="#FF6A00" fontSize={0.3} />;
 }
 
 export default HoloText;

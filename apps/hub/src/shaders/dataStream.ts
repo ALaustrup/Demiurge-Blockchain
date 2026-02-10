@@ -105,7 +105,7 @@ export const lineStreamFragmentShader = `
 export const DataStreamMaterial = shaderMaterial(
   {
     uTime: 0,
-    uColor: new Color('#66FCF1'),
+    uColor: new Color('#FF6A00'),
     uOpacity: 0.8,
     uSpeed: 1.0,
   },
@@ -116,7 +116,7 @@ export const DataStreamMaterial = shaderMaterial(
 export const LineStreamMaterial = shaderMaterial(
   {
     uTime: 0,
-    uColor: new Color('#66FCF1'),
+    uColor: new Color('#FF6A00'),
     uOpacity: 0.6,
   },
   lineStreamVertexShader,

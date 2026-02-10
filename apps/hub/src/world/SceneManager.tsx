@@ -45,7 +45,7 @@ function LoadingFallback() {
   return (
     <mesh>
       <boxGeometry args={[1, 1, 1]} />
-      <meshBasicMaterial color="#66FCF1" wireframe />
+      <meshBasicMaterial color="#FF6A00" wireframe />
     </mesh>
   );
 }

@@ -30,7 +30,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <div 
               className="absolute inset-0 border animate-spin"
               style={{ 
-                borderColor: 'rgba(102, 252, 241, 0.3)',
+                borderColor: 'rgba(255, 106, 0, 0.3)',
                 animationDuration: '3s',
                 borderRadius: '2px',
               }} 
@@ -39,7 +39,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <div 
               className="absolute inset-3 animate-breathing"
               style={{ 
-                backgroundColor: 'rgba(102, 252, 241, 0.1)',
+                backgroundColor: 'rgba(255, 106, 0, 0.1)',
                 borderRadius: '2px',
               }} 
             />
@@ -47,8 +47,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <div 
               className="absolute inset-[45%]"
               style={{ 
-                backgroundColor: '#66FCF1',
-                boxShadow: '0 0 12px rgba(102, 252, 241, 0.5)',
+                backgroundColor: '#FF6A00',
+                boxShadow: '0 0 12px rgba(255, 106, 0, 0.5)',
                 borderRadius: '2px',
               }} 
             />
@@ -82,8 +82,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(102, 252, 241, 0.5) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(102, 252, 241, 0.5) 1px, transparent 1px)
+              linear-gradient(rgba(255, 106, 0, 0.5) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255, 106, 0, 0.5) 1px, transparent 1px)
             `,
             backgroundSize: '60px 60px',
           }}
@@ -94,27 +94,27 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           className="absolute inset-0"
           style={{
             background: `
-              radial-gradient(ellipse 80% 60% at 50% 20%, rgba(102, 252, 241, 0.04) 0%, transparent 50%),
-              radial-gradient(ellipse 60% 40% at 50% 80%, rgba(69, 162, 158, 0.03) 0%, transparent 40%)
+              radial-gradient(ellipse 80% 60% at 50% 20%, rgba(255, 106, 0, 0.04) 0%, transparent 50%),
+              radial-gradient(ellipse 60% 40% at 50% 80%, rgba(139, 0, 0, 0.03) 0%, transparent 40%)
             `
           }}
         />
         
         {/* Corner brackets - top left */}
         <div className="absolute top-8 left-8">
-          <div className="w-12 h-12" style={{ borderLeft: '1px solid #45A29E', borderTop: '1px solid #45A29E' }} />
+          <div className="w-12 h-12" style={{ borderLeft: '1px solid #CC5500', borderTop: '1px solid #CC5500' }} />
         </div>
         {/* Corner brackets - top right */}
         <div className="absolute top-8 right-8">
-          <div className="w-12 h-12" style={{ borderRight: '1px solid #45A29E', borderTop: '1px solid #45A29E' }} />
+          <div className="w-12 h-12" style={{ borderRight: '1px solid #CC5500', borderTop: '1px solid #CC5500' }} />
         </div>
         {/* Corner brackets - bottom left */}
         <div className="absolute bottom-8 left-8">
-          <div className="w-12 h-12" style={{ borderLeft: '1px solid #45A29E', borderBottom: '1px solid #45A29E' }} />
+          <div className="w-12 h-12" style={{ borderLeft: '1px solid #CC5500', borderBottom: '1px solid #CC5500' }} />
         </div>
         {/* Corner brackets - bottom right */}
         <div className="absolute bottom-8 right-8">
-          <div className="w-12 h-12" style={{ borderRight: '1px solid #45A29E', borderBottom: '1px solid #45A29E' }} />
+          <div className="w-12 h-12" style={{ borderRight: '1px solid #CC5500', borderBottom: '1px solid #CC5500' }} />
         </div>
 
         {/* Main content - vertically centered */}
@@ -132,13 +132,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 }}
               >
                 {/* Corner accents */}
-                <div className="absolute -top-px -left-px w-4 h-4" style={{ borderLeft: '2px solid #66FCF1', borderTop: '2px solid #66FCF1' }} />
-                <div className="absolute -bottom-px -right-px w-4 h-4" style={{ borderRight: '2px solid #66FCF1', borderBottom: '2px solid #66FCF1' }} />
+                <div className="absolute -top-px -left-px w-4 h-4" style={{ borderLeft: '2px solid #FF6A00', borderTop: '2px solid #FF6A00' }} />
+                <div className="absolute -bottom-px -right-px w-4 h-4" style={{ borderRight: '2px solid #FF6A00', borderBottom: '2px solid #FF6A00' }} />
                 <span 
                   className="text-3xl font-semibold"
                   style={{ 
                     fontFamily: "'Rajdhani', sans-serif",
-                    color: '#66FCF1',
+                    color: '#FF6A00',
                     letterSpacing: '2px',
                   }}
                 >
@@ -176,7 +176,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <div 
               className="relative p-1"
               style={{
-                background: 'linear-gradient(135deg, rgba(102, 252, 241, 0.2) 0%, transparent 50%, rgba(102, 252, 241, 0.1) 100%)',
+                background: 'linear-gradient(135deg, rgba(255, 106, 0, 0.2) 0%, transparent 50%, rgba(255, 106, 0, 0.1) 100%)',
                 borderRadius: '2px',
               }}
             >
@@ -202,8 +202,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               <div 
                 className="w-2 h-2"
                 style={{ 
-                  backgroundColor: '#03DAC6',
-                  boxShadow: '0 0 8px #03DAC6',
+                  backgroundColor: '#22C55E',
+                  boxShadow: '0 0 8px #22C55E',
                   borderRadius: '2px',
                 }}
               />
@@ -250,20 +250,20 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 fontSize: '12px',
                 fontWeight: 600,
                 letterSpacing: '1.5px',
-                color: '#66FCF1',
+                color: '#FF6A00',
                 backgroundColor: 'transparent',
-                border: '1px solid #45A29E',
+                border: '1px solid #CC5500',
                 borderRadius: '0',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#66FCF1';
+                e.currentTarget.style.backgroundColor = '#FF6A00';
                 e.currentTarget.style.color = '#0B0C10';
-                e.currentTarget.style.borderColor = '#66FCF1';
+                e.currentTarget.style.borderColor = '#FF6A00';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#66FCF1';
-                e.currentTarget.style.borderColor = '#45A29E';
+                e.currentTarget.style.color = '#FF6A00';
+                e.currentTarget.style.borderColor = '#CC5500';
               }}
             >
               <span>LEARN MORE</span>

@@ -48,18 +48,18 @@ const config: Config = {
           input: '#151A21',
         },
         
-        // Primary accent - Electric Cyan
+        // Primary accent - Bright Orange
         'cyber': {
-          DEFAULT: '#66FCF1',
-          dim: '#45A29E',
-          bright: '#7DFFF5',
+          DEFAULT: '#FF6A00',
+          dim: '#CC5500',
+          bright: '#FF8C33',
         },
         
-        // Structural accent - Muted Teal
+        // Structural accent - Blood Red
         'steel': {
-          DEFAULT: '#45A29E',
-          dim: '#2D6A68',
-          light: '#5CB8B2',
+          DEFAULT: '#8B0000',
+          dim: '#5C0000',
+          light: '#B22222',
         },
         
         // Text hierarchy
@@ -72,10 +72,10 @@ const config: Config = {
         
         // Status colors - Desaturated, professional
         'signal': {
-          success: '#03DAC6',
+          success: '#22C55E',
           warning: '#E6A817',
           error: '#CF6679',
-          info: '#45A29E',
+          info: '#FF6A00',
         },
         
         // Legacy color mappings for compatibility
@@ -87,21 +87,21 @@ const config: Config = {
         },
         
         'neon': {
-          cyan: '#66FCF1',
-          'cyan-dim': '#45A29E',
-          purple: '#45A29E',
-          'purple-dim': '#2D6A68',
+          cyan: '#FF6A00',
+          'cyan-dim': '#CC5500',
+          purple: '#8B0000',
+          'purple-dim': '#5C0000',
           white: '#FFFFFF',
-          green: '#03DAC6',
+          green: '#22C55E',
           magenta: '#CF6679',
           yellow: '#E6A817',
         },
         
         'status': {
-          online: '#03DAC6',
+          online: '#22C55E',
           warning: '#E6A817',
           error: '#CF6679',
-          info: '#45A29E',
+          info: '#FF6A00',
         },
         
         'text': {
@@ -121,15 +121,15 @@ const config: Config = {
         
         // More legacy mappings
         'deep-void': '#0B0C10',
-        'holographic': '#66FCF1',
-        'lavender': '#45A29E',
-        'data-cyan': '#66FCF1',
+        'holographic': '#FF6A00',
+        'lavender': '#8B0000',
+        'data-cyan': '#FF6A00',
         'data-magenta': '#CF6679',
-        'data-green': '#03DAC6',
+        'data-green': '#22C55E',
         'data-gold': '#E6A817',
         'ultraviolet': '#252D3A',
         'obsidian': '#1F2833',
-        'nebula': '#2D6A68',
+        'nebula': '#5C0000',
         
         // Dark variants for backgrounds
         'dark': {
@@ -168,19 +168,19 @@ const config: Config = {
       
       boxShadow: {
         // Industrial shadows - subtle, structural
-        'cyber': '0 0 20px rgba(102, 252, 241, 0.15)',
-        'cyber-intense': '0 0 30px rgba(102, 252, 241, 0.25), 0 0 60px rgba(102, 252, 241, 0.1)',
+        'cyber': '0 0 20px rgba(255, 106, 0, 0.15)',
+        'cyber-intense': '0 0 30px rgba(255, 106, 0, 0.25), 0 0 60px rgba(255, 106, 0, 0.1)',
         'steel': '0 4px 20px rgba(0, 0, 0, 0.5)',
-        'inner-glow': 'inset 0 0 20px rgba(102, 252, 241, 0.05)',
+        'inner-glow': 'inset 0 0 20px rgba(255, 106, 0, 0.05)',
         
         // Legacy mappings
-        'neon-cyan': '0 0 20px rgba(102, 252, 241, 0.2)',
-        'neon-cyan-intense': '0 0 30px rgba(102, 252, 241, 0.3)',
-        'neon-purple': '0 0 20px rgba(69, 162, 158, 0.2)',
+        'neon-cyan': '0 0 20px rgba(255, 106, 0, 0.2)',
+        'neon-cyan-intense': '0 0 30px rgba(255, 106, 0, 0.3)',
+        'neon-purple': '0 0 20px rgba(139, 0, 0, 0.2)',
         'neon-white': '0 0 20px rgba(255, 255, 255, 0.1)',
         'glass': '0 4px 20px rgba(0, 0, 0, 0.4)',
         'glass-elevated': '0 8px 30px rgba(0, 0, 0, 0.5)',
-        'status-online': '0 0 8px #03DAC6',
+        'status-online': '0 0 8px #22C55E',
         'status-error': '0 0 8px #CF6679',
         'status-warning': '0 0 8px #E6A817',
       },
@@ -221,8 +221,8 @@ const config: Config = {
           '50%': { opacity: '0.85' },
         },
         'glow-pulse': {
-          '0%, 100%': { boxShadow: '0 0 10px rgba(102, 252, 241, 0.2)' },
-          '50%': { boxShadow: '0 0 20px rgba(102, 252, 241, 0.4)' },
+          '0%, 100%': { boxShadow: '0 0 10px rgba(255, 106, 0, 0.2)' },
+          '50%': { boxShadow: '0 0 20px rgba(255, 106, 0, 0.4)' },
         },
         'float-subtle': {
           '0%, 100%': { transform: 'translateY(0)' },
@@ -245,16 +245,16 @@ const config: Config = {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'cyber-gradient': 'linear-gradient(135deg, #66FCF1 0%, #45A29E 100%)',
-        'cyber-gradient-horizontal': 'linear-gradient(90deg, #66FCF1 0%, #45A29E 100%)',
+        'cyber-gradient': 'linear-gradient(135deg, #FF6A00 0%, #8B0000 100%)',
+        'cyber-gradient-horizontal': 'linear-gradient(90deg, #FF6A00 0%, #8B0000 100%)',
         'void-radial': 'radial-gradient(ellipse at center, #1F2833 0%, #0B0C10 100%)',
-        'void-spotlight': 'radial-gradient(ellipse at 50% 0%, rgba(102, 252, 241, 0.08) 0%, transparent 50%)',
+        'void-spotlight': 'radial-gradient(ellipse at 50% 0%, rgba(255, 106, 0, 0.08) 0%, transparent 50%)',
         
         // Legacy
-        'neon-gradient': 'linear-gradient(135deg, #66FCF1 0%, #45A29E 100%)',
-        'neon-gradient-horizontal': 'linear-gradient(90deg, #66FCF1 0%, #45A29E 100%)',
+        'neon-gradient': 'linear-gradient(135deg, #FF6A00 0%, #8B0000 100%)',
+        'neon-gradient-horizontal': 'linear-gradient(90deg, #FF6A00 0%, #8B0000 100%)',
         'border-shine': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%)',
-        'border-neon': 'linear-gradient(90deg, transparent 0%, #66FCF1 50%, transparent 100%)',
+        'border-neon': 'linear-gradient(90deg, transparent 0%, #FF6A00 50%, transparent 100%)',
       },
       
       transitionTimingFunction: {

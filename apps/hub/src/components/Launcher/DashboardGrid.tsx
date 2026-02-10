@@ -290,7 +290,7 @@ function ProfilePanel() {
 function QuickAccessPanel() {
   const quickLinks = [
     { icon: '🔍', title: 'Explorer', href: '/explorer' },
-    { icon: '⚒️', title: 'Forge', href: '/forge' },
+    { icon: '🎨', title: 'Create', href: '/create' },
     { icon: '🏪', title: 'Market', href: '/marketplace' },
     { icon: '💻', title: 'Dev Hub', href: '/development' },
     { icon: '🤖', title: 'Sophia', href: '/social' },
@@ -403,14 +403,6 @@ export function DashboardGrid() {
   // TODO: Fetch actual counts from RPC/API when available
   const systems = [
     {
-      icon: '🎮',
-      title: 'Games',
-      value: 'Soon',
-      subtitle: 'COMING SOON',
-      href: '/games',
-      status: 'syncing' as const,
-    },
-    {
       icon: '🎵',
       title: 'QOR Music',
       value: 'Beta',
@@ -428,10 +420,10 @@ export function DashboardGrid() {
     },
     {
       icon: '🖼️',
-      title: 'NFT Portal',
+      title: 'DRC-369 Studio',
       value: '0',
       subtitle: 'ITEMS OWNED',
-      href: '/forge',
+      href: '/create',
       status: 'online' as const,
     },
     {

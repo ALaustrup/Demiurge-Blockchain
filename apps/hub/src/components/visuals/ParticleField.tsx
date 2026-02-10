@@ -314,8 +314,8 @@ function GridOverlay({ color, opacity = 0.02 }: { color: string; opacity?: numbe
 export function ParticleField({
   mode = 'ambient',
   particleCount,
-  color = '#66FCF1',
-  secondaryColor = '#45A29E',
+  color = '#FF6A00',
+  secondaryColor = '#CC5500',
   intensity = 1,
   interactive = false,
   splineSceneUrl,
@@ -360,7 +360,7 @@ export function ParticleField({
         className="absolute inset-0"
         style={{
           background: `radial-gradient(ellipse at ${mousePos.x * 100}% ${mousePos.y * 100}%, 
-            rgba(102, 252, 241, ${0.03 * intensity}) 0%, 
+            rgba(255, 106, 0, ${0.03 * intensity}) 0%, 
             transparent 50%)`,
           transition: interactive ? 'background 0.3s ease' : 'none',
         }}

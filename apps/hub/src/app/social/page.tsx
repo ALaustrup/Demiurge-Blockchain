@@ -119,7 +119,6 @@ export default function SocialPage() {
     { href: '/social/friends', icon: '👥', label: 'Friends', count: profile?.stats?.following },
     { href: '/social/groups', icon: '🏛️', label: 'Groups' },
     { href: '/social/events', icon: '📅', label: 'Events' },
-    { href: '/games', icon: '🎮', label: 'Games' },
   ];
 
   return (

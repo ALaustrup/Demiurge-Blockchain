@@ -40,7 +40,7 @@ export function HoloInput({
   position = [0, 0, 0],
   width = 2,
   height = 0.4,
-  color = '#66FCF1',
+  color = '#FF6A00',
   label,
   type = 'text',
   disabled = false,
@@ -88,7 +88,7 @@ export function HoloInput({
       <mesh position={[0, 0, 0.001]}>
         <planeGeometry args={[width + 0.02, height + 0.02]} />
         <meshBasicMaterial
-          color={focused ? color : '#45A29E'}
+          color={focused ? color : '#CC5500'}
           transparent
           opacity={0.6}
           wireframe

@@ -383,9 +383,9 @@ export default function MyProfilePage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h2 className="font-grunge-alt text-2xl text-white">🎮 Games ({profile.stats.gamesPlayed})</h2>
-                  <Link href="/games" className="text-neon-cyan hover:underline text-sm">
-                    Browse games →
-                  </Link>
+                  <span className="text-steel-light text-sm opacity-50">
+                    Coming soon
+                  </span>
                 </div>
                 <div className="grid gap-4">
                   {[

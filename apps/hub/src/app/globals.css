@@ -22,14 +22,14 @@
     --bg-elevated: #252D3A;
     --bg-input: #151A21;
     
-    /* Primary Accent - Electric Cyan (single accent, no rainbow) */
-    --accent-primary: #66FCF1;
-    --accent-primary-dim: #45A29E;
-    --accent-primary-glow: rgba(102, 252, 241, 0.4);
+    /* Primary Accent - Bright Orange */
+    --accent-primary: #FF6A00;
+    --accent-primary-dim: #CC5500;
+    --accent-primary-glow: rgba(255, 106, 0, 0.4);
     
-    /* Secondary/Structural - Muted Teal (borders, dividers only) */
-    --accent-secondary: #45A29E;
-    --accent-secondary-dim: #2D6A68;
+    /* Secondary/Structural - Blood Red (borders, dividers only) */
+    --accent-secondary: #8B0000;
+    --accent-secondary-dim: #5C0000;
     
     /* Text Hierarchy */
     --text-high: #FFFFFF;
@@ -38,15 +38,15 @@
     --text-dim: #4A5568;
     
     /* Status Colors - Desaturated, professional */
-    --status-success: #03DAC6;
+    --status-success: #22C55E;
     --status-warning: #E6A817;
     --status-error: #CF6679;
-    --status-info: #45A29E;
+    --status-info: #FF6A00;
     
     /* Structural */
     --border-primary: #333333;
     --border-subtle: #222222;
-    --border-accent: rgba(102, 252, 241, 0.3);
+    --border-accent: rgba(255, 106, 0, 0.3);
     
     /* Animation timings */
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -232,7 +232,7 @@
   
   .neon-card:hover {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 20px rgba(102, 252, 241, 0.1);
+    box-shadow: 0 0 20px rgba(255, 106, 0, 0.1);
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -282,7 +282,7 @@
   .launcher-button-primary:hover {
     background: var(--text-high);
     border-color: var(--text-high);
-    box-shadow: 0 0 20px rgba(102, 252, 241, 0.3);
+    box-shadow: 0 0 20px rgba(255, 106, 0, 0.3);
   }
 
   /* Ghost button - for secondary actions */
@@ -478,8 +478,8 @@
   
   .system-card { @apply system-panel; }
   .holo-sheen { /* Removed - no iridescent effects in industrial theme */ }
-  .chroma-glow { box-shadow: 0 0 20px rgba(102, 252, 241, 0.15); }
-  .hover-glow:hover { box-shadow: 0 0 20px rgba(102, 252, 241, 0.15); }
+  .chroma-glow { box-shadow: 0 0 20px rgba(255, 106, 0, 0.15); }
+  .hover-glow:hover { box-shadow: 0 0 20px rgba(255, 106, 0, 0.15); }
   
   /* Color class mappings */
   .text-neon-cyan { color: var(--accent-primary); }
@@ -535,10 +535,10 @@
 
 @keyframes glow-pulse {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(102, 252, 241, 0.2);
+    box-shadow: 0 0 10px rgba(255, 106, 0, 0.2);
   }
   50% {
-    box-shadow: 0 0 20px rgba(102, 252, 241, 0.4);
+    box-shadow: 0 0 20px rgba(255, 106, 0, 0.4);
   }
 }
 

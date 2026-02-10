@@ -275,8 +275,8 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                     outline: 'none',
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = '#66FCF1';
-                    e.target.style.boxShadow = '0 0 0 1px #66FCF1';
+                    e.target.style.borderColor = '#FF6A00';
+                    e.target.style.boxShadow = '0 0 0 1px #FF6A00';
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = '#333333';
@@ -319,8 +319,8 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                     outline: 'none',
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = '#66FCF1';
-                    e.target.style.boxShadow = '0 0 0 1px #66FCF1';
+                    e.target.style.borderColor = '#FF6A00';
+                    e.target.style.boxShadow = '0 0 0 1px #FF6A00';
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = '#333333';
@@ -359,9 +359,9 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                   letterSpacing: '2px',
                   textTransform: 'uppercase',
                   color: isLoading || !username || !password ? '#4A5568' : '#0B0C10',
-                  backgroundColor: isLoading || !username || !password ? '#252D3A' : '#66FCF1',
+                  backgroundColor: isLoading || !username || !password ? '#252D3A' : '#FF6A00',
                   border: '1px solid',
-                  borderColor: isLoading || !username || !password ? '#333333' : '#66FCF1',
+                  borderColor: isLoading || !username || !password ? '#333333' : '#FF6A00',
                   borderRadius: '0',
                   cursor: isLoading || !username || !password ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s ease',
@@ -370,13 +370,13 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                   if (!isLoading && username && password) {
                     e.currentTarget.style.backgroundColor = '#FFFFFF';
                     e.currentTarget.style.borderColor = '#FFFFFF';
-                    e.currentTarget.style.boxShadow = '0 0 20px rgba(102, 252, 241, 0.3)';
+                    e.currentTarget.style.boxShadow = '0 0 20px rgba(255, 106, 0, 0.3)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isLoading && username && password) {
-                    e.currentTarget.style.backgroundColor = '#66FCF1';
-                    e.currentTarget.style.borderColor = '#66FCF1';
+                    e.currentTarget.style.backgroundColor = '#FF6A00';
+                    e.currentTarget.style.borderColor = '#FF6A00';
                     e.currentTarget.style.boxShadow = 'none';
                   }
                 }}
@@ -395,13 +395,13 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                 style={{
                   fontFamily: "'Barlow', sans-serif",
                   fontSize: '14px',
-                  color: '#66FCF1',
+                  color: '#FF6A00',
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.color = '#FFFFFF'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#66FCF1'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#FF6A00'}
               >
                 Don't have an account? <span style={{ fontWeight: 600 }}>CREATE QOR ID</span>
               </button>
@@ -437,10 +437,10 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                   maxLength={20}
                 />
                 {usernameStatus === 'checking' && (
-                  <div style={{ fontSize: '12px', color: '#66FCF1', marginTop: '8px' }}>Checking availability...</div>
+                  <div style={{ fontSize: '12px', color: '#FF6A00', marginTop: '8px' }}>Checking availability...</div>
                 )}
                 {usernameStatus === 'available' && (
-                  <div style={{ fontSize: '12px', color: '#03DAC6', marginTop: '8px' }}>✓ Username available</div>
+                  <div style={{ fontSize: '12px', color: '#22C55E', marginTop: '8px' }}>✓ Username available</div>
                 )}
                 {usernameStatus === 'taken' && (
                   <div style={{ fontSize: '12px', color: '#CF6679', marginTop: '8px' }}>✗ Username already taken</div>
@@ -455,11 +455,11 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
               <button
                 type="submit"
                 disabled={usernameStatus !== 'available'}
-                style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: usernameStatus === 'available' ? '#0B0C10' : '#4A5568', backgroundColor: usernameStatus === 'available' ? '#66FCF1' : '#252D3A', border: '1px solid', borderColor: usernameStatus === 'available' ? '#66FCF1' : '#333333', cursor: usernameStatus === 'available' ? 'pointer' : 'not-allowed' }}
+                style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: usernameStatus === 'available' ? '#0B0C10' : '#4A5568', backgroundColor: usernameStatus === 'available' ? '#FF6A00' : '#252D3A', border: '1px solid', borderColor: usernameStatus === 'available' ? '#FF6A00' : '#333333', cursor: usernameStatus === 'available' ? 'pointer' : 'not-allowed' }}
               >
                 CONTINUE
               </button>
-              <button type="button" onClick={() => setStep('login')} style={{ width: '100%', background: 'none', border: 'none', color: '#66FCF1', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
+              <button type="button" onClick={() => setStep('login')} style={{ width: '100%', background: 'none', border: 'none', color: '#FF6A00', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
                 ← Back to Login
               </button>
             </form>
@@ -497,14 +497,14 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                 />
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button type="submit" style={{ flex: 1, padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', color: '#0B0C10', backgroundColor: '#66FCF1', border: '1px solid #66FCF1', cursor: 'pointer' }}>
+                <button type="submit" style={{ flex: 1, padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', color: '#0B0C10', backgroundColor: '#FF6A00', border: '1px solid #FF6A00', cursor: 'pointer' }}>
                   CONTINUE
                 </button>
                 <button type="button" onClick={handleSkipEmail} style={{ padding: '14px 20px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '1px', color: '#7B8794', backgroundColor: 'transparent', border: '1px solid #333333', cursor: 'pointer' }}>
                   SKIP
                 </button>
               </div>
-              <button type="button" onClick={() => setStep('register-username')} style={{ width: '100%', background: 'none', border: 'none', color: '#66FCF1', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
+              <button type="button" onClick={() => setStep('register-username')} style={{ width: '100%', background: 'none', border: 'none', color: '#FF6A00', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
                 ← Back
               </button>
             </form>
@@ -537,7 +537,7 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                   minLength={6}
                 />
                 {password.length > 0 && (
-                  <div style={{ fontSize: '12px', color: password.length >= 6 ? '#03DAC6' : '#CF6679', marginTop: '8px' }}>
+                  <div style={{ fontSize: '12px', color: password.length >= 6 ? '#22C55E' : '#CF6679', marginTop: '8px' }}>
                     {password.length >= 6 ? '✓ Chain PIN accepted' : `Minimum 6 characters (${password.length}/6)`}
                   </div>
                 )}
@@ -548,11 +548,11 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
               <button
                 type="submit"
                 disabled={password.length < 6 || isLoading}
-                style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: password.length >= 6 && !isLoading ? '#0B0C10' : '#4A5568', backgroundColor: password.length >= 6 && !isLoading ? '#66FCF1' : '#252D3A', border: '1px solid', borderColor: password.length >= 6 && !isLoading ? '#66FCF1' : '#333333', cursor: password.length >= 6 && !isLoading ? 'pointer' : 'not-allowed' }}
+                style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: password.length >= 6 && !isLoading ? '#0B0C10' : '#4A5568', backgroundColor: password.length >= 6 && !isLoading ? '#FF6A00' : '#252D3A', border: '1px solid', borderColor: password.length >= 6 && !isLoading ? '#FF6A00' : '#333333', cursor: password.length >= 6 && !isLoading ? 'pointer' : 'not-allowed' }}
               >
                 {isLoading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
               </button>
-              <button type="button" onClick={() => setStep('register-email')} style={{ width: '100%', background: 'none', border: 'none', color: '#66FCF1', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
+              <button type="button" onClick={() => setStep('register-email')} style={{ width: '100%', background: 'none', border: 'none', color: '#FF6A00', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
                 ← Back
               </button>
             </form>
@@ -586,7 +586,7 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
             </div>
             <button
               onClick={handleBackupCodeAcknowledged}
-              style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', color: '#0B0C10', backgroundColor: '#66FCF1', border: '1px solid #66FCF1', cursor: 'pointer' }}
+              style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', color: '#0B0C10', backgroundColor: '#FF6A00', border: '1px solid #FF6A00', cursor: 'pointer' }}
             >
               I'VE SAVED MY CODE
             </button>
@@ -600,19 +600,19 @@ export function QorIdAuthFlow({ isOpen, onClose, onSuccess, variant = 'modal', i
                 VERIFY EMAIL
               </h2>
             </div>
-            <div style={{ padding: '16px', backgroundColor: 'rgba(69, 162, 158, 0.1)', border: '1px solid rgba(69, 162, 158, 0.3)' }}>
-              <div style={{ color: '#45A29E', fontWeight: 600, marginBottom: '8px', fontFamily: "'Rajdhani', sans-serif" }}>📧 EMAIL VERIFICATION</div>
+            <div style={{ padding: '16px', backgroundColor: 'rgba(139, 0, 0, 0.1)', border: '1px solid rgba(139, 0, 0, 0.3)' }}>
+              <div style={{ color: '#CC5500', fontWeight: 600, marginBottom: '8px', fontFamily: "'Rajdhani', sans-serif" }}>📧 EMAIL VERIFICATION</div>
               <div style={{ color: '#C5C6C7', fontSize: '14px', fontFamily: "'Barlow', sans-serif" }}>
-                We've sent a verification link to <strong style={{ color: '#66FCF1' }}>{email}</strong>. Check your inbox.
+                We've sent a verification link to <strong style={{ color: '#FF6A00' }}>{email}</strong>. Check your inbox.
               </div>
             </div>
             <button
               onClick={handleEmailVerificationAcknowledged}
-              style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', color: '#0B0C10', backgroundColor: '#66FCF1', border: '1px solid #66FCF1', cursor: 'pointer' }}
+              style={{ width: '100%', padding: '14px 24px', fontFamily: "'Rajdhani', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '2px', color: '#0B0C10', backgroundColor: '#FF6A00', border: '1px solid #FF6A00', cursor: 'pointer' }}
             >
               I'LL VERIFY MY EMAIL
             </button>
-            <button type="button" onClick={() => setStep('login')} style={{ width: '100%', background: 'none', border: 'none', color: '#66FCF1', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
+            <button type="button" onClick={() => setStep('login')} style={{ width: '100%', background: 'none', border: 'none', color: '#FF6A00', fontSize: '14px', cursor: 'pointer', fontFamily: "'Barlow', sans-serif" }}>
               Back to Login
             </button>
           </div>

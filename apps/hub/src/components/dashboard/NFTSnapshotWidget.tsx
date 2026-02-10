@@ -117,8 +117,8 @@ export function NFTSnapshotWidget() {
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-grunge text-demiurge-gold">🖼️ NFT Collection</h3>
-          <Link href="/forge" className="text-xs text-demiurge-gold hover:underline">
-            The Forge →
+          <Link href="/create" className="text-xs text-demiurge-gold hover:underline">
+            DRC-369 Studio →
           </Link>
         </div>
 
@@ -145,7 +145,7 @@ export function NFTSnapshotWidget() {
             {/* Pending Offers Alert */}
             {pendingOffers.length > 0 && (
               <Link
-                href="/forge?tab=offers"
+                href="/create#gallery"
                 className="block mb-4 p-3 rounded-lg bg-demiurge-gold/10 border border-demiurge-gold/30 hover:bg-demiurge-gold/20 transition-all"
               >
                 <div className="flex items-center justify-between">
@@ -171,7 +171,7 @@ export function NFTSnapshotWidget() {
                 {recentAssets.slice(0, 6).map((asset) => (
                   <Link
                     key={asset.id}
-                    href={`/forge/asset/${asset.id}`}
+                    href={`/create#viewer`}
                     className="aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-demiurge-gold/20 to-demiurge-violet/20 hover:scale-105 transition-transform relative group"
                   >
                     {asset.thumbnail ? (
@@ -199,7 +199,7 @@ export function NFTSnapshotWidget() {
                 <div className="text-4xl mb-2">🎨</div>
                 <p className="text-gray-400 text-sm mb-2">No NFTs yet</p>
                 <Link 
-                  href="/forge" 
+                  href="/create" 
                   className="text-demiurge-gold text-sm hover:underline"
                 >
                   Mint your first NFT →
@@ -210,7 +210,7 @@ export function NFTSnapshotWidget() {
             {/* Quick Actions */}
             <div className="grid grid-cols-2 gap-2">
               <Link
-                href="/forge"
+                href="/create"
                 className="text-center py-2 bg-gradient-to-r from-demiurge-gold/20 to-demiurge-violet/20 rounded-lg border border-demiurge-gold/30 hover:border-demiurge-gold/50 transition-all text-sm font-medium text-demiurge-gold"
               >
                 ⚒️ Mint

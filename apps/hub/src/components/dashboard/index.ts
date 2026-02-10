@@ -1,7 +1,6 @@
 // Dashboard Widgets
 export { WalletWidget } from './WalletWidget';
 export { VYBNotificationWidget } from './VYBNotificationWidget';
-export { GameActivityWidget } from './GameActivityWidget';
 export { NFTSnapshotWidget } from './NFTSnapshotWidget';
 export { OnChainFeedWidget } from './OnChainFeedWidget';
 export { UserIdentityHeader } from './UserIdentityHeader';

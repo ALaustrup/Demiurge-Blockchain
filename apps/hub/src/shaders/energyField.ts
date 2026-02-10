@@ -102,7 +102,7 @@ export const energyFieldFragmentShader = `
 export const EnergyFieldMaterial = shaderMaterial(
   {
     uTime: 0,
-    uColor: new Color('#66FCF1'),
+    uColor: new Color('#FF6A00'),
     uSecondaryColor: new Color('#bf00ff'),
     uOpacity: 0.5,
     uPulseSpeed: 1.0,

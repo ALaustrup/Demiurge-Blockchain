@@ -34,10 +34,9 @@ export function HeaderBar() {
   }, [connect]);
 
   const navItems = [
-    { label: 'Games', href: '/games' },
+    { label: 'Create', href: '/create' },
     { label: 'VYB', href: '/social' },
     { label: 'Sophia', href: '/sophia' },
-    { label: 'NFTs', href: '/nft-portal' },
     { label: 'Music', href: '/music' },
   ];
 

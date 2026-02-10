@@ -29,7 +29,7 @@ function FloatingParticles({
   count = 500,
   radius = 15,
   size = 0.02,
-  color = '#66FCF1',
+  color = '#FF6A00',
   speed = 0.1,
 }: FloatingParticlesProps) {
   const pointsRef = useRef<ThreePoints>(null);
@@ -107,7 +107,7 @@ function DataStream({
   endPos = [0, 5, 0],
   count = 50,
   speed = 1,
-  color = '#66FCF1',
+  color = '#FF6A00',
 }: DataStreamProps) {
   const pointsRef = useRef<ThreePoints>(null);
   
@@ -182,18 +182,18 @@ export function WorldParticles() {
   return (
     <group>
       {/* Ambient floating particles */}
-      <FloatingParticles count={800} radius={20} size={0.015} color="#66FCF1" speed={0.1} />
-      <FloatingParticles count={400} radius={15} size={0.02} color="#45A29E" speed={0.15} />
+      <FloatingParticles count={800} radius={20} size={0.015} color="#FF6A00" speed={0.1} />
+      <FloatingParticles count={400} radius={15} size={0.02} color="#CC5500" speed={0.15} />
       <FloatingParticles count={200} radius={10} size={0.025} color="#bf00ff" speed={0.08} />
       
       {/* Data streams - vertical pillars */}
-      <DataStream startPos={[-5, 0, -5]} endPos={[-5, 8, -5]} count={30} color="#66FCF1" />
-      <DataStream startPos={[5, 0, -5]} endPos={[5, 8, -5]} count={30} color="#45A29E" />
+      <DataStream startPos={[-5, 0, -5]} endPos={[-5, 8, -5]} count={30} color="#FF6A00" />
+      <DataStream startPos={[5, 0, -5]} endPos={[5, 8, -5]} count={30} color="#CC5500" />
       <DataStream startPos={[-5, 0, 5]} endPos={[-5, 8, 5]} count={30} color="#bf00ff" />
-      <DataStream startPos={[5, 0, 5]} endPos={[5, 8, 5]} count={30} color="#66FCF1" />
+      <DataStream startPos={[5, 0, 5]} endPos={[5, 8, 5]} count={30} color="#FF6A00" />
       
       {/* Central upward stream */}
-      <DataStream startPos={[0, 0, 0]} endPos={[0, 12, 0]} count={60} speed={1.5} color="#66FCF1" />
+      <DataStream startPos={[0, 0, 0]} endPos={[0, 12, 0]} count={60} speed={1.5} color="#FF6A00" />
     </group>
   );
 }

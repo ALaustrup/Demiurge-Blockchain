@@ -101,7 +101,7 @@ export function HoloPanel({
   width = 2,
   height = 1.5,
   depth = 0.02,
-  color = '#66FCF1',
+  color = '#FF6A00',
   opacity = 0.6,
   lookAtCamera = true,
   scanlines = true,

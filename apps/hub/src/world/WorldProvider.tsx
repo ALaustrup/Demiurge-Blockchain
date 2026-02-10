@@ -74,7 +74,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     id: 'command',
     name: 'Command Chamber',
     position: [0, 0, 0],
-    color: '#66FCF1',
+    color: '#FF6A00',
     description: 'Central hub - your dashboard to the Demiurge ecosystem',
   },
   social: {

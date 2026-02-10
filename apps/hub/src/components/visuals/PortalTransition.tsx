@@ -239,7 +239,7 @@ export function PortalTransition({
   direction = 'in',
   variant = 'warp',
   duration = 1,
-  color = '#66FCF1',
+  color = '#FF6A00',
   onComplete,
   children,
   className,

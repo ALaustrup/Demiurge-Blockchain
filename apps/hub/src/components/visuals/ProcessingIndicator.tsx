@@ -340,7 +340,7 @@ function GridVariant({ size, color }: { size: number; color: string }) {
 export function ProcessingIndicator({
   variant = 'spinner',
   size = 'md',
-  color = '#66FCF1',
+  color = '#FF6A00',
   text,
   progress,
   className,

@@ -127,7 +127,7 @@ export default function DashboardPage() {
                 </div>
               </>
             ) : (
-              <p className="text-xs text-gray-500">Complete tasks and play games to earn XP</p>
+              <p className="text-xs text-gray-500">Complete tasks and create NFTs to earn XP</p>
             )}
           </div>
         </div>
@@ -135,11 +135,11 @@ export default function DashboardPage() {
         {/* Quick Actions Bar */}
         <div className="mb-6 flex flex-wrap gap-3">
           <Link
-            href="/games"
+            href="/create"
             className="glass-panel px-4 py-2 rounded-lg text-sm hover:chroma-glow transition-all flex items-center gap-2"
           >
-            <span>🎮</span>
-            <span>Play Games</span>
+            <span>🎨</span>
+            <span>Create</span>
           </Link>
           <Link
             href="/scattertxt"
@@ -210,7 +210,7 @@ export default function DashboardPage() {
               <div className="text-center py-8">
                 <p className="text-4xl mb-2">📭</p>
                 <p className="text-gray-400">No recent activity</p>
-                <p className="text-xs text-gray-500 mt-1">Play games, complete tasks, or trade to see activity here</p>
+                <p className="text-xs text-gray-500 mt-1">Create NFTs, complete tasks, or trade to see activity here</p>
               </div>
             ) : (
               recentActivity.map((activity, i) => (

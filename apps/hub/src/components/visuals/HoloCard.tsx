@@ -109,9 +109,9 @@ function HoloSheen({ mouseX, mouseY }: { mouseX: number; mouseY: number }) {
           linear-gradient(
             ${105 + mouseX * 30}deg,
             transparent 0%,
-            rgba(102, 252, 241, 0.05) 30%,
-            rgba(102, 252, 241, 0.1) 50%,
-            rgba(69, 162, 158, 0.05) 70%,
+            rgba(255, 106, 0, 0.05) 30%,
+            rgba(255, 106, 0, 0.1) 50%,
+            rgba(139, 0, 0, 0.05) 70%,
             transparent 100%
           )
         `,
@@ -140,7 +140,7 @@ function DataGlow({ variant, isHovered }: { variant: string; isHovered: boolean 
           <motion.div
             className="absolute top-0 left-0 right-0 h-px"
             style={{
-              background: 'linear-gradient(90deg, transparent, #66FCF1, transparent)',
+              background: 'linear-gradient(90deg, transparent, #FF6A00, transparent)',
             }}
             animate={{
               opacity: [0.3, 1, 0.3],
@@ -190,7 +190,7 @@ export function HoloCard({
   enableSheen = true,
   showCorners = true,
   enableGlow = true,
-  accentColor = '#66FCF1',
+  accentColor = '#FF6A00',
   splineSceneUrl,
   onClick,
   className,
@@ -238,7 +238,7 @@ export function HoloCard({
     glass: {
       background: 'rgba(31, 40, 51, 0.6)',
       backdropFilter: 'blur(12px)',
-      border: '1px solid rgba(102, 252, 241, 0.1)',
+      border: '1px solid rgba(255, 106, 0, 0.1)',
     },
     data: {
       background: 'linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)',

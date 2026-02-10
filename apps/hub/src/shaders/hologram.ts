@@ -120,7 +120,7 @@ export const hologramFragmentShader = `
 export const HologramMaterial = shaderMaterial(
   {
     uTime: 0,
-    uColor: new Color('#66FCF1'),
+    uColor: new Color('#FF6A00'),
     uOpacity: 0.6,
     uScanlineIntensity: 0.3,
     uScanlineCount: 100,
