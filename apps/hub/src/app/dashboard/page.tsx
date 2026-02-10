@@ -15,12 +15,21 @@ interface ActivityItem {
   color: string;
 }
 
+interface NetworkInfo {
+  era: number;
+  blockNumber: number;
+  validators: number;
+  totalStake: string;
+  connected: boolean;
+}
+
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const [userXp, setUserXp] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
+  const [networkInfo, setNetworkInfo] = useState<NetworkInfo | null>(null);
 
   // NOTE: No redirect needed - AuthGate ensures users are authenticated before reaching this page
 
@@ -28,7 +37,26 @@ export default function DashboardPage() {
     if (user) {
       loadUserData();
     }
+    // Load network info regardless of auth
+    loadNetworkInfo();
+    const netInterval = setInterval(loadNetworkInfo, 15000);
+    return () => clearInterval(netInterval);
   }, [user]);
+
+  const loadNetworkInfo = async () => {
+    try {
+      const info = await demiurgeRpc.getChainInfo();
+      setNetworkInfo({
+        era: info.currentEra,
+        blockNumber: info.blockHeight,
+        validators: info.validators,
+        totalStake: info.totalStake,
+        connected: info.connected,
+      });
+    } catch {
+      // Silently fail — widget will show offline state
+    }
+  };
 
   const loadUserData = async () => {
     setLoadingActivity(true);
@@ -163,6 +191,49 @@ export default function DashboardPage() {
             <span>Settings</span>
           </Link>
         </div>
+
+        {/* Network Status Bar */}
+        {networkInfo && (
+          <div className="mb-6 futuristic-card p-4 scan-line-overlay">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${networkInfo.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                <span className="text-xs text-gray-400 uppercase tracking-wider font-display">
+                  {networkInfo.connected ? 'Mainnet Live' : 'Offline'}
+                </span>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">Era</p>
+                  <p className="text-sm font-bold text-white font-mono">{networkInfo.era}</p>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">Block</p>
+                  <p className="text-sm font-bold text-white font-mono">{networkInfo.blockNumber.toLocaleString()}</p>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">Validators</p>
+                  <p className="text-sm font-bold text-green-400 font-mono">{networkInfo.validators}</p>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total Stake</p>
+                  <p className="text-sm font-bold text-demiurge-cyan font-mono">
+                    {(Number(BigInt(networkInfo.totalStake || '0')) / 100).toLocaleString()} CGT
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/staking"
+                className="text-xs text-demiurge-cyan hover:underline font-display uppercase tracking-wider"
+              >
+                Staking →
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -364,6 +364,19 @@ export class DemiurgeRpcClient {
   }
 
   /**
+   * Register as a validator
+   */
+  async registerValidator(
+    account: string,
+    stake: string,
+    commission: number,
+    sessionKey: string,
+    signature: string
+  ): Promise<{ success: boolean; message: string }> {
+    return this.request('consensus_registerValidator', [account, stake, commission, sessionKey, signature]);
+  }
+
+  /**
    * Nominate a validator
    */
   async nominateValidator(
@@ -583,6 +596,35 @@ export class DemiurgeRpcClient {
       return await this.request('marketplace_getListings', [filter]);
     } catch (error) {
       console.warn('Failed to fetch marketplace listings:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Toggle energy sponsorship for a developer address
+   */
+  async setEnergySponsorship(
+    developerAddress: string,
+    enabled: boolean,
+    signature: string
+  ): Promise<{ success: boolean; enabled: boolean }> {
+    return this.request('energy_setSponsorship', [developerAddress, enabled, signature]);
+  }
+
+  /**
+   * Get historical era data
+   */
+  async getHistoricalEras(count: number = 10): Promise<Array<{
+    era: number;
+    total_rewards: string;
+    transaction_fees: string;
+    block_number: number;
+    validator_count: number;
+  }>> {
+    try {
+      return await this.request('consensus_getHistoricalEras', [count]);
+    } catch (error) {
+      console.warn('Failed to fetch historical eras:', error);
       return [];
     }
   }

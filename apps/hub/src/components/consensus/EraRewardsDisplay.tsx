@@ -111,27 +111,42 @@ export function EraRewardsDisplay({ address }: EraRewardsDisplayProps) {
     }
   };
 
-  const loadHistoricalEras = async (currentEra: number) => {
+  const loadHistoricalEras = async (currentEraNum: number) => {
     try {
-      // TODO: Fetch real historical era data from blockchain when available
-      // For now, only show current era data - no random mock data
-      const historical: HistoricalEraData[] = [];
+      // Fetch real historical era data from blockchain
+      const rawHistory = await demiurgeRpc.getHistoricalEras(10);
       
-      // Only include current era with real data
-      if (currentEra >= 0) {
+      if (rawHistory && rawHistory.length > 0) {
+        const historical: HistoricalEraData[] = rawHistory.map((e) => ({
+          era: e.era,
+          totalRewards: e.total_rewards,
+          transactionFees: e.transaction_fees,
+          blockNumber: e.block_number,
+        }));
+        setHistoricalEras(historical);
+      } else {
+        // Fallback: only show current era if historical endpoint not available
         const eraInfo = await demiurgeRpc.getCurrentEra();
-        historical.push({
+        setHistoricalEras([{
           era: eraInfo.era,
           totalRewards: eraInfo.totalRewards,
           transactionFees: eraInfo.transactionFees,
           blockNumber: eraInfo.blockNumber,
-        });
+        }]);
       }
-      
-      setHistoricalEras(historical);
     } catch (error) {
-      console.warn('Could not load historical era data:', error);
-      setHistoricalEras([]);
+      // Graceful fallback to current era only
+      try {
+        const eraInfo = await demiurgeRpc.getCurrentEra();
+        setHistoricalEras([{
+          era: eraInfo.era,
+          totalRewards: eraInfo.totalRewards,
+          transactionFees: eraInfo.transactionFees,
+          blockNumber: eraInfo.blockNumber,
+        }]);
+      } catch {
+        setHistoricalEras([]);
+      }
     }
   };
 

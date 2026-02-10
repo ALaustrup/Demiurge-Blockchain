@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { demiurgeRpc, ValidatorInfo, EraInfo, StakingPoolInfo } from '@/lib/demiurge-rpc';
 import { useBlockchain } from '@/contexts/BlockchainContext';
+import { ValidatorRegistration } from '@/components/consensus/ValidatorRegistration';
 
 type SortField = 'stake' | 'commission' | 'account';
 type SortDirection = 'asc' | 'desc';
@@ -15,6 +16,7 @@ export default function ValidatorsPage() {
   const [stakingPool, setStakingPool] = useState<StakingPoolInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showRegistration, setShowRegistration] = useState(false);
   
   // Filter and search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -162,14 +164,27 @@ export default function ValidatorsPage() {
               Manage and monitor blockchain validators
             </p>
           </div>
-          <button
-            onClick={loadData}
-            className="glass-panel px-4 py-2 rounded hover:chroma-glow transition-all"
-            disabled={loading}
-          >
-            {loading ? 'Refreshing...' : 'Refresh'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowRegistration(!showRegistration)}
+              className="px-4 py-2 bg-gradient-to-r from-demiurge-cyan to-green-500 text-black font-bold rounded-lg hover:opacity-90 transition-opacity text-sm"
+            >
+              {showRegistration ? 'Hide Registration' : 'Become a Validator'}
+            </button>
+            <button
+              onClick={loadData}
+              className="glass-panel px-4 py-2 rounded hover:chroma-glow transition-all"
+              disabled={loading}
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
         </div>
+
+        {/* Validator Registration Panel */}
+        {showRegistration && (
+          <ValidatorRegistration onRegistered={() => { setShowRegistration(false); loadData(); }} />
+        )}
 
         {/* Era Information */}
         {eraInfo && (

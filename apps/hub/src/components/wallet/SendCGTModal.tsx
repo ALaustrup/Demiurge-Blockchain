@@ -171,6 +171,19 @@ export function SendCGTModal({ isOpen, onClose, fromAddress, currentBalance }: S
               </div>
             </div>
 
+            {/* Energy cost estimate */}
+            {amount && parseFloat(amount) > 0 && (
+              <div className="bg-gray-800/30 border border-gray-700 rounded p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">Transaction Cost</span>
+                  <span className="text-demiurge-cyan font-bold">~100 Energy</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  0 CGT fees — transactions are powered by the Energy system
+                </p>
+              </div>
+            )}
+
             {!wasmInitialized && (
               <div className="bg-gray-800/40 border border-gray-700 rounded p-3 text-sm text-gray-300">
                 <div className="text-demiurge-cyan font-semibold">Initializing Wallet...</div>

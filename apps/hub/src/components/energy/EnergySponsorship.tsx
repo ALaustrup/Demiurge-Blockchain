@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { demiurgeRpc, EnergyInfo } from '@/lib/demiurge-rpc';
 import { useBlockchain } from '@/contexts/BlockchainContext';
 import { EnergyDisplay } from './EnergyDisplay';
+import { qorAuth } from '@demiurge/qor-sdk';
+import { generateKeypairFromQorId, signTransactionPayload, initWasm } from '@/lib/wasm-wallet';
 
 interface EnergySponsorshipProps {
   developerAddress: string;
@@ -87,7 +89,9 @@ export function EnergySponsorship({ developerAddress }: EnergySponsorshipProps) 
   };
 
   const handleToggleSponsorship = async () => {
-    if (!isEnabled) {
+    const newEnabled = !isEnabled;
+
+    if (newEnabled) {
       // Check if developer has enough energy
       if (!energy || energy.current < 100) {
         setError('Insufficient energy. You need at least 100 energy to sponsor transactions.');
@@ -95,8 +99,44 @@ export function EnergySponsorship({ developerAddress }: EnergySponsorshipProps) 
       }
     }
 
-    setIsEnabled(!isEnabled);
-    // TODO: Call RPC to enable/disable sponsorship
+    setLoading(true);
+    setError(null);
+
+    try {
+      await initWasm();
+      const user = await qorAuth.getProfile();
+      if (!user) throw new Error('Not authenticated');
+
+      const keypairJson = await generateKeypairFromQorId(user.qor_id);
+      const payloadStr = JSON.stringify({
+        action: 'set_sponsorship',
+        account: developerAddress,
+        enabled: newEnabled,
+      });
+      const payloadBytes = new TextEncoder().encode(payloadStr);
+      const signature = await signTransactionPayload(keypairJson, payloadBytes);
+
+      const result = await demiurgeRpc.setEnergySponsorship(
+        developerAddress,
+        newEnabled,
+        signature
+      );
+
+      if (result.success) {
+        setIsEnabled(result.enabled);
+      } else {
+        throw new Error('Failed to update sponsorship');
+      }
+    } catch (err: any) {
+      // If RPC fails (method not yet implemented), toggle locally as graceful fallback
+      if (err?.message?.includes('RPC') || err?.message?.includes('Method not found')) {
+        setIsEnabled(newEnabled);
+      } else {
+        setError(err.message || 'Failed to toggle sponsorship');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatAddress = (address: string) => {

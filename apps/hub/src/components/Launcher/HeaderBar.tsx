@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChainStore, selectBlockHeight, selectTps, selectConnectionStatus } from '@/store/chainStore';
 import { WalletConnector } from './WalletConnector';
+import { demiurgeRpc } from '@/lib/demiurge-rpc';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HEADER BAR - Command Terminal Navigation
@@ -14,6 +15,7 @@ import { WalletConnector } from './WalletConnector';
 export function HeaderBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [consensusInfo, setConsensusInfo] = useState<{ era: number; validators: number } | null>(null);
   const connect = useChainStore((state) => state.connect);
   const connectionStatus = useChainStore(selectConnectionStatus);
   const blockHeight = useChainStore(selectBlockHeight);
@@ -32,6 +34,24 @@ export function HeaderBar() {
   useEffect(() => {
     connect();
   }, [connect]);
+
+  // Fetch consensus info (era + validator count)
+  useEffect(() => {
+    let mounted = true;
+    const fetchConsensus = async () => {
+      try {
+        const status = await demiurgeRpc.getConsensusStatus();
+        if (mounted && status) {
+          setConsensusInfo({ era: status.currentEra, validators: status.validators });
+        }
+      } catch {
+        // Silently fail — header already shows offline state
+      }
+    };
+    fetchConsensus();
+    const interval = setInterval(fetchConsensus, 10000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, []);
 
   const navItems = [
     { label: 'Create', href: '/create' },
@@ -123,6 +143,30 @@ export function HeaderBar() {
                 {tps.toFixed(1)}
               </span>
             </div>
+            
+            {consensusInfo && (
+              <>
+                <div className="w-px h-4 bg-white/10" />
+                
+                {/* Era */}
+                <div className="flex items-center gap-2">
+                  <span className="font-display text-[9px] tracking-wider text-text-tertiary">ERA</span>
+                  <span className="font-mono text-xs text-neon-cyan">
+                    {consensusInfo.era}
+                  </span>
+                </div>
+                
+                <div className="w-px h-4 bg-white/10" />
+                
+                {/* Validators */}
+                <div className="flex items-center gap-2">
+                  <span className="font-display text-[9px] tracking-wider text-text-tertiary">VAL</span>
+                  <span className="font-mono text-xs text-green-400">
+                    {consensusInfo.validators}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Navigation */}
@@ -252,9 +296,21 @@ export function HeaderBar() {
                       {connectionStatus === 'connected' ? 'MAINNET' : 'OFFLINE'}
                     </span>
                   </div>
-                  <span className="font-mono text-[10px] text-neon-cyan">
-                    BLK {blockHeight.toLocaleString()}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-[10px] text-neon-cyan">
+                      BLK {blockHeight.toLocaleString()}
+                    </span>
+                    {consensusInfo && (
+                      <>
+                        <span className="font-mono text-[10px] text-text-tertiary">
+                          ERA {consensusInfo.era}
+                        </span>
+                        <span className="font-mono text-[10px] text-green-400">
+                          {consensusInfo.validators} VAL
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
                 
                 {[...navItems, ...dropdownItems].map((item) => (

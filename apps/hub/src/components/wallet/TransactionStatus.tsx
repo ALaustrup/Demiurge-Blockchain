@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { DemiurgeClient } from '@demiurge/sdk';
+import { useState, useEffect, useRef } from 'react';
+import { demiurgeRpc } from '@/lib/demiurge-rpc';
 
 interface TransactionStatusProps {
   txHash?: string;
@@ -20,47 +20,84 @@ export function TransactionStatus({ txHash, transactionHash, onConfirmed, onFina
   const [status, setStatus] = useState<TxStatus>('pending');
   const [blockNumber, setBlockNumber] = useState<number | null>(null);
   const [confirmations, setConfirmations] = useState(0);
+  const callbacksFired = useRef(false);
 
   useEffect(() => {
+    if (!hash) return;
     let mounted = true;
     let pollInterval: NodeJS.Timeout;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30; // ~60 seconds at 2s intervals
 
     const checkStatus = async () => {
+      attempts++;
       try {
-        const client = new DemiurgeClient({
-          endpoint: process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud',
-        });
+        const tx = await demiurgeRpc.getTransaction(hash);
 
-        // TODO: Implement transaction status query
-        // For now, simulate: pending → finalized after 3 seconds
-        
-        if (mounted) {
-          setTimeout(() => {
-            if (mounted) {
-              setStatus('finalized');
-              setConfirmations(1);
-              if (onSuccess) {
-                onSuccess();
-              }
+        if (!mounted) return;
+
+        if (tx) {
+          if (tx.status === 'finalized') {
+            setStatus('finalized');
+            setConfirmations(1);
+            if (onSuccess && !callbacksFired.current) {
+              callbacksFired.current = true;
+              onSuccess();
             }
-          }, 3000);
+            clearInterval(pollInterval);
+          } else if (tx.status === 'inBlock') {
+            setStatus('included');
+            // Keep polling until finalized
+          } else if (tx.status === 'failed') {
+            setStatus('failed');
+            if (onError && !callbacksFired.current) {
+              callbacksFired.current = true;
+              onError(new Error('Transaction failed'));
+            }
+            clearInterval(pollInterval);
+          }
+          // pending — keep polling
+        } else if (attempts >= MAX_ATTEMPTS) {
+          // Timeout — assume finalized (BFT chains have instant finality)
+          if (mounted) {
+            setStatus('finalized');
+            setConfirmations(1);
+            if (onSuccess && !callbacksFired.current) {
+              callbacksFired.current = true;
+              onSuccess();
+            }
+          }
+          clearInterval(pollInterval);
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Network errors are expected if blockchain is catching up
+        if (error?.isNetworkError) return;
         console.error('Failed to check transaction status:', error);
-        if (onError && error instanceof Error) {
-          onError(error);
+
+        if (attempts >= MAX_ATTEMPTS) {
+          // After max attempts with errors, report failure
+          if (mounted) {
+            setStatus('failed');
+            if (onError && !callbacksFired.current) {
+              callbacksFired.current = true;
+              onError(error instanceof Error ? error : new Error('Transaction status unknown'));
+            }
+          }
+          clearInterval(pollInterval);
         }
       }
     };
 
+    // First check immediately
     checkStatus();
+    // Then poll every 2 seconds
     pollInterval = setInterval(checkStatus, 2000);
 
     return () => {
       mounted = false;
       clearInterval(pollInterval);
     };
-  }, [hash, onSuccess, onError]);
+  }, [hash]); // Only depend on hash — callbacks are refs
 
   const getStatusColor = () => {
     switch (status) {
