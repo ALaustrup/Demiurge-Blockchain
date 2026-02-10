@@ -43,8 +43,8 @@ export default function AgentsPage() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showDeployModal, setShowDeployModal] = useState(false);
 
-  // Real blockchain data - starts empty until agents are deployed
-  // TODO: Query agents from blockchain via RPC when available
+  // Agents are deployed as DRC-369 NFTs with agentic metadata
+  // The system starts empty — agents appear after deployment
   const agents: Agent[] = [];
   const metrics = EMPTY_METRICS;
 

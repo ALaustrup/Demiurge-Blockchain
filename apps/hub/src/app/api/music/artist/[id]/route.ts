@@ -11,31 +11,10 @@ export async function GET(
     const { id } = await params;
 
     const response = await fetch(`${QOR_AUTH_URL}/api/v1/music/artist/${id}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        // Return mock data for development
-        return NextResponse.json({
-          artist: {
-            id,
-            artistName: 'Demo Artist',
-            primaryGenre: 'Electronic',
-            genres: ['Electronic', 'Ambient'],
-            bio: 'A demo artist profile for development.',
-            isVerified: false,
-            releaseCount: 0,
-            totalPlays: 0,
-            totalCollectors: 0,
-            followers: 0,
-            socialLinks: {},
-            createdAt: new Date().toISOString(),
-          },
-        });
-      }
       return NextResponse.json(
         { error: 'Artist not found' },
         { status: 404 }
@@ -47,8 +26,8 @@ export async function GET(
   } catch (error: any) {
     console.error('Fetch artist error:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
+      { error: 'Music service unavailable' },
+      { status: 503 }
     );
   }
 }

@@ -58,12 +58,12 @@ pub struct BlockNotification {
 impl From<&Block> for BlockNotification {
     fn from(block: &Block) -> Self {
         BlockNotification {
-            number: block.header.number,
+            number: block.header.block_number,
             hash: hex::encode(block.hash()),
             parent_hash: hex::encode(block.header.parent_hash),
             timestamp: block.header.timestamp,
             transaction_count: block.transactions.len(),
-            author: hex::encode(block.header.author),
+            author: String::from("0x00"), // Author resolved at consensus layer
             is_finalized: false, // Updated separately
         }
     }

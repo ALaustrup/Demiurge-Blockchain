@@ -194,12 +194,27 @@ export default function NewReleasePage() {
     setError(null);
 
     try {
-      // TODO: Upload to IPFS and mint DRC-369 NFT
-      // For now, simulate success
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const { releaseService } = await import('@/lib/music/release-service');
       
-      // Redirect to success or release page
-      router.push('/music?release=success');
+      const result = await releaseService.createRelease({
+        title,
+        genre,
+        description,
+        coverArtFile: coverArt || undefined,
+        tracks: tracks.map(t => ({
+          title: t.title,
+          audioFile: t.file || undefined,
+          duration: t.duration,
+          isExplicit: t.isExplicit,
+        })),
+        isExplicit,
+      });
+
+      if (!result.success) {
+        throw new Error(result.message || 'Mint failed');
+      }
+
+      router.push(`/music?release=success&nftId=${result.nftId || ''}`);
     } catch (err: any) {
       setError(err.message || 'Failed to mint release');
       setStep('preview');

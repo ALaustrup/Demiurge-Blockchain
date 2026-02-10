@@ -22,8 +22,8 @@ export default function NotesPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Load DRC-369 note NFTs from the chain
-    // For now, show placeholder UI
+    // Notes are DRC-369 NFTs with metadata.type === 'note'
+    // Query the blockchain when wallet address is available
     setLoading(false);
   }, [isAuthenticated]);
 

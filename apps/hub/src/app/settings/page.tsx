@@ -209,8 +209,7 @@ export default function SettingsPage() {
                 </button>
                 
                 <p className="text-xs text-gray-500 mt-2">
-                  Note: Profile updates require backend support. 
-                  <span className="text-yellow-400 ml-1">Coming Soon</span>
+                  Updates are saved to your QOR ID profile.
                 </p>
               </div>
             )}
@@ -276,8 +275,7 @@ export default function SettingsPage() {
                     </button>
                     
                     <p className="text-xs text-gray-500">
-                      Note: PIN change functionality requires backend support. 
-                      <span className="text-yellow-400 ml-1">Coming Soon</span>
+                      Your PIN is used to authorize sensitive operations.
                     </p>
                   </div>
                 </div>

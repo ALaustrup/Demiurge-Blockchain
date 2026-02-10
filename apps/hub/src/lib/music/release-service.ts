@@ -41,42 +41,106 @@ class ReleaseService {
     const releaseType = getReleaseType(data.tracks.length);
     const cost = getReleaseCost(releaseType);
 
-    // TODO: Upload cover art and tracks to IPFS
-    // For now, we'll assume URIs are provided or mock the upload
+    // Upload cover art to IPFS if file provided
+    let coverArtUri = data.coverArtUri || '';
+    if (data.coverArtFile) {
+      const { uploadToIPFS } = await import('@/lib/ipfs-client');
+      const result = await uploadToIPFS(data.coverArtFile, data.coverArtFile.name);
+      if (!result.success) {
+        throw new Error(`Cover art upload failed: ${result.error}`);
+      }
+      coverArtUri = result.uri || '';
+    }
 
-    const response = await fetch(`${this.baseUrl}/releases`, {
+    // Upload tracks to IPFS
+    const uploadedTracks = [];
+    for (let i = 0; i < data.tracks.length; i++) {
+      const track = data.tracks[i];
+      let audioUri = track.audioUri || '';
+      
+      if (track.audioFile) {
+        const { uploadToIPFS } = await import('@/lib/ipfs-client');
+        const result = await uploadToIPFS(track.audioFile, track.audioFile.name);
+        if (!result.success) {
+          throw new Error(`Track "${track.title}" upload failed: ${result.error}`);
+        }
+        audioUri = result.uri || '';
+      }
+      
+      uploadedTracks.push({
+        trackNumber: i + 1,
+        title: track.title,
+        audioUri,
+        duration: track.duration,
+        isExplicit: track.isExplicit || false,
+        lyrics: track.lyrics,
+      });
+    }
+
+    // Mint as DRC-369 NFT via the mint API
+    const mintResponse = await fetch('/api/nft/mint', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...this.getAuthHeader(),
       },
       body: JSON.stringify({
-        title: data.title,
-        genre: data.genre,
-        description: data.description,
-        coverArtUri: data.coverArtUri || '',
-        tracks: data.tracks.map((t, i) => ({
-          trackNumber: i + 1,
-          title: t.title,
-          audioUri: t.audioUri || '',
-          duration: t.duration,
-          isExplicit: t.isExplicit || false,
-          lyrics: t.lyrics,
-        })),
-        releaseType,
-        mintCost: cost,
-        isExplicit: data.isExplicit || false,
-        releaseDate: data.releaseDate?.toISOString(),
+        name: data.title,
+        description: data.description || `${releaseType} release: ${data.title}`,
+        image: coverArtUri,
+        creator: 'self',
+        owner: 'self',
+        metadata: {
+          type: 'music_release',
+          releaseType,
+          genre: data.genre,
+          tracks: uploadedTracks,
+          isExplicit: data.isExplicit || false,
+          releaseDate: data.releaseDate?.toISOString(),
+          mintCost: cost,
+        },
       }),
     });
 
-    const result = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(result.error || 'Failed to create release');
+    const mintResult = await mintResponse.json();
+
+    if (!mintResponse.ok || !mintResult.success) {
+      throw new Error(mintResult.error || 'Failed to mint release NFT');
     }
 
-    return result;
+    // Also register with the backend if available
+    try {
+      await fetch(`${this.baseUrl}/releases`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeader(),
+        },
+        body: JSON.stringify({
+          title: data.title,
+          genre: data.genre,
+          description: data.description,
+          coverArtUri,
+          tracks: uploadedTracks,
+          releaseType,
+          mintCost: cost,
+          isExplicit: data.isExplicit || false,
+          releaseDate: data.releaseDate?.toISOString(),
+          nftId: mintResult.tokenId,
+          txHash: mintResult.txHash,
+        }),
+      });
+    } catch {
+      // Backend registration is optional — the NFT is already on-chain
+      console.warn('Backend release registration unavailable');
+    }
+
+    return {
+      success: true,
+      releaseId: mintResult.tokenId,
+      nftId: mintResult.tokenId,
+      message: `Release minted on-chain. txHash: ${mintResult.txHash}`,
+    };
   }
 
   async getRelease(releaseId: string): Promise<MusicRelease | null> {

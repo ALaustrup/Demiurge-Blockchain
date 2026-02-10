@@ -326,7 +326,7 @@ impl<S: Storage + Send + Sync + 'static> RpcServer<S> {
                 .map_err(|e: RpcError| ErrorObjectOwned::from(e))?;
             let status = validator.as_ref().map(|v| if v.active { "active" } else { "inactive" }).unwrap_or("inactive");
             let nominators = pool.as_ref().map(|p| p.nominators.len()).unwrap_or(0);
-            Ok(serde_json::json!({
+            Ok::<serde_json::Value, ErrorObjectOwned>(serde_json::json!({
                 "address": account_str,
                 "stake": validator.as_ref().map(|v| v.stake.clone()).unwrap_or_else(|| "0".to_string()),
                 "commission": validator.as_ref().map(|v| v.commission).unwrap_or(0),

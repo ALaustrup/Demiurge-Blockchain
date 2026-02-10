@@ -1506,6 +1506,19 @@ impl<S: Storage> RpcMethods<S> {
     /// Submits a state change transaction and returns immediately.
     /// The change is applied optimistically - caller should handle rollback on failure.
     pub async fn drc369_set_state_optimistic(&self, token_id: String, path: String, value: String, signature: String) -> Result<Drc369OptimisticResult, RpcError> {
+        let token_id_u256 = self.parse_token_id(&token_id)?;
+        
+        // Verify token exists
+        let owner_key = Self::drc369_owner_key(token_id_u256);
+        if self.storage.get(&owner_key).is_none() {
+            return Err(RpcError::NotFound("Token not found".to_string()));
+        }
+        
+        // Verify signature format
+        if signature.len() < 64 || hex::decode(&signature).is_err() {
+            return Err(RpcError::InvalidTransaction("Invalid signature format".to_string()));
+        }
+        
         // Generate transaction hash
         use blake2::{Blake2b512, Digest};
         let mut hasher = Blake2b512::new();
@@ -1521,14 +1534,20 @@ impl<S: Storage> RpcMethods<S> {
         let mut tx_hash = [0u8; 32];
         tx_hash.copy_from_slice(&hash[..32]);
         
-        // TODO: Submit actual transaction to pool
-        // For now, return optimistic result
+        // Write state to on-chain storage
+        let state_key = Self::drc369_dynamic_state_key(token_id_u256, path.as_bytes());
+        self.storage.put(&state_key, value.as_bytes());
+        
+        tracing::info!(
+            "DRC-369 State set: token={} path={} value_len={}",
+            token_id, path, value.len()
+        );
         
         Ok(Drc369OptimisticResult {
             tx_hash: hex::encode(tx_hash),
             optimistic_value: value,
-            status: "pending".to_string(),
-            estimated_confirmation_ms: 3000,
+            status: "confirmed".to_string(),
+            estimated_confirmation_ms: 0,
         })
     }
     
@@ -1591,15 +1610,76 @@ impl<S: Storage> RpcMethods<S> {
         let mut tx_hash = [0u8; 32];
         tx_hash.copy_from_slice(&hash[..32]);
         
-        // Note: Direct storage writes require mutable access.
-        // For now, we return the mint result and the caller should
-        // submit this as a transaction to the pool for actual on-chain storage.
-        // This is a "dry run" that validates and prepares the mint.
+        // ===== WRITE TO ON-CHAIN STORAGE =====
+        // Store owner
+        self.storage.put(&owner_key, &owner_bytes);
+        
+        // Store creator (same as owner for direct mints)
+        let creator_key = Self::drc369_creator_key(token_id_bytes);
+        self.storage.put(&creator_key, &owner_bytes);
+        
+        // Store metadata as JSON
+        let metadata_obj = serde_json::json!({
+            "name": mint_request.name,
+            "description": mint_request.description.as_deref().unwrap_or(""),
+            "image": mint_request.image.as_deref().unwrap_or(""),
+            "dynamic": mint_request.dynamic.unwrap_or(false),
+            "custom_metadata": mint_request.metadata,
+        });
+        let metadata_bytes = serde_json::to_vec(&metadata_obj)
+            .map_err(|_| RpcError::InternalError("Failed to serialize metadata".to_string()))?;
+        let metadata_key = Self::drc369_metadata_key(token_id_bytes);
+        self.storage.put(&metadata_key, &metadata_bytes);
+        
+        // Store soulbound flag
+        let is_soulbound = mint_request.soulbound.unwrap_or(false);
+        if is_soulbound {
+            let soulbound_key = Self::drc369_soulbound_key(token_id_bytes);
+            self.storage.put(&soulbound_key, &[1u8]);
+        }
+        
+        // Initialize DRC-369 state (xp=0, level=1, empty stats) encoded as SCALE
+        // NftState { xp: u64, level: u32, stats: Vec<u8> }
+        let mut state_bytes = Vec::new();
+        state_bytes.extend_from_slice(&0u64.to_le_bytes()); // xp = 0
+        state_bytes.extend_from_slice(&1u32.to_le_bytes()); // level = 1
+        state_bytes.push(0u8); // empty vec (SCALE compact encoding for len=0)
+        let state_key = Self::drc369_state_key(token_id_bytes);
+        self.storage.put(&state_key, &state_bytes);
+        
+        // Increment owner balance
+        let balance_key = Self::drc369_balance_key(owner_bytes);
+        let current_balance = self.storage.get(&balance_key)
+            .and_then(|v| if v.len() >= 8 {
+                Some(u64::from_le_bytes(v[..8].try_into().unwrap()))
+            } else {
+                None
+            })
+            .unwrap_or(0);
+        self.storage.put(&balance_key, &(current_balance + 1).to_le_bytes());
+        
+        // Increment next ID counter
+        let next_id_key = b"DRC369:NextId".to_vec();
+        let next_id = self.storage.get(&next_id_key)
+            .and_then(|v| u64::decode(&mut &v[..]).ok())
+            .unwrap_or(1);
+        self.storage.put(&next_id_key, &(next_id + 1).encode());
+        
+        // Increment total supply
+        let supply_key = b"DRC369:TotalSupply".to_vec();
+        let total_supply = self.storage.get(&supply_key)
+            .and_then(|v| u64::decode(&mut &v[..]).ok())
+            .unwrap_or(0);
+        self.storage.put(&supply_key, &(total_supply + 1).encode());
+        
+        // Get current block number for confirmation
+        let block_number = self.get_block_number().await.unwrap_or(0);
         
         tracing::info!(
-            "DRC-369 Mint prepared: {} -> owner {}",
+            "DRC-369 Minted on-chain: {} -> owner {} at block {}",
             token_id,
-            mint_request.owner
+            mint_request.owner,
+            block_number
         );
         
         Ok(Drc369MintResult {
@@ -1607,9 +1687,9 @@ impl<S: Storage> RpcMethods<S> {
             tx_hash: hex::encode(tx_hash),
             owner: mint_request.owner,
             name: mint_request.name,
-            soulbound: mint_request.soulbound.unwrap_or(false),
-            status: "pending".to_string(),
-            block_number: None,
+            soulbound: is_soulbound,
+            status: "minted".to_string(),
+            block_number: Some(block_number),
         })
     }
 
@@ -1942,7 +2022,7 @@ impl<S: Storage> RpcMethods<S> {
     // ========== DRC-369 Storage Key Helpers ==========
     
     fn parse_token_id(&self, token_id: &str) -> Result<[u8; 32], RpcError> {
-        // Support both numeric and hex formats
+        // Support hex (0x...), numeric, and string-based (drc369_...) formats
         if token_id.starts_with("0x") {
             let bytes = hex::decode(&token_id[2..])
                 .map_err(|_| RpcError::InvalidParams)?;
@@ -1952,12 +2032,20 @@ impl<S: Storage> RpcMethods<S> {
             let mut result = [0u8; 32];
             result[32 - bytes.len()..].copy_from_slice(&bytes);
             Ok(result)
-        } else {
+        } else if let Ok(num) = token_id.parse::<u128>() {
             // Numeric format
-            let num: u128 = token_id.parse()
-                .map_err(|_| RpcError::InvalidParams)?;
             let mut result = [0u8; 32];
             result[16..].copy_from_slice(&num.to_be_bytes());
+            Ok(result)
+        } else {
+            // String-based ID (e.g. "drc369_abc_def") — hash to 32 bytes deterministically
+            use blake2::{Blake2b512, Digest};
+            let mut hasher = Blake2b512::new();
+            hasher.update(b"TOKEN_ID:");
+            hasher.update(token_id.as_bytes());
+            let hash = hasher.finalize();
+            let mut result = [0u8; 32];
+            result.copy_from_slice(&hash[..32]);
             Ok(result)
         }
     }
@@ -2014,6 +2102,18 @@ impl<S: Storage> RpcMethods<S> {
     
     fn drc369_parent_key(token_id: [u8; 32]) -> Vec<u8> {
         let mut key = b"DRC369:Parent:".to_vec();
+        key.extend_from_slice(&token_id);
+        key
+    }
+    
+    fn drc369_metadata_key(token_id: [u8; 32]) -> Vec<u8> {
+        let mut key = b"DRC369:Metadata:".to_vec();
+        key.extend_from_slice(&token_id);
+        key
+    }
+    
+    fn drc369_state_key(token_id: [u8; 32]) -> Vec<u8> {
+        let mut key = b"DRC369:State:".to_vec();
         key.extend_from_slice(&token_id);
         key
     }
@@ -2319,14 +2419,19 @@ impl<S: Storage> RpcMethods<S> {
         // Calculate transaction hash
         let tx_hash = Self::transaction_hash(&tx);
         
-        // TODO: Add to transaction pool
-        // For now, we acknowledge receipt and the transaction will be included
-        // in the next block by the validator
+        // Save sender before moving tx into the pool
+        let sender = tx.from;
+        
+        // Add to transaction pool for inclusion in the next block
+        let mut pool = self.tx_pool.lock().await;
+        pool.add(tx)
+            .map_err(|e| RpcError::InternalError(format!("Failed to add to transaction pool: {:?}", e)))?;
         
         tracing::info!(
-            "Transaction received: {} from {}",
+            "Transaction submitted to pool: {} from {} (pool size: {})",
             hex::encode(&tx_hash[..8]),
-            hex::encode(&tx.from[..8])
+            hex::encode(&sender[..8]),
+            pool.size()
         );
         
         Ok(hex::encode(tx_hash))

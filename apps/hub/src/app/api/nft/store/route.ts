@@ -1,119 +1,84 @@
 /**
- * NFT On-Chain Storage API Route
+ * NFT Store / Query API Route
  * 
- * Stores and retrieves NFT data. This acts as the off-chain index
- * that mirrors on-chain state for fast queries.
+ * Queries on-chain NFT data via the blockchain RPC.
+ * No longer uses file-based storage — the blockchain IS the source of truth.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import * as fs from 'fs';
-import * as path from 'path';
 
-// Simple file-based storage for NFTs (in production, use PostgreSQL/Redis)
-const NFT_STORE_PATH = process.env.NFT_STORE_PATH || '/tmp/demiurge-nfts.json';
+const RPC_ENDPOINT = process.env.DEMIURGE_RPC_URL || 'https://rpc.demiurge.cloud';
 
-interface StoredNFT {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  creator: string;
-  owner: string;
-  soulbound: boolean;
-  dynamic: boolean;
-  attributes: Array<{ trait_type: string; value: string | number }>;
-  dynamicState: Record<string, any> | null;
-  metadata: Record<string, any>;
-  createdAt: string;
-  createdBy: string;
-  txHash: string | null;
-  onChain: boolean;
-}
-
-function loadStore(): Record<string, StoredNFT> {
-  try {
-    if (fs.existsSync(NFT_STORE_PATH)) {
-      const data = fs.readFileSync(NFT_STORE_PATH, 'utf-8');
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.error('Failed to load NFT store:', e);
+async function rpcCall(method: string, params: any[]): Promise<any> {
+  const response = await fetch(RPC_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method,
+      params,
+    }),
+  });
+  
+  const result = await response.json();
+  if (result.error) {
+    throw new Error(result.error.message || JSON.stringify(result.error));
   }
-  return {};
+  return result.result;
 }
 
-function saveStore(store: Record<string, StoredNFT>): void {
-  try {
-    fs.writeFileSync(NFT_STORE_PATH, JSON.stringify(store, null, 2));
-  } catch (e) {
-    console.error('Failed to save NFT store:', e);
-  }
-}
-
-// GET - Retrieve NFT(s)
+// GET - Retrieve NFT(s) from blockchain
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tokenId = searchParams.get('tokenId');
   const owner = searchParams.get('owner');
   
-  const store = loadStore();
-  
-  if (tokenId) {
-    const nft = store[tokenId];
-    if (!nft) {
-      return NextResponse.json({ error: 'NFT not found' }, { status: 404 });
-    }
-    return NextResponse.json(nft);
-  }
-  
-  if (owner) {
-    const nfts = Object.values(store).filter(n => n.owner === owner);
-    return NextResponse.json({ nfts, count: nfts.length });
-  }
-  
-  // Return all NFTs
-  const nfts = Object.values(store);
-  return NextResponse.json({
-    nfts,
-    count: nfts.length,
-    totalSupply: nfts.length,
-  });
-}
-
-// POST - Store a new NFT (called after mint)
-export async function POST(request: NextRequest) {
   try {
-    const nft: StoredNFT = await request.json();
-    
-    if (!nft.id) {
-      return NextResponse.json({ error: 'NFT id is required' }, { status: 400 });
+    if (tokenId) {
+      // Query single NFT from chain
+      const tokenInfo = await rpcCall('drc369_get_token_info', [tokenId]);
+      
+      if (!tokenInfo) {
+        return NextResponse.json({ error: 'NFT not found' }, { status: 404 });
+      }
+      
+      return NextResponse.json(tokenInfo);
     }
     
-    const store = loadStore();
-    
-    // Check if already exists
-    if (store[nft.id]) {
-      return NextResponse.json({ error: 'NFT already exists' }, { status: 409 });
+    if (owner) {
+      // Query balance for owner
+      const balance = await rpcCall('drc369_balance_of', [owner]);
+      return NextResponse.json({ 
+        owner, 
+        balance: parseInt(balance || '0'),
+        note: 'Use drc369_get_token_info with specific tokenId to get full details',
+      });
     }
     
-    // Store the NFT
-    store[nft.id] = {
-      ...nft,
-      onChain: true, // Mark as indexed
-    };
-    
-    saveStore(store);
-    
+    // Return total supply
+    const totalSupply = await rpcCall('drc369_total_supply', []);
     return NextResponse.json({
-      success: true,
-      tokenId: nft.id,
-      stored: true,
+      totalSupply: parseInt(totalSupply || '0'),
     });
+    
   } catch (error) {
-    console.error('[NFT Store] Error:', error);
+    console.error('[NFT Store] Query error:', error);
     return NextResponse.json(
-      { error: 'Failed to store NFT' },
-      { status: 500 }
+      { error: 'Failed to query NFT data', details: error instanceof Error ? error.message : 'Unknown' },
+      { status: 502 }
     );
   }
+}
+
+// POST is no longer needed — minting writes directly to the blockchain.
+// Kept as a compatibility shim that returns an error.
+export async function POST(request: NextRequest) {
+  return NextResponse.json(
+    { 
+      error: 'Direct store writes are no longer supported. Use /api/nft/mint to mint NFTs on-chain.',
+      migrated: true,
+    },
+    { status: 410 }
+  );
 }

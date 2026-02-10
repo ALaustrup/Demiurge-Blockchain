@@ -203,7 +203,7 @@ export default function MyProfilePage() {
                     <div className="hidden md:flex items-center gap-6">
                       <Link href="/social/friends" className="text-center hover:opacity-80 transition-opacity">
                         <p className="text-2xl font-grunge" style={{ color: profile.theme.primaryColor }}>
-                          142
+                          {profile.stats.following}
                         </p>
                         <p className="text-gray-500 text-sm">Friends</p>
                       </Link>
@@ -221,7 +221,7 @@ export default function MyProfilePage() {
                       </div>
                       <div className="text-center">
                         <p className="text-2xl font-grunge text-yellow-400">
-                          847
+                          {profile.stats.posts}
                         </p>
                         <p className="text-gray-500 text-sm">Views</p>
                       </div>
@@ -317,37 +317,15 @@ export default function MyProfilePage() {
             {activeTab === 'friends' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-grunge-alt text-2xl text-white">👥 Friends (142)</h2>
+                  <h2 className="font-grunge-alt text-2xl text-white">👥 Friends ({profile.stats.following})</h2>
                   <Link href="/social/friends" className="text-neon-cyan hover:underline text-sm">
                     See all →
                   </Link>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {[
-                    { name: 'CryptoArtist', role: 'artist', icon: '🎨', online: true },
-                    { name: 'BlockDev', role: 'developer', icon: '💻', online: true },
-                    { name: 'SynthMaster', role: 'musician', icon: '🎵', online: false },
-                    { name: 'PixelKing', role: 'gamer', icon: '🎮', online: true },
-                    { name: 'NFTQueen', role: 'collector', icon: '💎', online: false },
-                    { name: 'CosmicWolf', role: 'creator', icon: '🎬', online: true },
-                  ].map((friend, i) => (
-                    <Link
-                      key={i}
-                      href={`/social/profile/${friend.name.toLowerCase()}`}
-                      className="glass-panel p-4 rounded-xl text-center hover:border-neon-cyan/30 transition-colors group"
-                    >
-                      <div className="relative inline-block">
-                        <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-neon-cyan/50 to-neon-purple/50 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform">
-                          {friend.icon}
-                        </div>
-                        {friend.online && (
-                          <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-blockchain-dark" />
-                        )}
-                      </div>
-                      <p className="text-white mt-2 group-hover:text-neon-cyan transition-colors">{friend.name}</p>
-                      <p className="text-gray-500 text-xs capitalize">{friend.role}</p>
-                    </Link>
-                  ))}
+                <div className="glass-panel rounded-xl p-8 text-center">
+                  <div className="text-4xl mb-3 opacity-50">👥</div>
+                  <p className="text-gray-400">No friends yet</p>
+                  <p className="text-gray-600 text-sm mt-1">Connect with other users in the social feed</p>
                 </div>
               </div>
             )}
@@ -360,22 +338,17 @@ export default function MyProfilePage() {
                     View marketplace →
                   </Link>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {[1,2,3,4,5,6].map((i) => (
-                    <div
-                      key={i}
-                      className="glass-panel rounded-xl overflow-hidden group cursor-pointer hover:border-neon-purple/50 transition-colors"
-                    >
-                      <div className="aspect-square bg-gradient-to-br from-neon-purple/30 to-neon-cyan/30 flex items-center justify-center text-4xl">
-                        💎
-                      </div>
-                      <div className="p-3">
-                        <p className="text-white text-sm group-hover:text-neon-purple transition-colors">Genesis NFT #{i}</p>
-                        <p className="text-gray-500 text-xs">Floor: 12 CGT</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {profile.stats.nftsOwned > 0 ? (
+                  <p className="text-gray-400 text-center py-8">Load NFTs from the blockchain to view your collection.</p>
+                ) : (
+                  <div className="glass-panel rounded-xl p-8 text-center">
+                    <div className="text-4xl mb-3 opacity-50">💎</div>
+                    <p className="text-gray-400">No NFTs yet</p>
+                    <p className="text-gray-600 text-sm mt-1">
+                      Mint your first DRC-369 NFT from the <Link href="/create" className="text-neon-cyan hover:underline">Create Studio</Link>
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -387,12 +360,14 @@ export default function MyProfilePage() {
                     Coming soon
                   </span>
                 </div>
-                <div className="grid gap-4">
-                  {[
-                    { name: 'Cosmic Drift', icon: '🌌', hours: 142, achievements: 24, rank: 'Diamond' },
-                    { name: 'Neon Racer', icon: '🏎️', hours: 56, achievements: 12, rank: 'Gold' },
-                    { name: 'Block Legends', icon: '⚔️', hours: 89, achievements: 18, rank: 'Platinum' },
-                  ].map((game, i) => (
+                <div className="glass-panel rounded-xl p-8 text-center">
+                  <div className="text-4xl mb-3 opacity-50">🎮</div>
+                  <p className="text-gray-400">No game activity yet</p>
+                  <p className="text-gray-600 text-sm mt-1">Games you play on the Demiurge platform will appear here</p>
+                </div>
+                {/* Placeholder for future game data */}
+                <div className="hidden grid gap-4">
+                  {([] as any[]).map((game, i) => (
                     <div
                       key={i}
                       className="glass-panel p-4 rounded-xl flex items-center gap-4 hover:border-neon-cyan/30 transition-colors"
@@ -476,32 +451,7 @@ export default function MyProfilePage() {
             {/* Groups */}
             <div className="glass-panel p-4 rounded-xl">
               <h3 className="font-grunge-alt text-lg text-green-400 mb-4">🏛️ Groups</h3>
-              <div className="space-y-2">
-                {[
-                  { name: 'Cosmic Drift Players', icon: '🌌' },
-                  { name: 'NFT Artists', icon: '🎨' },
-                  { name: 'Demiurge Devs', icon: '💻' },
-                ].map((group, i) => (
-                  <Link
-                    key={i}
-                    href={`/social/groups/${i+1}`}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-blockchain-light/50 transition-colors group"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-                      {group.icon}
-                    </div>
-                    <span className="text-white text-sm group-hover:text-green-400 transition-colors">
-                      {group.name}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-              <Link 
-                href="/social/groups"
-                className="block text-center text-green-400 text-sm mt-4 hover:underline"
-              >
-                View all groups →
-              </Link>
+              <p className="text-gray-500 text-sm text-center py-2">No groups joined yet</p>
             </div>
           </div>
         </div>

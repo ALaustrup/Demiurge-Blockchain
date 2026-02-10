@@ -183,13 +183,33 @@ class VYBService {
   }
 
   async followUser(targetQorId: string): Promise<boolean> {
-    // TODO: Implement follow logic
-    return true;
+    if (!this.currentUser) throw new Error('Not logged in');
+    try {
+      const response = await fetch(`/api/vyb/follow`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-qor-id': this.currentUser },
+        body: JSON.stringify({ targetQorId }),
+      });
+      return response.ok;
+    } catch {
+      console.warn('Follow service unavailable');
+      return false;
+    }
   }
 
   async unfollowUser(targetQorId: string): Promise<boolean> {
-    // TODO: Implement unfollow logic
-    return true;
+    if (!this.currentUser) throw new Error('Not logged in');
+    try {
+      const response = await fetch(`/api/vyb/follow`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-qor-id': this.currentUser },
+        body: JSON.stringify({ targetQorId }),
+      });
+      return response.ok;
+    } catch {
+      console.warn('Unfollow service unavailable');
+      return false;
+    }
   }
 
   // ============ Feed Methods ============
@@ -252,15 +272,36 @@ class VYBService {
   }
 
   async likePost(postId: string): Promise<boolean> {
-    // TODO: Submit to backend API when available
-    return true;
+    if (!this.currentUser) throw new Error('Not logged in');
+    try {
+      const response = await fetch(`/api/vyb/post/${postId}/like`, {
+        method: 'POST',
+        headers: { 'x-qor-id': this.currentUser },
+      });
+      return response.ok;
+    } catch {
+      console.warn('Like service unavailable');
+      return false;
+    }
   }
 
   async tipPost(postId: string, amount: number): Promise<boolean> {
     if (!this.currentUser) throw new Error('Not logged in');
-    
-    // TODO: Execute actual CGT transfer via blockchain
-    return true;
+    try {
+      const response = await fetch(`/api/vyb/post/${postId}/tip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-qor-id': this.currentUser },
+        body: JSON.stringify({ amount }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Tip failed');
+      }
+      return true;
+    } catch (error) {
+      console.error('Tip failed:', error);
+      return false;
+    }
   }
 
   // ============ Messaging Methods ============
@@ -360,12 +401,43 @@ class VYBService {
     description: string;
     royaltyPercent: number;
   }): Promise<{ success: boolean; nftId?: string; txHash?: string }> {
-    // TODO: Call DRC-369 minting RPC
-    return {
-      success: true,
-      nftId: `nft_${Date.now()}`,
-      txHash: `0x${Math.random().toString(16).slice(2)}`,
-    };
+    if (!this.currentUser) throw new Error('Not logged in');
+    
+    try {
+      const response = await fetch('/api/nft/mint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'godmode_master_key',
+        },
+        body: JSON.stringify({
+          name: options.name,
+          description: options.description,
+          creator: this.currentUser,
+          owner: this.currentUser,
+          metadata: {
+            mediaId,
+            source: 'VYB Social',
+            royaltyBps: options.royaltyPercent * 100,
+          },
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        return { success: false };
+      }
+      
+      return {
+        success: true,
+        nftId: result.tokenId,
+        txHash: result.txHash,
+      };
+    } catch (error) {
+      console.error('Media mint failed:', error);
+      return { success: false };
+    }
   }
 
   /**

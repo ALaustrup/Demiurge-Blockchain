@@ -54,12 +54,39 @@ export default function MarketplacePage() {
   };
 
   const handlePurchase = async (assetUuid: string) => {
-    // TODO: Implement purchase logic
-    // This would:
-    // 1. Check user balance
-    // 2. Execute CGT transfer
-    // 3. Transfer NFT ownership
-    // 4. Update UI
+    const listing = listings.find(l => l.asset.uuid === assetUuid);
+    if (!listing) {
+      toast.error('Listing not found');
+      return;
+    }
+
+    try {
+      toast.info('Processing purchase...');
+      
+      // Call the marketplace purchase API which handles CGT transfer + NFT ownership transfer
+      const response = await fetch('/api/marketplace/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assetUuid,
+          listingId: listing.id,
+          price: listing.price,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        toast.error('Purchase failed', result.error || 'Transaction was rejected');
+        return;
+      }
+
+      toast.success('Purchase complete!', `txHash: ${result.txHash?.slice(0, 16)}...`);
+      loadListings(); // Refresh listings
+    } catch (error) {
+      console.error('Purchase error:', error);
+      toast.error('Purchase failed', 'Could not complete the transaction');
+    }
   };
 
   const filteredListings = listings.filter((listing) => {

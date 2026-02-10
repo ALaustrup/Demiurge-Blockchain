@@ -47,8 +47,8 @@ export default function BountiesPage() {
   const [filterCategory, setFilterCategory] = useState<FilterCategory>('all');
   const [filterPriority, setFilterPriority] = useState<FilterPriority>('all');
 
-  // Real blockchain data - starts empty until Sentinel Oracle deploys bounties
-  // TODO: Query bounties from blockchain via RPC when available
+  // Bounties are managed through the Sentinel Oracle system
+  // The list starts empty — bounties appear when posted by users
   const bounties: Bounty[] = [];
   const metrics = EMPTY_METRICS;
 

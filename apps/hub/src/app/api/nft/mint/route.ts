@@ -1,8 +1,8 @@
 /**
  * NFT Mint API Route
  * 
- * Mints a new DRC-369 NFT on the Demiurge blockchain.
- * Requires authentication with god/admin role.
+ * Mints a new DRC-369 NFT on the Demiurge blockchain via the RPC node.
+ * Returns real on-chain results or real errors — never fakes success.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -24,19 +24,17 @@ interface MintRequest {
   metadata?: Record<string, any>;
 }
 
-// Known admin API keys for direct access (bypasses auth service)
+// Admin API keys for direct access
 const ADMIN_API_KEYS: Record<string, { qor_id: string; role: string }> = {
   'godmode_master_key': { qor_id: 'Godmode', role: 'god' },
   'demiurge_admin_369': { qor_id: 'Godmode', role: 'god' },
 };
 
 async function verifyToken(token: string): Promise<{ valid: boolean; user?: any }> {
-  // Check for direct admin API key
   if (ADMIN_API_KEYS[token]) {
     return { valid: true, user: ADMIN_API_KEYS[token] };
   }
   
-  // Check for Godmode token pattern
   if (token.startsWith('godmode_') || token.startsWith('demiurge_Godmode_')) {
     return { valid: true, user: { qor_id: 'Godmode', role: 'god' } };
   }
@@ -51,7 +49,6 @@ async function verifyToken(token: string): Promise<{ valid: boolean; user?: any 
     });
     
     if (!response.ok) {
-      // Try JWT decode as fallback
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         return { 
@@ -69,7 +66,6 @@ async function verifyToken(token: string): Promise<{ valid: boolean; user?: any 
     const data = await response.json();
     return { valid: true, user: data.user };
   } catch {
-    // Fallback: decode JWT manually for basic validation
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return { 
@@ -105,7 +101,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Verify token and check role
     const { valid, user } = await verifyToken(token);
     
     if (!valid) {
@@ -132,73 +127,83 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Generate token ID
-    const tokenId = `drc369_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-    
-    // Build NFT data
-    const nftData = {
-      id: tokenId,
-      name: body.name,
-      description: body.description || '',
-      image: body.image || '',
-      collection: body.collection || null,
-      creator: body.creator || user.qor_id,
-      owner: body.owner || user.qor_id,
-      soulbound: body.soulbound || false,
-      dynamic: body.dynamic || false,
-      attributes: body.attributes || [],
-      dynamicState: body.dynamic ? (body.dynamicState || { level: 1, xp: 0 }) : null,
-      metadata: body.metadata || {},
-      createdAt: new Date().toISOString(),
-      createdBy: user.qor_id,
+    // Call the blockchain RPC to mint
+    const rpcPayload = {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'drc369_mint',
+      params: [{
+        owner: body.owner || user.qor_id,
+        name: body.name,
+        description: body.description || '',
+        image: body.image || '',
+        soulbound: body.soulbound || false,
+        dynamic: body.dynamic || false,
+        metadata: {
+          ...(body.metadata || {}),
+          collection: body.collection || null,
+          creator: body.creator || user.qor_id,
+          attributes: body.attributes || [],
+          createdBy: user.qor_id,
+        },
+      }],
     };
-    
-    // Try to mint via RPC
+
+    let rpcResponse: Response;
     try {
-      const rpcResponse = await fetch(RPC_ENDPOINT, {
+      rpcResponse = await fetch(RPC_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'drc369_mint',
-          params: [nftData],
-        }),
+        body: JSON.stringify(rpcPayload),
       });
-      
-      const rpcResult = await rpcResponse.json();
-      
-      if (rpcResult.result) {
-        return NextResponse.json({
-          success: true,
-          tokenId: rpcResult.result.tokenId || tokenId,
-          txHash: rpcResult.result.txHash,
-          nft: nftData,
-        });
-      }
-    } catch {
-      // RPC not available, return simulated result
+    } catch (err) {
+      console.error('[NFT Mint] RPC connection failed:', err);
+      return NextResponse.json(
+        { 
+          error: 'Blockchain node unreachable',
+          details: 'Could not connect to the Demiurge RPC node. Ensure the node is running.',
+        },
+        { status: 503 }
+      );
     }
     
-    // Store NFT in local index
-    try {
-      const storeUrl = new URL('/api/nft/store', request.url);
-      await fetch(storeUrl.toString(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...nftData, txHash: null, onChain: true }),
-      });
-    } catch (e) {
-      console.error('Failed to store NFT in index:', e);
+    const rpcResult = await rpcResponse.json();
+    
+    // Propagate RPC errors directly
+    if (rpcResult.error) {
+      console.error('[NFT Mint] RPC error:', rpcResult.error);
+      return NextResponse.json(
+        { 
+          error: 'Blockchain mint failed',
+          rpcError: rpcResult.error.message || rpcResult.error,
+          code: rpcResult.error.code,
+        },
+        { status: 502 }
+      );
     }
+    
+    if (!rpcResult.result) {
+      console.error('[NFT Mint] Empty RPC result');
+      return NextResponse.json(
+        { error: 'Blockchain returned empty result' },
+        { status: 502 }
+      );
+    }
+
+    const mintResult = rpcResult.result;
+    
+    console.log(`[NFT Mint] Minted on-chain: ${mintResult.token_id} txHash=${mintResult.tx_hash} block=${mintResult.block_number}`);
     
     return NextResponse.json({
       success: true,
-      tokenId,
-      txHash: null,
-      nft: nftData,
+      tokenId: mintResult.token_id,
+      txHash: mintResult.tx_hash,
+      blockNumber: mintResult.block_number,
+      owner: mintResult.owner,
+      name: mintResult.name,
+      soulbound: mintResult.soulbound,
+      status: mintResult.status,
       onChain: true,
-      note: 'Minted and indexed on-chain',
     });
     
   } catch (error) {

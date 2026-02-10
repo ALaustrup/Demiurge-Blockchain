@@ -238,10 +238,37 @@ export async function storeKeypair(
   keypairJson: string,
   password: string
 ): Promise<void> {
-  // TODO: Implement encryption using Web Crypto API
-  // For now, store in localStorage (not secure - should encrypt)
   const storageKey = `wasm_keypair_${qorId}`;
-  localStorage.setItem(storageKey, keypairJson);
+
+  // Derive encryption key from password using PBKDF2
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  const aesKey = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+
+  // Encrypt the keypair JSON
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    aesKey,
+    enc.encode(keypairJson)
+  );
+
+  // Store salt + iv + ciphertext as base64
+  const payload = new Uint8Array(salt.length + iv.length + new Uint8Array(ciphertext).length);
+  payload.set(salt, 0);
+  payload.set(iv, salt.length);
+  payload.set(new Uint8Array(ciphertext), salt.length + iv.length);
+
+  localStorage.setItem(storageKey, btoa(String.fromCharCode(...payload)));
 }
 
 /**
@@ -259,12 +286,45 @@ export async function loadKeypair(
   const stored = localStorage.getItem(storageKey);
   
   if (!stored) {
-    // Generate new keypair if not found
     return await generateKeypairFromQorId(qorId);
   }
-  
-  // TODO: Decrypt if encryption is implemented
-  return stored;
+
+  try {
+    // Decode base64 payload
+    const raw = Uint8Array.from(atob(stored), c => c.charCodeAt(0));
+    const salt = raw.slice(0, 16);
+    const iv = raw.slice(16, 28);
+    const ciphertext = raw.slice(28);
+
+    // Derive decryption key
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+    );
+    const aesKey = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+
+    const plaintext = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      aesKey,
+      ciphertext
+    );
+
+    return new TextDecoder().decode(plaintext);
+  } catch {
+    // Fallback: may be a legacy unencrypted value
+    try {
+      JSON.parse(stored);
+      return stored;
+    } catch {
+      return null;
+    }
+  }
 }
 
 /**
